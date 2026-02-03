@@ -1,0 +1,150 @@
+{
+  "name": "compliance-poc",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "process",
+              "value": "Ready to extract text"
+            },
+            {
+              "name": "compliance_type",
+              "value": "={{ $json.query.complianceType }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bb3c9adf-f107-45c4-8ad0-d97e1c6a1110",
+      "name": "Validation Passed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        32,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "error"
+            },
+            {
+              "name": "message",
+              "value": "Missing required fields (check Query Params) or File."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7351171e-f7c9-47d9-b9f8-ebc655e37efc",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        32,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.query.complianceType !== undefined }}",
+              "value2": true
+            },
+            {
+              "value1": "={{ $json.query.fileType !== undefined }}",
+              "value2": true
+            },
+            {
+              "value1": "={{ $binary.data !== undefined }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "b5f261f9-c587-4111-b328-abd5042caf79",
+      "name": "Validate Input (Query+File)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evaluate-compliance",
+        "options": {
+          "binaryData": true
+        }
+      },
+      "id": "ceb03446-dfca-41b3-8a16-2983d765f02f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        160
+      ],
+      "webhookId": "2e2427b2-a6f0-45d6-92d4-9d65f32a66c2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Validate Input (Query+File)": {
+      "main": [
+        [
+          {
+            "node": "Validation Passed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input (Query+File)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c4854e22-6504-41a6-829c-68da23b6fd7d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1ecd3f86c2b6459906d142ba4c3d305b79d13621db1ebd818c7cc9f6d6733f56"
+  },
+  "id": "AddYFFiRnRy9UFLdlDomk",
+  "tags": []
+}

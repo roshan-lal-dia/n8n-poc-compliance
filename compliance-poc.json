@@ -225,6 +225,21 @@
       ],
       "id": "be9037bd-6037-42ab-8d51-d57f298799ee",
       "name": "Edit Fields : Data Architecture Criteria"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "pythonNative",
+        "pythonCode": "import sys\nimport os\n\nstatus = 'success'\nlibs = []\nerrors = []\n\ntry:\n    import pdfplumber\n    libs.append('pdfplumber')\nexcept Exception as e:\n    status = 'error'\n    errors.append('pdfplumber: ' + str(e))\n\ntry:\n    import pptx\n    libs.append('python-pptx')\nexcept Exception as e:\n    status = 'error'\n    errors.append('python-pptx: ' + str(e))\n\ntry:\n    import docx\n    libs.append('python-docx')\nexcept Exception as e:\n    status = 'error'\n    errors.append('python-docx: ' + str(e))\n\ntry:\n    import pytesseract\n    libs.append('pytesseract')\nexcept Exception as e:\n    status = 'error'\n    errors.append('pytesseract: ' + str(e))\n\nreturn {'status': status, 'libraries': libs, 'errors': errors}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        288
+      ],
+      "id": "5a8aa67d-b3f0-4844-afcc-656b86417f48",
+      "name": "Code in Python"
     }
   ],
   "pinData": {},

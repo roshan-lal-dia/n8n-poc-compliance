@@ -22,3 +22,9 @@
 ## Editing guidance
 - Make minimal changes; avoid reformatting or reordering nodes.
 - Validate that JSON remains valid and importable.
+
+## Code nodes
+- Code nodes in n8n DO NOT display print() or console.log() output.
+- Always use `return` to output data: `return {"message": "Hello World"}`
+- Python: `return {"key": "value"}` or `return _input.all()`
+- JavaScript: `return {json: {key: "value"}}` or `return $input.all()`

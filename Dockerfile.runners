@@ -1,0 +1,22 @@
+# Dockerfile for n8n task runners with Python libraries
+# Extends official n8n runners image to add Python packages
+# Base image is distroless (no apt-get or apk), so we only install Python packages
+
+FROM n8nio/runners:2.6.3
+
+# Switch to root to install Python packages
+USER root
+
+# Install Python libraries using uv pip as recommended by n8n docs
+# Installing into the Python runner directory so they're available
+RUN cd /opt/runners/task-runner-python && uv pip install \
+    pdfplumber \
+    python-pptx \
+    python-docx \
+    pillow
+
+# Switch back to runner user for security
+USER runner
+
+# Set Python path to include the task runner directory
+ENV PYTHONPATH=/opt/runners/task-runner-python:$PYTHONPATH

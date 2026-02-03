@@ -1,0 +1,7 @@
+# Don't copy these into Docker build context
+n8n_data/
+.git/
+.github/
+*.md
+api-playground/
+assets/

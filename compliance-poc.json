@@ -313,31 +313,93 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "pythonNative",
-        "pythonCode": "import base64\nimport os\nimport subprocess\nimport tempfile\n\nfor item in _items:\n    try:\n        pptx_base64 = item[\"binary\"][\"data\"][\"data\"]\n        pptx_bytes = base64.b64decode(pptx_base64)\n\n        with tempfile.TemporaryDirectory() as tmpdir:\n            input_path = os.path.join(tmpdir, \"input.pptx\")\n            with open(input_path, \"wb\") as f:\n                f.write(pptx_bytes)\n\n            cmd = [\n                \"soffice\",\n                \"--headless\",\n                \"--nologo\",\n                \"--nofirststartwizard\",\n                \"--convert-to\",\n                \"pdf\",\n                \"--outdir\",\n                tmpdir,\n                input_path,\n            ]\n            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n\n            output_path = None\n            for name in os.listdir(tmpdir):\n                if name.lower().endswith(\".pdf\"):\n                    output_path = os.path.join(tmpdir, name)\n                    break\n\n            if output_path is None:\n                item[\"json\"][\"error\"] = \"LibreOffice did not produce a PDF\"\n                continue\n\n            with open(output_path, \"rb\") as f:\n                pdf_bytes = f.read()\n\n        item[\"binary\"][\"data\"][\"data\"] = base64.b64encode(pdf_bytes).decode(\"utf-8\")\n        item[\"binary\"][\"data\"][\"mimeType\"] = \"application/pdf\"\n        item[\"binary\"][\"data\"][\"fileName\"] = \"converted.pdf\"\n        item[\"json\"][\"status\"] = \"converted\"\n\n    except Exception as e:\n        item[\"json\"][\"error\"] = str(e)\n\nreturn _items"
+        "jsCode": "for (const item of items) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = item.json.query?.fileName || 'input.pptx';\n  }\n}\nreturn items;"
       },
-      "id": "62267776-6531-4ec7-89d5-2891dbe7d1ea",
-      "name": "Convert PPTX to PDF",
+      "id": "rename-pptx",
+      "name": "Set PPTX Filename",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -128,
+        -200,
         768
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "pythonNative",
-        "pythonCode": "import base64\nimport os\nimport subprocess\nimport tempfile\n\nfor item in _items:\n    try:\n        docx_base64 = item[\"binary\"][\"data\"][\"data\"]\n        docx_bytes = base64.b64decode(docx_base64)\n\n        with tempfile.TemporaryDirectory() as tmpdir:\n            input_path = os.path.join(tmpdir, \"input.docx\")\n            with open(input_path, \"wb\") as f:\n                f.write(docx_bytes)\n\n            cmd = [\n                \"soffice\",\n                \"--headless\",\n                \"--nologo\",\n                \"--nofirststartwizard\",\n                \"--convert-to\",\n                \"pdf\",\n                \"--outdir\",\n                tmpdir,\n                input_path,\n            ]\n            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n\n            output_path = None\n            for name in os.listdir(tmpdir):\n                if name.lower().endswith(\".pdf\"):\n                    output_path = os.path.join(tmpdir, name)\n                    break\n\n            if output_path is None:\n                item[\"json\"][\"error\"] = \"LibreOffice did not produce a PDF\"\n                continue\n\n            with open(output_path, \"rb\") as f:\n                pdf_bytes = f.read()\n\n        item[\"binary\"][\"data\"][\"data\"] = base64.b64encode(pdf_bytes).decode(\"utf-8\")\n        item[\"binary\"][\"data\"][\"mimeType\"] = \"application/pdf\"\n        item[\"binary\"][\"data\"][\"fileName\"] = \"converted.pdf\"\n        item[\"json\"][\"status\"] = \"converted\"\n\n    except Exception as e:\n        item[\"json\"][\"error\"] = str(e)\n\nreturn _items"
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/libreoffice/convert",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
       },
-      "id": "9d653522-b9d4-4404-a951-72cf68eba75d",
-      "name": "Convert DOCX to PDF",
+      "id": "62267776-6531-4ec7-89d5-2891dbe7d1ea",
+      "name": "Convert PPTX to PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of items) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = item.json.query?.fileName || 'input.docx';\n  }\n}\nreturn items;"
+      },
+      "id": "rename-docx",
+      "name": "Set DOCX Filename",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -128,
+        -200,
+        1056
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/libreoffice/convert",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "9d653522-b9d4-4404-a951-72cf68eba75d",
+      "name": "Convert DOCX to PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
         1056
       ]
     },
@@ -427,11 +489,33 @@
         ],
         [
           {
-            "node": "Convert PPTX to PDF",
+            "node": "Set PPTX Filename",
             "type": "main",
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Set DOCX Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set PPTX Filename": {
+      "main": [
+        [
+          {
+            "node": "Convert PPTX to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set DOCX Filename": {
+      "main": [
         [
           {
             "node": "Convert DOCX to PDF",

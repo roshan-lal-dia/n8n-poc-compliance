@@ -13,24 +13,25 @@ services:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=admin
       - N8N_BASIC_AUTH_PASSWORD=change_this_secure_password
-      
+
       # Host Configuration
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
-      
+
       # Encryption Key (change this to random 32 chars!)
       - N8N_ENCRYPTION_KEY=change_this_32_char_encryption_key_here
-      
+
       # Timezone
       - GENERIC_TIMEZONE=Asia/Qatar
-      
+
       # Task Runners Configuration (External Mode with custom libraries)
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
       - N8N_RUNNERS_AUTH_TOKEN=n8n-runner-secret-token-2026-change-this
+      # Default timeout (user confirmed LibreOffice is fast enough)
       - N8N_RUNNERS_TASK_REQUEST_TIMEOUT=300
-      
+
       # Binary Data Mode - default stores in memory (needed for Python code nodes)
       - EXECUTIONS_DATA_SAVE_ON_ERROR=all
       - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
@@ -38,27 +39,39 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
   task-runners:
-    # Custom image with Python libraries
-    image: n8n-runners-custom:2.6.3
+    image: n8nio/n8n:2.6.3
     container_name: n8n-runners
     restart: unless-stopped
+    command: /usr/local/bin/task-runner-launcher
     environment:
       - N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679
       - N8N_RUNNERS_AUTH_TOKEN=n8n-runner-secret-token-2026-change-this
-      - N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT=60
     volumes:
       - ./n8n-task-runners.json:/etc/n8n-task-runners.json:ro
     networks:
       - default
     depends_on:
       - n8n
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: gotenberg
+    restart: unless-stopped
+    environment:
+      # Set massive timeouts to prevent any early termination
+      - API_TIMEOUT=600s
+      - LIBREOFFICE_START_TIMEOUT=600s
+      # Disable auto-restart to prevent "cold start" delays on every 10th request
+      # - LIBREOFFICE_RESTART_AFTER=10 
+    networks:
+      - default
 
 volumes:
   n8n_data:

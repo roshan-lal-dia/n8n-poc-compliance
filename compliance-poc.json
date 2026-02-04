@@ -311,7 +311,7 @@
     },
     {
       "parameters": {
-        "command": "=libreoffice --headless --convert-to pdf \"{{ $('Set Binary Filename').first().json.tempPath }}/input.pptx\" --outdir {{ $('Set Binary Filename').first().json.tempPath }}",
+        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.pptx\" --outdir /tmp/n8n_processing",
         "options": {}
       },
       "id": "converted-pptx-local",
@@ -325,7 +325,7 @@
     },
     {
       "parameters": {
-        "command": "=libreoffice --headless --convert-to pdf \"{{ $('Set Binary Filename').first().json.tempPath }}/input.docx\" --outdir {{ $('Set Binary Filename').first().json.tempPath }}",
+        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.docx\" --outdir /tmp/n8n_processing",
         "options": {}
       },
       "id": "converted-docx-local",
@@ -354,7 +354,7 @@
     },
     {
       "parameters": {
-        "command": "=pdftoppm -png -r 300 \"{{ $('Set Binary Filename').first().json.tempPath }}/input.pdf\" \"{{ $('Set Binary Filename').first().json.tempPath }}/page\"",
+        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.pdf\" \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page\"",
         "options": {}
       },
       "id": "extract-images-local",
@@ -368,7 +368,7 @@
     },
     {
       "parameters": {
-        "command": "=ls {{ $('Set Binary Filename').first().json.tempPath }}/page-*.png",
+        "command": "=ls /tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page-*.png",
         "options": {}
       },
       "id": "list-images",

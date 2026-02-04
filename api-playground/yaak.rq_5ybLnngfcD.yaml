@@ -1,8 +1,8 @@
 type: http_request
 model: http_request
-id: rq_w8aPRVY2nD
-createdAt: 2026-02-03T10:26:37.947624800
-updatedAt: 2026-02-04T22:12:36.852536400
+id: rq_5ybLnngfcD
+createdAt: 2026-02-04T22:12:50.812270
+updatedAt: 2026-02-04T22:13:36.196627300
 workspaceId: wk_fyV8LrMfV8
 folderId: null
 authentication: {}
@@ -10,11 +10,11 @@ authenticationType: null
 body:
   form:
   - enabled: true
-    file: C:\Users\infaw\Downloads\poc-unifi\n8n-poc-compliance\assets\slides.pptx
+    file: C:\Users\infaw\Downloads\poc-unifi\n8n-poc-compliance\assets\datastrategy.pdf
     id: JJj45C35w9
     name: data
   - enabled: true
-    id: RWrKxIAmAW
+    id: MXXU9Mkmhc
     name: ''
     value: ''
 bodyType: multipart/form-data
@@ -25,8 +25,8 @@ headers:
   value: ''
   id: uMw9F9ZNh4
 method: POST
-name: localhost:5678/webhook-test/evaluate-compliance with pptx
-sortPriority: -1770114397924.0
+name: localhost:5678/webhook-test/evaluate-compliance pdf
+sortPriority: -1770114397923.998
 url: http://localhost:5678/webhook-test/evaluate-compliance
 urlParameters:
 - enabled: true
@@ -35,9 +35,9 @@ urlParameters:
   id: WEi6tIhBN2
 - enabled: true
   name: fileType
-  value: pptx
+  value: pdf
   id: YnMJZV9Y7Y
 - enabled: true
   name: ''
   value: ''
-  id: 4r6ZXKPHdR
+  id: wfjdUXyVIs

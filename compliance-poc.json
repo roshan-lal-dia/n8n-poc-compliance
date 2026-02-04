@@ -9,13 +9,13 @@
           "binaryData": true
         }
       },
-      "id": "b4451240-75d0-4ce9-b6a2-4edcca17d885",
+      "id": "617d0ed0-b75a-4fdb-b261-3481e613d1ce",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -384,
-        96
+        -1024,
+        1176
       ],
       "webhookId": "dd082bf0-480f-4527-abc0-fe19fdfde3cc"
     },
@@ -38,13 +38,13 @@
           ]
         }
       },
-      "id": "993975bf-9855-48d7-9ba2-b93d8e154e10",
+      "id": "2eae7f72-7405-4044-baf6-76831b35e028",
       "name": "Validate Input (Query+File)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        -160,
-        96
+        -800,
+        1176
       ]
     },
     {
@@ -63,13 +63,13 @@
         },
         "options": {}
       },
-      "id": "e39865c3-7c8a-48f3-89d7-ca9617f8e132",
+      "id": "9e6fac7b-a779-4e71-a312-a7d6ab10971b",
       "name": "Error Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
-        64,
-        256
+        -576,
+        1272
       ]
     },
     {
@@ -92,13 +92,13 @@
         },
         "options": {}
       },
-      "id": "dcfadeb4-5c6e-4422-bf0a-16d8adcf5cc0",
+      "id": "d46642b1-0a4b-48a0-936c-b8f93ecfcc00",
       "name": "Validation Passed",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
-        64,
-        -48
+        -576,
+        1080
       ]
     },
     {
@@ -205,10 +205,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        272,
-        -48
+        -352,
+        1200
       ],
-      "id": "d48798b7-1921-49f1-bbf6-0ccde4829abc",
+      "id": "ecdf201b-1d12-46eb-a7aa-6e3cd5836d9e",
       "name": "Switch  Compliance Type"
     },
     {
@@ -220,26 +220,141 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        624,
-        48
+        -128,
+        1248
       ],
-      "id": "be9037bd-6037-42ab-8d51-d57f298799ee",
+      "id": "6d46740f-cc1e-411b-9929-4e43aadcd167",
       "name": "Edit Fields : Data Architecture Criteria"
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "language": "pythonNative",
-        "pythonCode": "import sys\nimport os\n\nstatus = 'success'\nlibs = []\nerrors = []\n\ntry:\n    import pdfplumber\n    libs.append('pdfplumber')\nexcept Exception as e:\n    status = 'error'\n    errors.append('pdfplumber: ' + str(e))\n\ntry:\n    import pptx\n    libs.append('python-pptx')\nexcept Exception as e:\n    status = 'error'\n    errors.append('python-pptx: ' + str(e))\n\ntry:\n    import docx\n    libs.append('python-docx')\nexcept Exception as e:\n    status = 'error'\n    errors.append('python-docx: ' + str(e))\n\ntry:\n    import pytesseract\n    libs.append('pytesseract')\nexcept Exception as e:\n    status = 'error'\n    errors.append('pytesseract: ' + str(e))\n\nreturn {'status': status, 'libraries': libs, 'errors': errors}\n"
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "pdf-check",
+                    "leftValue": "={{ $json.query.fileType }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "pptx-check",
+                    "leftValue": "={{ $json.query.fileType }}",
+                    "rightValue": "pptx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "docx-check",
+                    "leftValue": "={{ $json.query.fileType }}",
+                    "rightValue": "docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -352,
+        840
+      ],
+      "id": "34458237-b030-4a1d-ab51-6ad388f01e7f",
+      "name": "Switch by File Type"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "pythonNative",
+        "pythonCode": "import base64\nimport os\nimport subprocess\nimport tempfile\n\nfor item in _items:\n    try:\n        pptx_base64 = item[\"binary\"][\"data\"][\"data\"]\n        pptx_bytes = base64.b64decode(pptx_base64)\n\n        with tempfile.TemporaryDirectory() as tmpdir:\n            input_path = os.path.join(tmpdir, \"input.pptx\")\n            with open(input_path, \"wb\") as f:\n                f.write(pptx_bytes)\n\n            cmd = [\n                \"soffice\",\n                \"--headless\",\n                \"--nologo\",\n                \"--nofirststartwizard\",\n                \"--convert-to\",\n                \"pdf\",\n                \"--outdir\",\n                tmpdir,\n                input_path,\n            ]\n            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n\n            output_path = None\n            for name in os.listdir(tmpdir):\n                if name.lower().endswith(\".pdf\"):\n                    output_path = os.path.join(tmpdir, name)\n                    break\n\n            if output_path is None:\n                item[\"json\"][\"error\"] = \"LibreOffice did not produce a PDF\"\n                continue\n\n            with open(output_path, \"rb\") as f:\n                pdf_bytes = f.read()\n\n        item[\"binary\"][\"data\"][\"data\"] = base64.b64encode(pdf_bytes).decode(\"utf-8\")\n        item[\"binary\"][\"data\"][\"mimeType\"] = \"application/pdf\"\n        item[\"binary\"][\"data\"][\"fileName\"] = \"converted.pdf\"\n        item[\"json\"][\"status\"] = \"converted\"\n\n    except Exception as e:\n        item[\"json\"][\"error\"] = str(e)\n\nreturn _items"
+      },
+      "id": "62267776-6531-4ec7-89d5-2891dbe7d1ea",
+      "name": "Convert PPTX to PDF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        592,
-        288
-      ],
-      "id": "5a8aa67d-b3f0-4844-afcc-656b86417f48",
-      "name": "Code in Python"
+        -128,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "pythonNative",
+        "pythonCode": "import base64\nimport os\nimport subprocess\nimport tempfile\n\nfor item in _items:\n    try:\n        docx_base64 = item[\"binary\"][\"data\"][\"data\"]\n        docx_bytes = base64.b64decode(docx_base64)\n\n        with tempfile.TemporaryDirectory() as tmpdir:\n            input_path = os.path.join(tmpdir, \"input.docx\")\n            with open(input_path, \"wb\") as f:\n                f.write(docx_bytes)\n\n            cmd = [\n                \"soffice\",\n                \"--headless\",\n                \"--nologo\",\n                \"--nofirststartwizard\",\n                \"--convert-to\",\n                \"pdf\",\n                \"--outdir\",\n                tmpdir,\n                input_path,\n            ]\n            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n\n            output_path = None\n            for name in os.listdir(tmpdir):\n                if name.lower().endswith(\".pdf\"):\n                    output_path = os.path.join(tmpdir, name)\n                    break\n\n            if output_path is None:\n                item[\"json\"][\"error\"] = \"LibreOffice did not produce a PDF\"\n                continue\n\n            with open(output_path, \"rb\") as f:\n                pdf_bytes = f.read()\n\n        item[\"binary\"][\"data\"][\"data\"] = base64.b64encode(pdf_bytes).decode(\"utf-8\")\n        item[\"binary\"][\"data\"][\"mimeType\"] = \"application/pdf\"\n        item[\"binary\"][\"data\"][\"fileName\"] = \"converted.pdf\"\n        item[\"json\"][\"status\"] = \"converted\"\n\n    except Exception as e:\n        item[\"json\"][\"error\"] = str(e)\n\nreturn _items"
+      },
+      "id": "9d653522-b9d4-4404-a951-72cf68eba75d",
+      "name": "Convert DOCX to PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        1056
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "pythonNative",
+        "pythonCode": "import base64\nfrom io import BytesIO\nimport pdfplumber\n\nfor item in _items:\n    try:\n        pdf_data = base64.b64decode(item[\"binary\"][\"data\"][\"data\"])\n\n        extracted_content = {\n            'text_pages': [],\n            'tables': [],\n            'images_metadata': [],\n            'full_text': \"\"\n        }\n\n        total_pages = 0\n        try:\n            with pdfplumber.open(BytesIO(pdf_data)) as pdf:\n                total_pages = len(pdf.pages)\n\n                for i, page in enumerate(pdf.pages):\n                    page_text = page.extract_text() or \"\"\n                    extracted_content['text_pages'].append({\n                        \"page\": i + 1,\n                        \"content\": page_text\n                    })\n                    extracted_content['full_text'] += f\"\\n--- Page {i+1} ---\\n{page_text}\\n\"\n\n                    tables = page.extract_tables()\n                    if tables:\n                        for table in tables:\n                            extracted_content['tables'].append({\n                                \"page\": i + 1,\n                                \"data\": table\n                            })\n\n                    try:\n                        for img in page.images:\n                            extracted_content['images_metadata'].append({\n                                \"page\": i + 1,\n                                \"width\": img.get('width'),\n                                \"height\": img.get('height'),\n                                \"x\": img.get('x0'),\n                                \"y\": img.get('top')\n                            })\n                    except Exception:\n                        pass\n\n        except Exception as e:\n            extracted_content['error'] = str(e)\n\n        item[\"json\"][\"parsed_content\"] = extracted_content\n        item[\"json\"][\"stats\"] = {\n            \"page_count\": total_pages,\n            \"table_count\": len(extracted_content['tables']),\n            \"image_count\": len(extracted_content['images_metadata'])\n        }\n\n    except Exception as e:\n        item[\"json\"][\"error\"] = str(e)\n\nreturn _items"
+      },
+      "id": "9a193570-d85a-4b7a-9820-4bc3b0dbdb9e",
+      "name": "Master PDF Parser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        912
+      ]
     }
   ],
   "pinData": {},
@@ -280,6 +395,11 @@
             "node": "Switch  Compliance Type",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Switch by File Type",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -295,19 +415,65 @@
           }
         ]
       ]
+    },
+    "Switch by File Type": {
+      "main": [
+        [
+          {
+            "node": "Master PDF Parser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Convert PPTX to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Convert DOCX to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert PPTX to PDF": {
+      "main": [
+        [
+          {
+            "node": "Master PDF Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert DOCX to PDF": {
+      "main": [
+        [
+          {
+            "node": "Master PDF Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "ce908663-51db-4f87-96c7-9cc5ebfcd194",
+  "versionId": "e7192148-d28e-4dcf-b801-3684ea2bb19b",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "1ecd3f86c2b6459906d142ba4c3d305b79d13621db1ebd818c7cc9f6d6733f56"
+    "instanceId": "20ca36cf4b5fc64f7471c1e6a838151ab8163351fb5ba6c854a469e23e1d5d80"
   },
-  "id": "AddYFFiRnRy9UFLdlDomk",
+  "id": "uEjNH2OxAw_U3-G8MiYJp",
   "tags": []
 }

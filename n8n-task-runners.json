@@ -48,8 +48,8 @@
       ],
       "env-overrides": {
         "PYTHONPATH": "/opt/runners/task-runner-python",
-        "N8N_RUNNERS_STDLIB_ALLOW": "json,re,datetime,math,base64,hashlib",
-        "N8N_RUNNERS_EXTERNAL_ALLOW": "pdfplumber,pptx,docx,PIL"
+        "N8N_RUNNERS_STDLIB_ALLOW": "json,re,datetime,math,base64,hashlib,io,tempfile,os,subprocess,shutil,pathlib,uuid",
+        "N8N_RUNNERS_EXTERNAL_ALLOW": "pdfplumber,PIL"
       }
     }
   ]

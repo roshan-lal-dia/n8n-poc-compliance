@@ -1,22 +1,49 @@
-# Dockerfile for n8n task runners with Python libraries
-# Extends official n8n runners image to add Python packages
-# Base image is distroless (no apt-get or apk), so we only install Python packages
+# Dockerfile for n8n task runners with Python libraries and LibreOffice
+# Uses a Debian base to install LibreOffice for true PPTX/DOCX rendering
 
-FROM n8nio/runners:2.6.3
+FROM n8nio/runners:2.6.3 AS n8n_runner
 
-# Switch to root to install Python packages
-USER root
+FROM debian:bookworm-slim
 
-# Install Python libraries using uv pip as recommended by n8n docs
-# Installing into the Python runner directory so they're available
-RUN cd /opt/runners/task-runner-python && uv pip install \
+# Install LibreOffice (headless) and runtime deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice-core \
+    libreoffice-impress \
+    libreoffice-writer \
+    libreoffice-calc \
+    python3 \
+    python3-venv \
+    python3-pip \
+    tini \
+    ca-certificates \
+    fonts-dejavu \
+    fonts-liberation \
+    ghostscript \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy n8n runners from the official image
+COPY --from=n8n_runner /opt/runners /opt/runners
+COPY --from=n8n_runner /usr/local/bin /usr/local/bin
+COPY --from=n8n_runner /usr/local/lib /usr/local/lib
+COPY --from=n8n_runner /sbin/tini /sbin/tini
+COPY --from=n8n_runner /sbin/tini /usr/sbin/tini
+COPY --from=n8n_runner /etc/passwd /etc/passwd
+COPY --from=n8n_runner /etc/group /etc/group
+COPY --from=n8n_runner /home/runner /home/runner
+
+# Install Python libraries into the task runner venv
+RUN rm -rf /opt/runners/task-runner-python/.venv && \
+    /usr/bin/python3 -m venv /opt/runners/task-runner-python/.venv && \
+    /opt/runners/task-runner-python/.venv/bin/python -m ensurepip && \
+    /opt/runners/task-runner-python/.venv/bin/pip install --no-cache-dir \
     pdfplumber \
-    python-pptx \
-    python-docx \
     pillow
 
 # Switch back to runner user for security
 USER runner
 
 # Set Python path to include the task runner directory
-ENV PYTHONPATH=/opt/runners/task-runner-python:$PYTHONPATH
+ENV PYTHONPATH=/opt/runners/task-runner-python
+
+ENTRYPOINT ["/usr/bin/tini","--","/usr/local/bin/task-runner-launcher"]
+CMD ["javascript","python"]

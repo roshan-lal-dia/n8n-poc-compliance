@@ -18,6 +18,9 @@ RUN apk update && apk add --no-cache \
     libreoffice \
     openjdk11-jre \
     poppler-utils \
+    tesseract-ocr \
+    tesseract-ocr-data-eng \
+    tesseract-ocr-data-ara \
     font-noto \
     font-noto-cjk \
     terminus-font \

@@ -5,9 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "evaluate-compliance",
-        "options": {
-          "binaryData": true
-        }
+        "options": {}
       },
       "id": "617d0ed0-b75a-4fdb-b261-3481e613d1ce",
       "name": "Webhook",
@@ -313,109 +311,113 @@
     },
     {
       "parameters": {
-        "jsCode": "for (const item of items) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = item.json.query?.fileName || 'input.pptx';\n  }\n}\nreturn items;"
+        "command": "=libreoffice --headless --convert-to pdf \"{{ $('Set Binary Filename').first().json.tempPath }}/input.pptx\" --outdir {{ $('Set Binary Filename').first().json.tempPath }}",
+        "options": {}
       },
-      "id": "rename-pptx",
-      "name": "Set PPTX Filename",
+      "id": "converted-pptx-local",
+      "name": "Local Convert PPTX",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        1408
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=libreoffice --headless --convert-to pdf \"{{ $('Set Binary Filename').first().json.tempPath }}/input.docx\" --outdir {{ $('Set Binary Filename').first().json.tempPath }}",
+        "options": {}
+      },
+      "id": "converted-docx-local",
+      "name": "Local Convert DOCX",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/tmp/n8n_processing/{{ $binary.data.fileName }}",
+        "options": {}
+      },
+      "id": "write-temp-file",
+      "name": "Write Temp File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pdftoppm -png -r 300 \"{{ $('Set Binary Filename').first().json.tempPath }}/input.pdf\" \"{{ $('Set Binary Filename').first().json.tempPath }}/page\"",
+        "options": {}
+      },
+      "id": "extract-images-local",
+      "name": "Local Extract Images",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        160,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=ls {{ $('Set Binary Filename').first().json.tempPath }}/page-*.png",
+        "options": {}
+      },
+      "id": "list-images",
+      "name": "List Generated Images",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        384,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const files = $input.all()[0].json.stdout.split('\\n').filter(f => f.trim() !== '');\n\nreturn files.map((filePath, index) => {\n  const fileName = filePath.split('/').pop();\n  return {\n    json: {\n      pageNumber: index + 1,\n      fileName: fileName,\n      filePath: filePath,\n      originalFile: $input.all()[0].json.originalFile\n    }\n  };\n});"
+      },
+      "id": "prepare-file-list",
+      "name": "Prepare Generated File List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -200,
-        768
+        608,
+        1400
       ]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "http://gotenberg:3000/forms/libreoffice/convert",
-        "sendBody": true,
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "parameterType": "formBinaryData",
-              "name": "files",
-              "inputDataFieldName": "data"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
-            }
-          }
-        }
+        "fileSelector": "={{ $json.filePath }}",
+        "options": {}
       },
-      "id": "62267776-6531-4ec7-89d5-2891dbe7d1ea",
-      "name": "Convert PPTX to PDF",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "read-image-file",
+      "name": "Read Page Image",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
       "position": [
-        0,
-        768
+        832,
+        1400
       ]
     },
     {
       "parameters": {
-        "jsCode": "for (const item of items) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = item.json.query?.fileName || 'input.docx';\n  }\n}\nreturn items;"
+        "jsCode": "for (const item of items) {\n  if (item.binary && item.binary.data) {\n    const fileType = item.json.query?.fileType || 'bin';\n    const runId = Math.random().toString(36).substring(7);\n    const filePrefix = `${runId}_`;\n    const fileName = `${filePrefix}input.${fileType}`;\n    item.binary.data.fileName = fileName;\n    item.json.filePrefix = filePrefix;\n  }\n}\nreturn items;"
       },
-      "id": "rename-docx",
-      "name": "Set DOCX Filename",
+      "id": "set-filename",
+      "name": "Set Binary Filename",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -200,
-        1056
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://gotenberg:3000/forms/libreoffice/convert",
-        "sendBody": true,
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "parameterType": "formBinaryData",
-              "name": "files",
-              "inputDataFieldName": "data"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
-            }
-          }
-        }
-      },
-      "id": "9d653522-b9d4-4404-a951-72cf68eba75d",
-      "name": "Convert DOCX to PDF",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        0,
-        1056
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "pythonNative",
-        "pythonCode": "import base64\nfrom io import BytesIO\nimport pdfplumber\n\nfor item in _items:\n    try:\n        pdf_data = base64.b64decode(item[\"binary\"][\"data\"][\"data\"])\n\n        extracted_content = {\n            'text_pages': [],\n            'tables': [],\n            'images_metadata': [],\n            'full_text': \"\"\n        }\n\n        total_pages = 0\n        try:\n            with pdfplumber.open(BytesIO(pdf_data)) as pdf:\n                total_pages = len(pdf.pages)\n\n                for i, page in enumerate(pdf.pages):\n                    page_text = page.extract_text() or \"\"\n                    extracted_content['text_pages'].append({\n                        \"page\": i + 1,\n                        \"content\": page_text\n                    })\n                    extracted_content['full_text'] += f\"\\n--- Page {i+1} ---\\n{page_text}\\n\"\n\n                    tables = page.extract_tables()\n                    if tables:\n                        for table in tables:\n                            extracted_content['tables'].append({\n                                \"page\": i + 1,\n                                \"data\": table\n                            })\n\n                    try:\n                        for img in page.images:\n                            extracted_content['images_metadata'].append({\n                                \"page\": i + 1,\n                                \"width\": img.get('width'),\n                                \"height\": img.get('height'),\n                                \"x\": img.get('x0'),\n                                \"y\": img.get('top')\n                            })\n                    except Exception:\n                        pass\n\n        except Exception as e:\n            extracted_content['error'] = str(e)\n\n        item[\"json\"][\"parsed_content\"] = extracted_content\n        item[\"json\"][\"stats\"] = {\n            \"page_count\": total_pages,\n            \"table_count\": len(extracted_content['tables']),\n            \"image_count\": len(extracted_content['images_metadata'])\n        }\n\n    except Exception as e:\n        item[\"json\"][\"error\"] = str(e)\n\nreturn _items"
-      },
-      "id": "9a193570-d85a-4b7a-9820-4bc3b0dbdb9e",
-      "name": "Master PDF Parser",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        96,
-        912
+        -550,
+        1400
       ]
     }
   ],
@@ -459,7 +461,7 @@
             "index": 0
           },
           {
-            "node": "Switch by File Type",
+            "node": "Set Binary Filename",
             "type": "main",
             "index": 0
           }
@@ -482,65 +484,98 @@
       "main": [
         [
           {
-            "node": "Master PDF Parser",
+            "node": "Local Extract Images",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Set PPTX Filename",
+            "node": "Local Convert PPTX",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Set DOCX Filename",
+            "node": "Local Convert DOCX",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set PPTX Filename": {
+    "Write Temp File": {
       "main": [
         [
           {
-            "node": "Convert PPTX to PDF",
+            "node": "Switch by File Type",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set DOCX Filename": {
+    "Local Convert PPTX": {
       "main": [
         [
           {
-            "node": "Convert DOCX to PDF",
+            "node": "Local Extract Images",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Convert PPTX to PDF": {
+    "Local Convert DOCX": {
       "main": [
         [
           {
-            "node": "Master PDF Parser",
+            "node": "Local Extract Images",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Convert DOCX to PDF": {
+    "Local Extract Images": {
       "main": [
         [
           {
-            "node": "Master PDF Parser",
+            "node": "List Generated Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Generated Images": {
+      "main": [
+        [
+          {
+            "node": "Prepare Generated File List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Generated File List": {
+      "main": [
+        [
+          {
+            "node": "Read Page Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Binary Filename": {
+      "main": [
+        [
+          {
+            "node": "Write Temp File",
             "type": "main",
             "index": 0
           }

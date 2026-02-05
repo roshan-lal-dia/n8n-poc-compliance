@@ -1,48 +1,54 @@
 # Module 3 Findings: Local File Processing & Infrastructure
 
 ## Overview
-This document summarizes the technical challenges and solutions encountered while implementing Module 3 (File Processor) of the n8n compliance workflow. The goal was to establish a robust, local (Docker-based) pipeline for converting PPTX/DOCX documents to PDF and extracting images, avoiding reliance on external cloud APIs.
+This document summarizes the technical evolution and final solution for Module 3 (File Processor & Vision) of the n8n compliance workflow. The initial goal was a single monolithic container, but due to conflicting system dependencies (Alpine vs. Python/Torch libraries), the architecture evolved into a **Sidecar Pattern**.
 
 ## Key Findings & Solutions
 
-### 1. Docker Infrastructure & Permissions
-*   **Issue**: Persistence errors and "permission denied" when writing to `/home/node/.n8n`.
-*   **Root Cause**: The default Alpine user `node` did not have ownership of the volume mount points or the pre-created directories.
+### 1. The Sidecar Architecture (Alpine + Debian)
+*   **Issue**: Installing Florence-2 (transformers, torch, flash_attn) on the Alpine-based `n8n` container caused unsolvable libc/dependency hell and massive image bloat.
+*   **Resolution**: Split the architecture into two services in `docker-compose.yml`:
+    *   **n8n Service**: Keeps the lightweight Alpine base for orchestration, LibreOffice, and Tesseract.
+    *   **Florence Service**: A dedicated Debian/Python 3.10 container exposing a Flask API for the Vision model.
+    *   **Communication**: HTTP over the internal Docker network (`http://florence:5000/analyze`).
+
+### 2. Shared Volume for Large Files
+*   **Issue**: Passing base64 encoded images between n8n and the Python service via HTTP JSON payloads was inefficient and prone to memory overflows.
+*   **Resolution**: Implemented a shared Docker volume (`shared_processing`) mounted at `/tmp/n8n_processing` on both containers.
+    *   n8n writes images to disk.
+    *   n8n sends the *filepath* to the Florence API.
+    *   Florence reads from the disk, processes the image, and returns JSON.
+
+### 3. Metadata Preservation & "Page Undefined"
+*   **Issue**: Splitting the workflow into parallel branches (Vision vs. OCR) caused metadata like `pageNumber` to be lost when merging results back together, as the raw API output didn't contain the original n8n context.
 *   **Resolution**: 
-    *   Updated `Dockerfile` to explicitly `chown node:node` the data directory.
-    *   Ensured the service runs as the correct user context.
+    1.  **Unique Prefixing**: Every run generates a random `filePrefix` (e.g., `9qwz5j_`) to namespace files on disk.
+    2.  **Lookup Logic**: The merging code node now explicitly looks up the `pageNumber` and `originalFile` from the upstream "Prepare Generated File List" node, mapping by array index.
 
-### 2. LibreOffice Dependencies
-*   **Issue**: LibreOffice conversion failed silently or with "javaldx: Could not find a Java Runtime Environment".
-*   **Root Cause**: Alpine's `libreoffice` package requires a valid JRE for certain format conversions (like PPTX), but it is not a hard dependency in the package manager.
-*   **Resolution**: Added `openjdk11-jre` to the `Dockerfile` package list.
-
-### 3. Webhook Data Corruption
-*   **Issue**: Uploaded files (PPTX) were corrupt (0 bytes or partial headers) when processed by downstream nodes.
-*   **Root Cause**: The Webhook node's "Binary Data" option was enabled, which attempted to parse the incoming `multipart/form-data` inconsistently.
+### 4. Safety & Cleanup
+*   **Issue**: Using `rm -rf *` is dangerous, but leaving files fills up the disk.
 *   **Resolution**: 
-    *   Disabled "Binary Data" on the Webhook node.
-    *   Relied on n8n's standard binary object handling for multipart inputs.
+    *   Implemented a conditional cleanup command: `if [ -n "{{ $json.filePrefix }}" ]; ...`.
+    *   Ensured the `filePrefix` variable is correctly passed to the final node.
+    *   This ensures we only delete the specific files for the current run.
 
-### 4. CLI Execution & Variable Resolution
-*   **Issue**: `pdftoppm` and `libreoffice` commands failed with "No such file" because dynamic variables like `{{ $binary.data.fileName }}` occasionally resolved to empty strings or invalid paths during execution time.
-*   **Root Cause**: Direct variable interpolation in `Execute Command` nodes can be flaky if the previous node's output structure changes slightly.
+### 5. Memory Optimization (OOM Kills)
+*   **Issue**: The Florence-2 model frequently crashed the container with Error 137 (OOM) during generation.
 *   **Resolution**: 
-    *   Implemented a **"Set Binary Filename"** code node.
-    *   Forces normalized filenames (`input.pptx`, `input.pdf`) regardless of the uploaded filename.
+    *   Reduced `num_beams` to 1 (deterministic decoding).
+    *   Set `attn_implementation="eager"` to avoid memory-heavy attention kernels on CPU.
+    *   Added standard `gc.collect()` calls in the Python endpoint.
 
-### 5. Concurrency & File Overwriting
-*   **Issue**: Hardcoding filenames to `input.pptx` would cause collisions if two workflows ran simultaneously.
-*   **Root Cause**: Shared `/tmp` directory.
-*   **Resolution**: 
-    *   Added a unique `filePrefix` (random string) generator in the "Set Binary Filename" node.
-    *   All temp files are now named with this prefix (e.g., `8k2s_input.pptx`), ensuring isolation.
+## Final Technical Configuration
+*   **Orchestrator**: n8n (Alpine)
+*   **Vision Engine**: Microsoft Florence-2-base (Python 3.10 / Debian)
+*   **Shared Storage**: `/tmp/n8n_processing` (chmod 777)
+*   **OCR**: Tesseract 5 (Eng+Ara)
 
-## Technical Configuration
-*   **Temp Directory**: `/tmp/n8n_processing`
-*   **Environment Variables Needed**:
-    *   `N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=false`
-    *   `N8N_RESTRICT_FILE_ACCESS_TO=/tmp/n8n_processing`
-
-## Next Steps
-Proceed to Module 4: Content Extraction, using the now-stable PDF outputs from this module.
+## Status
+Module 3 is **Complete**. The pipeline successfully:
+1.  Ingests PPTX/DOCX/PDF.
+2.  Converts them to PDF and extracts page images.
+3.  Runs OCR (Tesseract) and Vision (Florence-2) in parallel.
+4.  Aggregates text and visual descriptions.
+5.  Cleans up temporary artifacts safely.

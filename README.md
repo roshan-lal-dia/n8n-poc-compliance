@@ -1,18 +1,19 @@
-# n8n Compliance POC (Local Processing)
+# n8n Compliance POC (Hybrid Architecture)
 
-A secure, local-only n8n workflow environment designed for compliance document processing. This setup runs n8n with custom tools installed directly in the container to handle document conversion (PPTX/DOCX → PDF → Images) without external cloud APIs.
+A secure, local-only n8n workflow environment designed for compliance document processing. This setup uses a **Sidecar Architecture** to combine the orchestration power of n8n with advanced AI Vision capabilities (Microsoft Florence-2), all running locally without cloud APIs.
 
 ---
 
 ## 📋 Features
 
-- **Base**: 
-8nio/n8n:2.6.3
+- **Orchestrator**: n8n 2.6.3 (Alpine-based)
+- **Vision Engine**: Private Python Sidecar running `microsoft/Florence-2-base`
 - **Local Conversion**: 
   - libreoffice (with OpenJDK 11) for converting Office docs to PDF.
   - poppler-utils (pdftoppm) for converting PDFs to high-quality images.
-- **Privacy**: All processing happens locally in /tmp/n8n_processing. No data leaves the container.
-- **Fonts**: Includes Noto and FreeFree fonts for accurate rendering.
+  - Tesseract 5 for OCR (English + Arabic).
+- **Privacy**: All processing happens locally. Images are exchanged via a shared Docker volume (`/tmp/n8n_processing`).
+- **Safety**: Automated cleanup with safe-guards to prevent data loss.
 
 ---
 
@@ -21,31 +22,36 @@ A secure, local-only n8n workflow environment designed for compliance document p
 ### 1. Requirements
 - Docker Desktop (Windows/Mac/Linux)
 - Git
+- **RAM**: At least 8GB recommended (4GB for containers + OS overhead).
 
 ### 2. Start the Environment
-This will build the custom image and start the container.
+This will build the custom images and start the container fleet.
 
-`powershell
+```powershell
 docker compose up -d --build
-`
+```
 
 ### 3. Access n8n
 - **URL**: [http://localhost:5678](http://localhost:5678)
-- **Username**: dmin
-- **Password**: change_this_secure_password (See docker-compose.yml)
+- **Username**: `admin`
+- **Password**: `change_this_secure_password` (See docker-compose.yml)
 
 ---
 
 ## ⚙️ Configuration & Architecture
 
-### Docker Structure
-The project uses a single **customized n8n image** defined in Dockerfile. It extends the official Alpine-based image to add system-level dependencies meant for the Execute Command node.
+### Docker Structure (Sidecar Pattern)
+We use two services communicating via the internal Docker network:
 
-| Tool | Purpose | Status |
-|------|---------|--------|
-| **LibreOffice** | libreoffice --headless --convert-to pdf ... | Installed |
-| **OpenJDK 11** | Required for LibreOffice PPTX headers | Installed |
-| **Poppler** | pdftoppm for PDF extraction | Installed |
+1.  **n8n**: The workflow engine. Handles file uploads, document conversion, and final aggregation.
+2.  **florence**: A Python/Flask API that loads the `Florence-2-base` model. It reads images directly from the shared volume to avoid HTTP overhead.
+
+| Tool | Service | Purpose |
+|------|---------|---------|
+| **LibreOffice** | n8n | Convert PPTX/DOCX to PDF |
+| **pdftoppm** | n8n | Extract PDF pages to PNG |
+| **Tesseract** | n8n | Optical Character Recognition |
+| **Florence-2** | florence | Image captioning & region detection |
 
 ### Processing Directory
 To ensure file isolation and prevent permission issues, all temporary files are handled in:
@@ -101,7 +107,8 @@ This branch replaces the complex "Task Runner" architecture with a simpler "Mono
 - **Fix**: The Dockerfile now includes openjdk11-jre. Rebuild with docker compose build.
 
 **"Permission denied" in /tmp/n8n_processing**
-- **Cause**: The folder might be owned by oot.
+- **Cause**: The folder might be owned by 
+oot.
 - **Fix**: The Dockerfile explicitly sets ownership to 
 ode:node. If issues persist, run:
   `ash

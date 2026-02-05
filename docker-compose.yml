@@ -45,6 +45,21 @@ services:
       
     volumes:
       - n8n_data:/home/node/.n8n
+      - shared_processing:/tmp/n8n_processing
+
+  florence:
+    build:
+      context: ./florence-service
+      dockerfile: Dockerfile
+    container_name: florence-sidecar
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - shared_processing:/tmp/n8n_processing
+      - florence_model_cache:/app/hf_cache
 
 volumes:
   n8n_data:
+  shared_processing:
+  florence_model_cache:

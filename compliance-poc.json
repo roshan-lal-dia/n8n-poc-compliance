@@ -7,13 +7,13 @@
         "path": "evaluate-compliance",
         "options": {}
       },
-      "id": "d87757a6-0ec6-49ce-b3cf-5cbf28c76d93",
+      "id": "191b9b73-64c2-4282-bab1-0374fe579549",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        3872,
-        3136
+        7680,
+        3952
       ],
       "webhookId": "dd082bf0-480f-4527-abc0-fe19fdfde3cc"
     },
@@ -36,13 +36,13 @@
           ]
         }
       },
-      "id": "84bd14f0-942d-444f-b052-11482d765d41",
+      "id": "46d595d9-1152-4d93-8657-1e0a4a2ce2de",
       "name": "Validate Input (Query+File)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        4096,
-        3136
+        7904,
+        3952
       ]
     },
     {
@@ -61,13 +61,13 @@
         },
         "options": {}
       },
-      "id": "02b1769b-e26b-4f90-8fd6-aca1b8239695",
+      "id": "21999b48-3f08-4fa5-aa47-aa39429c8ec2",
       "name": "Error Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
-        4320,
-        3232
+        8128,
+        4048
       ]
     },
     {
@@ -90,13 +90,13 @@
         },
         "options": {}
       },
-      "id": "6853d59b-6163-4708-9ebf-3fa83eb6c211",
+      "id": "9e05afa3-c9e9-4917-babd-987d02d6d2a7",
       "name": "Validation Passed",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
-        4320,
-        3040
+        8128,
+        3856
       ]
     },
     {
@@ -203,10 +203,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        4544,
-        3168
+        8352,
+        3984
       ],
-      "id": "dd475d2e-1503-4243-814d-b96b846941a6",
+      "id": "2fe22081-5868-49e7-b70b-420dac10f807",
       "name": "Switch  Compliance Type"
     },
     {
@@ -218,10 +218,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4768,
-        3216
+        8576,
+        4032
       ],
-      "id": "c22e38d1-e7c0-40f1-8a1b-76db1a2bb339",
+      "id": "9b50cc1b-5ca0-40f5-8dd4-7900b1ddb378",
       "name": "Edit Fields : Data Architecture Criteria"
     },
     {
@@ -303,36 +303,36 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        4544,
-        2800
+        8352,
+        3616
       ],
-      "id": "03414855-5b22-4618-9dba-48eb5121d363",
+      "id": "2ca234f0-3fbb-407c-a403-306b2dbb9ada",
       "name": "Switch by File Type"
     },
     {
       "parameters": {
         "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.pptx\" --outdir /tmp/n8n_processing"
       },
-      "id": "df7dc888-348a-494a-9803-d85abab3cb75",
+      "id": "b6316c73-0645-4c64-8272-3da19b6aaa97",
       "name": "Local Convert PPTX",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        4800,
-        3376
+        8608,
+        4192
       ]
     },
     {
       "parameters": {
         "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.docx\" --outdir /tmp/n8n_processing"
       },
-      "id": "23107ee1-bc0b-47c7-bb50-74e964d02409",
+      "id": "af680de6-c2ad-4973-84f2-9f4c576bc1c0",
       "name": "Local Convert DOCX",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        4800,
-        3568
+        8608,
+        4384
       ]
     },
     {
@@ -341,52 +341,52 @@
         "fileName": "=/tmp/n8n_processing/{{ $binary.data.fileName }}",
         "options": {}
       },
-      "id": "1c81875b-955e-4bd6-9d9e-eba2a691570a",
+      "id": "495dec0b-838c-4d57-ab49-9d888cb05059",
       "name": "Write Temp File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
       "position": [
-        4544,
-        3360
+        8352,
+        4176
       ]
     },
     {
       "parameters": {
         "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.pdf\" \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page\""
       },
-      "id": "94e98fa4-8e8d-47ce-a69a-fd878a11dc7f",
+      "id": "44b78b62-e4dd-4c30-a3b8-0a09553744a6",
       "name": "Local Extract Images",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        5056,
-        3360
+        8864,
+        4176
       ]
     },
     {
       "parameters": {
         "command": "=ls /tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page-*.png"
       },
-      "id": "3c3dc9b4-f23e-422f-9ddd-20ad67d33814",
+      "id": "5c61bb09-f276-44ae-8f16-54f69bbb46bd",
       "name": "List Generated Images",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        5280,
-        3360
+        9088,
+        4176
       ]
     },
     {
       "parameters": {
-        "jsCode": "const files = $input.all()[0].json.stdout.split('\\n').filter(f => f.trim() !== '');\n\nreturn files.map((filePath, index) => {\n  const fileName = filePath.split('/').pop();\n  return {\n    json: {\n      pageNumber: index + 1,\n      fileName: fileName,\n      filePath: filePath,\n      originalFile: $input.all()[0].json.originalFile\n    }\n  };\n});"
+        "jsCode": "const files = $input.all()[0].json.stdout.split('\\n').filter(f => f.trim() !== '');\nconst filePrefix = $('Set Binary Filename').all()[0].json.filePrefix;\n\nreturn files.map((filePath, index) => {\n  const fileName = filePath.split('/').pop();\n  return {\n    json: {\n      pageNumber: index + 1,\n      fileName: fileName,\n      filePath: filePath,\n      originalFile: $input.all()[0].json.originalFile,\n      filePrefix: filePrefix\n    }\n  };\n});"
       },
-      "id": "a86ac8e3-0c67-4763-b550-213d66b978fd",
+      "id": "3782f2be-fe97-498b-87ff-0abdea9611f4",
       "name": "Prepare Generated File List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5504,
-        3360
+        9312,
+        4176
       ]
     },
     {
@@ -394,13 +394,42 @@
         "fileSelector": "={{ $json.filePath }}",
         "options": {}
       },
-      "id": "7ebb267b-0cbf-4ec1-a149-30b144066819",
+      "id": "a1414ac0-483c-4f00-ae35-029640be169f",
       "name": "Read Page Image",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
       "position": [
-        5728,
-        3360
+        9536,
+        4176
+      ]
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=curl -v --retry 3 --retry-delay 2 -X POST -H \"Content-Type: application/json\" -d \"{\\\"filePath\\\": \\\"{{ $('Prepare Generated File List').item.json.filePath }}\\\"}\" http://florence:5000/analyze"
+      },
+      "id": "3d6eb394-e16c-46b3-a44f-26f0f1650b60",
+      "name": "Florence Vision Analysis",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        9760,
+        4384
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "fd37c5db-c6ee-43dc-94d3-2aadb35d2fff",
+      "name": "Merge Vision & OCR",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        10064,
+        4352
       ]
     },
     {
@@ -408,53 +437,53 @@
         "executeOnce": false,
         "command": "=tesseract \"{{ $('Prepare Generated File List').item.json.filePath }}\" stdout -l eng+ara --oem 3 --psm 3"
       },
-      "id": "db1c6629-1d98-487c-9b8e-f1158ba8a5a5",
+      "id": "1ea0e613-b428-4e25-b136-b0e1c079068e",
       "name": "OCR Processing",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        5952,
-        3360
+        9760,
+        4176
       ],
       "executeOnce": false
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const text = item.json.stdout || '';\n  const wordCount = text.split(/\\s+/).length;\n  const hasContent = text.trim().length > 10;\n  \n  // Basic complexity heuristic: Low word count often means image/diagram or empty page\n  const complexityScore = (wordCount < 50) ? 0.8 : 0.2;\n\n  results.push({\n    json: {\n      ...item.json,\n      extractedText: text,\n      wordCount,\n      complexityScore,\n      isDiagram: complexityScore > 0.5\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst ocrItems = $('OCR Processing').all();\nconst visionItems = $('Florence Vision Analysis').all();\nconst metaItems = $('Prepare Generated File List').all();\n\nfor (let i = 0; i < items.length; i++) {\n  // Recover data from upstream nodes to avoid merge collisions and data loss\n  const ocrText = ocrItems[i]?.json?.stdout || '';\n  const visionText = visionItems[i]?.json?.stdout || '';\n  const meta = metaItems[i]?.json || {};\n  \n  const text = ocrText;\n  const wordCount = text.split(/\\s+/).length;\n  \n  // Basic complexity heuristic\n  const complexityScore = (wordCount < 50) ? 0.8 : 0.2;\n\n  results.push({\n    json: {\n      ...meta, // Restore pageNumber, filePrefix, etc.\n      extractedText: text,\n      visionRaw: visionText,\n      stdout: visionText, // Keep vision as stdout for Aggregate node compatibility\n      wordCount,\n      complexityScore,\n      isDiagram: complexityScore > 0.5\n    }\n  });\n}\n\nreturn results;"
       },
-      "id": "ae70eb17-d14f-4a29-a96e-c4e306e37fb4",
+      "id": "eaf0e20a-31b5-443a-b04f-7cec0d04559b",
       "name": "Parse OCR",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6176,
-        3360
+        10208,
+        4112
       ]
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\n\n// Sort by page number\nitems.sort((a, b) => a.json.pageNumber - b.json.pageNumber);\n\nconst fullText = items.map(i => `--- Page ${i.json.pageNumber} ---\\n${i.json.extractedText}`).join('\\n\\n');\nconst totalPages = items.length;\nconst filePrefix = items[0].json.filePrefix;\nconst complianceType = items[0].json.query?.complianceType || 'Unknown';\n\nconst diagramPages = items.filter(i => i.json.isDiagram).map(i => i.json.pageNumber);\n\nreturn [{\n  json: {\n    fullDocument: fullText,\n    totalPages,\n    totalWords: fullText.split(/\\s+/).length,\n    diagramPages,\n    filePrefix,\n    complianceType,\n    metadata: {\n        processedAt: new Date().toISOString(),\n        node: 'n8n-local-ocr'\n    }\n  }\n}];"
+        "jsCode": "const items = $input.all();\n\n// Sort by page number\nitems.sort((a, b) => a.json.pageNumber - b.json.pageNumber);\n\nconst fullText = items.map(i => {\n    // Parse JSON output from Florence if available\n    let visionDesc = '';\n    if (i.json.stdout && i.json.stdout.trim().startsWith('{')) {\n        try {\n             const parsed = JSON.parse(i.json.stdout);\n             if (parsed.description) visionDesc = `\\n[Visual Analysis: ${parsed.description}]`;\n        } catch(e) {}\n    }\n    \n    const extracted = i.json.extractedText || '';\n    return `--- Page ${i.json.pageNumber} ---\\n${extracted}${visionDesc}`;\n}).join('\\n\\n');\n\nconst totalPages = items.length;\nconst filePrefix = items[0].json.filePrefix;\nconst complianceType = items[0].json.query?.complianceType || 'Unknown';\n\nconst diagramPages = items.filter(i => i.json.isDiagram).map(i => i.json.pageNumber);\n\nreturn [{\n  json: {\n    fullDocument: fullText,\n    totalPages,\n    totalWords: fullText.split(/\\s+/).length,\n    diagramPages,\n    filePrefix,\n    complianceType,\n    metadata: {\n        processedAt: new Date().toISOString(),\n        node: 'n8n-local-ocr-florence'\n    }\n  }\n}];"
       },
-      "id": "8795114b-2896-49e2-9676-7cea372ba394",
+      "id": "c93fbaed-883b-48f8-a6a8-2b9406d08a9c",
       "name": "Aggregate Document",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6400,
-        3360
+        10480,
+        4112
       ]
     },
     {
       "parameters": {
-        "command": "=rm -f /tmp/n8n_processing/{{ $json.filePrefix }}*"
+        "command": "=if [ -n \"{{ $json.filePrefix }}\" ]; then rm -f /tmp/n8n_processing/{{ $json.filePrefix }}*; fi"
       },
-      "id": "bfb2779b-ab4f-45db-a1e5-c9171aeb585b",
+      "id": "8a114950-28b3-46d4-a02a-6ae23466a125",
       "name": "Cleanup Temp Files",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        6624,
-        3360
+        10656,
+        4320
       ],
       "continueOnFail": true
     },
@@ -462,13 +491,13 @@
       "parameters": {
         "jsCode": "for (const item of items) {\n  if (item.binary && item.binary.data) {\n    const fileType = item.json.query?.fileType || 'bin';\n    const runId = Math.random().toString(36).substring(7);\n    const filePrefix = `${runId}_`;\n    const fileName = `${filePrefix}input.${fileType}`;\n    item.binary.data.fileName = fileName;\n    item.json.filePrefix = filePrefix;\n  }\n}\nreturn items;"
       },
-      "id": "2074cf26-19b0-47d9-9fc7-8d213c92ac73",
+      "id": "0f768d51-db01-4319-8a73-d654452e27ca",
       "name": "Set Binary Filename",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4352,
-        3360
+        8160,
+        4176
       ]
     }
   ],
@@ -629,11 +658,38 @@
             "node": "OCR Processing",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Florence Vision Analysis",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
     },
     "OCR Processing": {
+      "main": [
+        [
+          {
+            "node": "Merge Vision & OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Florence Vision Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge Vision & OCR",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Vision & OCR": {
       "main": [
         [
           {
@@ -684,7 +740,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "1c36f861-c55d-4330-b8ac-254574fd82f1",
+  "versionId": "83d3827f-4e9a-4395-bbd2-a300efc981f7",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "20ca36cf4b5fc64f7471c1e6a838151ab8163351fb5ba6c854a469e23e1d5d80"

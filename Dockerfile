@@ -25,7 +25,15 @@ RUN apk update && apk add --no-cache \
     font-noto-cjk \
     terminus-font \
     ttf-freefont \
-    bash
+    bash \
+    curl
+
+# Ensure the shared directory has correct permissions
+RUN mkdir -p /tmp/n8n_processing && \
+    chown -R node:node /tmp/n8n_processing && \
+    chmod 777 /tmp/n8n_processing
+
+USER node
 
 # Allow Execute Command node usage
 ENV NODES_EXCLUDE="[]"

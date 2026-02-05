@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_5ybLnngfcD
 createdAt: 2026-02-04T22:12:50.812270
-updatedAt: 2026-02-04T22:13:36.196627300
+updatedAt: 2026-02-05T10:02:53.413921600
 workspaceId: wk_fyV8LrMfV8
 folderId: null
 authentication: {}
@@ -31,7 +31,7 @@ url: http://localhost:5678/webhook-test/evaluate-compliance
 urlParameters:
 - enabled: true
   name: complianceType
-  value: Data Architecture
+  value: Data Strategy
   id: WEi6tIhBN2
 - enabled: true
   name: fileType
@@ -40,4 +40,4 @@ urlParameters:
 - enabled: true
   name: ''
   value: ''
-  id: wfjdUXyVIs
+  id: Bt6t7TSAf7

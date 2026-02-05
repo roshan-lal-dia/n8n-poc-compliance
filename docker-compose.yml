@@ -46,6 +46,7 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - shared_processing:/tmp/n8n_processing
+      - ./scripts:/scripts
 
   florence:
     build:
@@ -59,7 +60,19 @@ services:
       - shared_processing:/tmp/n8n_processing
       - florence_model_cache:/app/hf_cache
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Pre-pull the model on startup - keep connection alive
+    entrypoint: ["/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull llama3.2; wait"]
+
 volumes:
   n8n_data:
   shared_processing:
   florence_model_cache:
+  ollama_data:

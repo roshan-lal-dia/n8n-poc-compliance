@@ -211,12 +211,10 @@
     },
     {
       "parameters": {
-        "mode": "raw",
-        "jsonOutput": "{\n\"criteriaTemplate\": \"Data Architecture\",\n\"evaluationCriteria\": {\n\"technicalDepth\": {\n\"weight\": 25,\n\"description\": \"Covers data models, schemas, integration patterns\"\n},\n\"scalability\": {\n\"weight\": 20,\n\"description\": \"Addresses future growth and performance\"\n},\n\"security\": {\n\"weight\": 20,\n\"description\": \"Data encryption, access controls, compliance\"\n},\n\"documentation\": {\n\"weight\": 15,\n\"description\": \"Clear diagrams, specifications, standards\"\n},\n\"feasibility\": {\n\"weight\": 20,\n\"description\": \"Realistic implementation plan and timeline\"\n}\n},\n\"passingScore\": 70,\n\"maxScore\": 100\n}\n",
-        "options": {}
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  item.json.criteriaTemplate = \"Data Architecture\";\n  item.json.evaluationCriteria = {\n    \"technicalDepth\": {\n      \"weight\": 25,\n      \"description\": \"Covers data models, schemas, integration patterns\"\n    },\n    \"scalability\": {\n      \"weight\": 20,\n      \"description\": \"Addresses future growth and performance\"\n    },\n    \"security\": {\n      \"weight\": 20,\n      \"description\": \"Data encryption, access controls, compliance\"\n    },\n    \"documentation\": {\n      \"weight\": 15,\n      \"description\": \"Clear diagrams, specifications, standards\"\n    },\n    \"feasibility\": {\n      \"weight\": 20,\n      \"description\": \"Realistic implementation plan and timeline\"\n    }\n  };\n  item.json.passingScore = 70;\n  item.json.maxScore = 100;\n  return item;\n});"
       },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         8576,
         4032
@@ -462,10 +460,10 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\n\n// Sort by page number\nitems.sort((a, b) => a.json.pageNumber - b.json.pageNumber);\n\nconst fullText = items.map(i => {\n    // Parse JSON output from Florence if available\n    let visionDesc = '';\n    if (i.json.stdout && i.json.stdout.trim().startsWith('{')) {\n        try {\n             const parsed = JSON.parse(i.json.stdout);\n             if (parsed.description) visionDesc = `\\n[Visual Analysis: ${parsed.description}]`;\n        } catch(e) {}\n    }\n    \n    const extracted = i.json.extractedText || '';\n    return `--- Page ${i.json.pageNumber} ---\\n${extracted}${visionDesc}`;\n}).join('\\n\\n');\n\nconst totalPages = items.length;\nconst filePrefix = items[0].json.filePrefix;\nconst complianceType = items[0].json.query?.complianceType || 'Unknown';\n\nconst diagramPages = items.filter(i => i.json.isDiagram).map(i => i.json.pageNumber);\n\nreturn [{\n  json: {\n    fullDocument: fullText,\n    totalPages,\n    totalWords: fullText.split(/\\s+/).length,\n    diagramPages,\n    filePrefix,\n    complianceType,\n    metadata: {\n        processedAt: new Date().toISOString(),\n        node: 'n8n-local-ocr-florence'\n    }\n  }\n}];"
+        "jsCode": "const items = $input.all();\nconst jsonString = JSON.stringify(items);\nconst buffer = Buffer.from(jsonString, 'utf8');\n\nconst filePrefix = items[0].json.filePrefix || 'unknown_';\nconst fileName = `${filePrefix}merge_input.json`;\nconst fullPath = `/tmp/n8n_processing/${fileName}`;\n\nreturn [{\n  json: {\n    filePrefix,\n    fileName,\n    fullPath\n  },\n  binary: {\n    data: {\n      data: buffer.toString('base64'),\n      mimeType: 'application/json',\n      fileName: fileName\n    }\n  }\n}];"
       },
-      "id": "c93fbaed-883b-48f8-a6a8-2b9406d08a9c",
-      "name": "Aggregate Document",
+      "id": "prepare-merge-input",
+      "name": "Prepare Merge Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -475,15 +473,156 @@
     },
     {
       "parameters": {
-        "command": "=if [ -n \"{{ $json.filePrefix }}\" ]; then rm -f /tmp/n8n_processing/{{ $json.filePrefix }}*; fi"
+        "operation": "write",
+        "fileName": "={{ $json.fullPath }}",
+        "options": {}
+      },
+      "id": "write-merge-input",
+      "name": "Write Merge Input",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        10680,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=python3 /scripts/merge_hybrid.py \"{{ $json.fullPath }}\""
+      },
+      "id": "execute-merge-script",
+      "name": "Execute Merge Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        10880,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $input.first().json.stdout;\ntry {\n  const result = JSON.parse(stdout);\n  if (result.error) {\n    throw new Error(result.error);\n  }\n  return { json: result };\n} catch (e) {\n  throw new Error(`Failed to parse Python script output: ${e.message}. Stdout: ${stdout}`);\n}"
+      },
+      "id": "parse-merge-output",
+      "name": "Parse Merge Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11080,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst criteria = item.evaluationCriteria || {};\nconst content = item.fullDocument;\n\nconst prompt = `You are a compliance officer. Evaluate this document.\\n\\nDOCUMENT:\\n${content.substring(0, 15000)}\\n\\nCRITERIA:\\n${JSON.stringify(criteria, null, 2)}\\n\\nProvide JSON output: { \"overallScore\": number, \"criteriaScores\": { key: { score, evidence, gaps } }, \"summary\": string, \"recommendations\": [] }.`;\n\nconst requestBody = {\n  model: \"llama3.2\",\n  prompt: prompt,\n  format: \"json\",\n  stream: false\n};\n\nconst jsonString = JSON.stringify(requestBody);\nconst buffer = Buffer.from(jsonString, 'utf8');\nconst filePrefix = item.filePrefix || 'unknown_';\nconst fileName = `${filePrefix}ollama_req.json`;\nconst fullPath = `/tmp/n8n_processing/${fileName}`;\n\nreturn [{\n  json: {\n    ...item,\n    ollamaRequestPath: fullPath,\n    fileName: fileName\n  },\n  binary: {\n    data: {\n      data: buffer.toString('base64'),\n      mimeType: 'application/json',\n      fileName: fileName\n    }\n  }\n}];"
+      },
+      "id": "11111111-ai01-node-build-prompt",
+      "name": "Prepare Ollama Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11280,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $json.ollamaRequestPath }}",
+        "options": {}
+      },
+      "id": "write-ollama-request",
+      "name": "Write Ollama Request",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        11480,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=curl -v --max-time 600 -X POST http://ollama:11434/api/generate -d @{{ $json.ollamaRequestPath }}"
+      },
+      "id": "22222222-ai02-node-call-ollama",
+      "name": "Call Ollama",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        11680,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const stdout = $input.first().json.stdout;\n  const response = JSON.parse(stdout);\n  let content = response.response;\n  // Strip markdown code blocks if present\n  content = content.replace(/^```json\\s*/, '').replace(/\\s*```$/, '');\n  const evaluation = JSON.parse(content);\n  return { json: { evaluation, ...$('Parse Merge Output').first().json } };\n} catch(e) {\n  return { json: { error: e.message, raw: $input.first().json } };\n}"
+      },
+      "id": "33333333-ai03-node-parse-response",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11140,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+            "string": [
+                { "name": "result", "value": "={{ $json }}" }
+            ]
+        },
+        "options": {}
+      },
+      "id": "44444444-ai04-node-format-output",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        11360,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+         "responseBody": "={{ $json.result }}",
+         "options": {}
+      },
+      "id": "55555555-ai05-node-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        11580,
+        4112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  item.json.criteriaTemplate = \"Data Strategy\";\n  item.json.evaluationCriteria = {\n    \"strategicAlignment\": {\n      \"weight\": 25,\n      \"description\": \"Alignment with overall business goals\"\n    },\n    \"clearRoadmap\": {\n      \"weight\": 25,\n      \"description\": \"Defined timeline and milestones\"\n    },\n    \"valueProposition\": {\n      \"weight\": 25,\n      \"description\": \"Business value and ROI definition\"\n    },\n    \"riskAssessment\": {\n      \"weight\": 25,\n      \"description\": \"Analysis of potential risks\"\n    }\n  };\n  item.json.passingScore = 70;\n  item.json.maxScore = 100;\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8576,
+        3800
+      ],
+      "id": "strategy-criteria-node-id",
+      "name": "Edit Fields : Data Strategy Criteria"
+    },
+    {
+      "parameters": {
+        "command": "=if [ -n \"{{ $json.result.filePrefix }}\" ]; then rm -f /tmp/n8n_processing/{{ $json.result.filePrefix }}*; fi"
       },
       "id": "8a114950-28b3-46d4-a02a-6ae23466a125",
       "name": "Cleanup Temp Files",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        10656,
-        4320
+        11800,
+        4112
       ],
       "continueOnFail": true
     },
@@ -539,7 +678,31 @@
             "node": "Switch  Compliance Type",
             "type": "main",
             "index": 0
-          },
+          }
+        ]
+      ]
+    },
+    "Switch  Compliance Type": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields : Data Strategy Criteria",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields : Data Architecture Criteria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields : Data Strategy Criteria": {
+      "main": [
+        [
           {
             "node": "Set Binary Filename",
             "type": "main",
@@ -548,12 +711,11 @@
         ]
       ]
     },
-    "Switch  Compliance Type": {
+    "Edit Fields : Data Architecture Criteria": {
       "main": [
-        [],
         [
           {
-            "node": "Edit Fields : Data Architecture Criteria",
+            "node": "Set Binary Filename",
             "type": "main",
             "index": 0
           }
@@ -704,14 +866,113 @@
       "main": [
         [
           {
-            "node": "Aggregate Document",
+            "node": "Prepare Merge Input",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Aggregate Document": {
+    "Prepare Merge Input": {
+      "main": [
+        [
+          {
+            "node": "Write Merge Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Merge Input": {
+      "main": [
+        [
+          {
+            "node": "Execute Merge Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Merge Script": {
+      "main": [
+        [
+          {
+            "node": "Parse Merge Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Merge Output": {
+      "main": [
+        [
+          {
+            "node": "Prepare Ollama Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Ollama Request": {
+      "main": [
+        [
+          {
+            "node": "Write Ollama Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Ollama Request": {
+      "main": [
+        [
+          {
+            "node": "Call Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ollama": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
       "main": [
         [
           {

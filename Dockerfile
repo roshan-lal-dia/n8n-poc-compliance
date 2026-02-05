@@ -26,7 +26,16 @@ RUN apk update && apk add --no-cache \
     terminus-font \
     ttf-freefont \
     bash \
-    curl
+    curl \
+    python3 \
+    py3-pip \
+    python3-dev \
+    gcc \
+    musl-dev \
+    linux-headers
+
+# Install Python packages for n8n processing (pdfplumber)
+RUN pip3 install --no-cache-dir pdfplumber --break-system-packages
 
 # Ensure the shared directory has correct permissions
 RUN mkdir -p /tmp/n8n_processing && \

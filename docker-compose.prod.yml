@@ -1,0 +1,194 @@
+# Production Compliance Audit System
+# Architecture: n8n + Postgres + Qdrant + Ollama + Florence
+version: '3.8'
+
+services:
+  # ============================================
+  # Database Layer
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: compliance-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: compliance_db
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ComplianceDB2026!}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n -d compliance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Vector Database (Knowledge Base)
+  # ============================================
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: compliance-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # AI Engine (LLM + Embeddings)
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: compliance-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull llama3.2; /bin/ollama pull nomic-embed-text; wait"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ============================================
+  # Vision Service (Florence-2)
+  # ============================================
+  florence:
+    build:
+      context: ./florence-service
+      dockerfile: Dockerfile
+    container_name: compliance-florence
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - shared_processing:/tmp/n8n_processing
+      - florence_model_cache:/app/hf_cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # ============================================
+  # Workflow Orchestrator (n8n)
+  # ============================================
+  n8n:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: compliance-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Database Connection
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=compliance_db
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-ComplianceDB2026!}
+
+      # Basic Auth
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-ComplianceAdmin2026!}
+
+      # Host Configuration
+      - N8N_HOST=${N8N_HOST:-0.0.0.0}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://172.206.67.83:5678}
+
+      # Encryption
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-ComplianC3K3y2026S3cur3P4ssw0rd!}
+
+      # Timezone
+      - GENERIC_TIMEZONE=Asia/Qatar
+      - TZ=Asia/Qatar
+
+      # Binary Data Mode
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+
+      # Security
+      - NODES_EXCLUDE=[]
+      - NODES_ALLOW_BUILTIN=ExecuteCommand
+      - N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=false
+      - N8N_RESTRICT_FILE_ACCESS_TO=/tmp/n8n_processing
+
+      # Execution Settings
+      - EXECUTIONS_TIMEOUT=600
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - N8N_LOG_LEVEL=info
+
+      # Service URLs (Internal Docker Network)
+      - OLLAMA_HOST=http://ollama:11434
+      - QDRANT_HOST=http://qdrant:6333
+      - FLORENCE_HOST=http://florence:5000
+      - POSTGRES_HOST=postgres
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - shared_processing:/tmp/n8n_processing
+      - ./scripts:/scripts:ro
+      - ./workflows:/workflows:ro
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      florence:
+        condition: service_started
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# ============================================
+# Named Volumes (Data Persistence)
+# ============================================
+volumes:
+  n8n_data:
+    driver: local
+  postgres_data:
+    driver: local
+  qdrant_storage:
+    driver: local
+  ollama_data:
+    driver: local
+  florence_model_cache:
+    driver: local
+  shared_processing:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  default:
+    name: compliance-network
+    driver: bridge

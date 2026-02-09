@@ -68,21 +68,21 @@ N8N_RESTRICT_FILE_ACCESS_TO=/tmp/n8n_processing
 To check if the tools are correctly installed inside the container:
 
 1. Open a terminal to the running container:
-   `powershell
+   ```powershell
    docker exec -it n8n sh
-   `
+   ```
 
 2. Test LibreOffice:
-   `ash
+   ```sh
    libreoffice --version
    # Expected: LibreOffice 7.x...
-   `
+   ```
 
 3. Test Pdftoppm:
-   `ash
+   ```sh
    pdftoppm -v
    # Expected: pdftoppm version 24.x...
-   `
+   ```
 
 ---
 
@@ -107,11 +107,8 @@ This branch replaces the complex "Task Runner" architecture with a simpler "Mono
 - **Fix**: The Dockerfile now includes openjdk11-jre. Rebuild with docker compose build.
 
 **"Permission denied" in /tmp/n8n_processing**
-- **Cause**: The folder might be owned by 
-oot.
-- **Fix**: The Dockerfile explicitly sets ownership to 
-ode:node. If issues persist, run:
-  `ash
+- **Cause**: The folder might be owned by root.
+- **Fix**: The Dockerfile explicitly sets ownership to node:node. If issues persist, run:
+  ```sh
   docker exec -u 0 n8n chown -R node:node /tmp/n8n_processing
-  `
-
+  ```

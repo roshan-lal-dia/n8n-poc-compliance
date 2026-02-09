@@ -14,6 +14,7 @@ COPY --from=builder /var/cache/apk /var/cache/apk
 # Install tools for local document processing
 # Added font packages to ensure proper rendering
 # Added openjdk11-jre for LibreOffice PPTX conversion
+# Optimization: Combined install/build/cleanup to reduce image size
 RUN apk update && apk add --no-cache \
     libreoffice \
     openjdk11-jre \
@@ -29,13 +30,13 @@ RUN apk update && apk add --no-cache \
     curl \
     python3 \
     py3-pip \
+    && apk add --no-cache --virtual .build-deps \
     python3-dev \
     gcc \
     musl-dev \
-    linux-headers
-
-# Install Python packages for n8n processing (pdfplumber)
-RUN pip3 install --no-cache-dir pdfplumber --break-system-packages
+    linux-headers \
+    && pip3 install --no-cache-dir pdfplumber --break-system-packages \
+    && apk del .build-deps
 
 # Ensure the shared directory has correct permissions
 RUN mkdir -p /tmp/n8n_processing && \

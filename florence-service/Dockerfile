@@ -12,7 +12,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python deps
-# Using --no-cache-dir to keep image small
+# Optimization: Force PyTorch CPU version (~3GB savings)
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+# Install remaining deps
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create the shared directory structure to match n8n

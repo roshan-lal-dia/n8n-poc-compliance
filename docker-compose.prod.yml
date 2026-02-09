@@ -116,6 +116,9 @@ services:
       - N8N_PROTOCOL=http
       - WEBHOOK_URL=${WEBHOOK_URL:-http://172.206.67.83:5678}
 
+      # Security
+      - N8N_SECURE_COOKIE=false
+
       # Encryption
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-ComplianC3K3y2026S3cur3P4ssw0rd!}
 

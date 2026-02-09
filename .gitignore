@@ -1,3 +1,6 @@
 n8n_data/
 assets/
 custom_libs/
+
+/.private*
+/.public*

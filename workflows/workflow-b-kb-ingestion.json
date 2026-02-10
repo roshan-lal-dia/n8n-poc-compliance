@@ -197,7 +197,9 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "\n            INSERT INTO kb_standards (standard_name, domain, file_hash, filename, total_chunks, uploaded_at) \n            VALUES ($1, $2, $3, $4, $5, NOW()) \n            ON CONFLICT (file_hash) DO UPDATE SET uploaded_at = NOW() \n            RETURNING id\n            ",
-        "options": {}
+        "options": {
+          "queryParameters": "={{ [\n  $('Prepare Metadata').first().json.standardName,\n  $('Prepare Metadata').first().json.domain,\n  $('Prepare Metadata').first().json.metadata.fileHash,\n  $('Prepare Metadata').first().json.metadata.originalFileName,\n  $('Format Qdrant Point').all().length\n] }}"
+        }
       },
       "id": "a6eb14a3-63b6-4d22-b449-f9534db101e2",
       "name": "Insert to Postgres",
@@ -273,7 +275,9 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT id, standard_name FROM kb_standards WHERE file_hash = $1",
-        "options": {}
+        "options": {
+          "queryParameters": "={{ [$json.fileHash || ''] }}"
+        }
       },
       "id": "check-hash-db",
       "name": "Check Hash in DB",

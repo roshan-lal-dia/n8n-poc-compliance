@@ -198,7 +198,7 @@
       "name": "Extract Images from PDF",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1340, 140]
+      "position": [1560, 140]
     },
     {
       "parameters": {
@@ -208,7 +208,7 @@
       "name": "Convert PPTX to PDF",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1340, 300]
+      "position": [1560, 300]
     },
     {
       "parameters": {
@@ -218,7 +218,7 @@
       "name": "Extract Images from PPTX",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1560, 300]
+      "position": [1780, 300]
     },
     {
       "parameters": {
@@ -228,7 +228,7 @@
       "name": "Convert DOCX to PDF",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1340, 460]
+      "position": [1560, 460]
     },
     {
       "parameters": {
@@ -238,7 +238,7 @@
       "name": "Extract Images from DOCX",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1560, 460]
+      "position": [1780, 460]
     },
     {
       "parameters": {
@@ -248,7 +248,27 @@
       "name": "Copy Single Image",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1340, 620]
+      "position": [1560, 620]
+    },
+    {
+      "parameters": {
+        "command": "=ls -la \"/tmp/n8n_processing/{{ $json.filePrefix }}*\""
+      },
+      "id": "debug-ls-temp",
+      "name": "Debug: List Temp Prefix",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1320, 440]
+    },
+    {
+      "parameters": {
+        "command": "=sh -c 'file=\"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\"; i=0; until [ -f \"$file\" ] || [ $i -ge 8 ]; do sleep 1; i=$((i+1)); done; if [ -f \"$file\" ]; then echo \"found\"; exit 0; else echo \"missing\" >&2; exit 2; fi'"
+      },
+      "id": "wait-for-pdf",
+      "name": "Wait for PDF (exists)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1560, 220]
     },
     {
       "parameters": {
@@ -444,7 +464,7 @@
       "main": [
         [
           {
-            "node": "Extract Images from PDF",
+            "node": "Debug: List Temp Prefix",
             "type": "main",
             "index": 0
           },
@@ -477,11 +497,47 @@
         ]
       ]
     },
+    "Debug: List Temp Prefix": {
+      "main": [
+        [
+          {
+            "node": "Wait for PDF (exists)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for PDF (exists)": {
+      "main": [
+        [
+          {
+            "node": "Extract Images from PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Images from PPTX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Images from DOCX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Convert PPTX to PDF": {
       "main": [
         [
           {
-            "node": "Extract Images from PPTX",
+            "node": "Wait for PDF (exists)",
             "type": "main",
             "index": 0
           }
@@ -503,7 +559,7 @@
       "main": [
         [
           {
-            "node": "Extract Images from DOCX",
+            "node": "Wait for PDF (exists)",
             "type": "main",
             "index": 0
           }

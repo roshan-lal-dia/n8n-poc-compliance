@@ -33,7 +33,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT session_id, domain, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score, job_id\nFROM audit_sessions\nWHERE session_id = ={{ $json.sessionId }}::uuid;",
+        "query": "SELECT session_id, domain, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score, job_id\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid;",
         "options": {}
       },
       "id": "03a643d6-0242-4ff9-9bea-c4f380e3ea84",
@@ -54,7 +54,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT q_id, step_name, status, message, percentage, created_at\nFROM audit_logs\nWHERE session_id = ={{ $('Extract Session ID').first().json.sessionId }}::uuid\nORDER BY created_at DESC\nLIMIT 50;",
+        "query": "SELECT q_id, step_name, status, message, percentage, created_at\nFROM audit_logs\nWHERE session_id = '{{ $('Extract Session ID').first().json.sessionId }}'::uuid\nORDER BY created_at DESC\nLIMIT 50;",
         "options": {}
       },
       "id": "36deed95-7f9b-425d-a519-f6d54330c10b",

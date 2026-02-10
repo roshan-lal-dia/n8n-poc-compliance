@@ -36,7 +36,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_sessions (session_id, domain, initiated_by, status, started_at, total_questions, answered_questions, overall_compliance_score)\nVALUES (gen_random_uuid(), ={{ $json.domain }}, 'api_user', 'queued', NOW(), ={{ $json.questions.length }}, 0, 0)\nRETURNING session_id, domain, total_questions;",
+        "query": "INSERT INTO audit_sessions (session_id, domain, initiated_by, status, started_at, total_questions, answered_questions, overall_compliance_score)\nVALUES (gen_random_uuid(), '{{ $json.domain }}', 'api_user', 'queued', NOW(), {{ $json.questions.length }}, 0, 0)\nRETURNING session_id, domain, total_questions;",
         "options": {}
       },
       "id": "5d5acd07-a3db-481e-a191-164dbecca85f",
@@ -70,7 +70,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, message, percentage, created_at)\nVALUES (={{ $json.sessionId }}, NULL, 'queued', 'in_progress', ='Job queued: ' + $json.questions.length + ' questions, ' + $json.totalFiles + ' files', 0, NOW());",
+        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, message, percentage, created_at)\nVALUES ('{{ $json.sessionId }}', NULL, 'queued', 'in_progress', '{{ \"Job queued: \" + $json.questions.length + \" questions, \" + $json.totalFiles + \" files\" }}', 0, NOW());",
         "options": {}
       },
       "id": "1abceb9b-5f50-460c-9715-912ec0a3a7d9",
@@ -102,7 +102,14 @@
       ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "operation": "push",
+        "key": "audit_job_queue",
+        "keyType": "automatic",
+        "value": "={{ $json.jobData }}",
+        "pushType": "head",
+        "options": {}
+      },
       "id": "9bdb2ccb-842f-4240-bbcc-303a26af98c9",
       "name": "Enqueue Job to Redis",
       "type": "n8n-nodes-base.redis",
@@ -121,7 +128,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_sessions SET job_id = ={{ $json.jobId }} WHERE session_id = ={{ $json.sessionId }};",
+        "query": "UPDATE audit_sessions SET job_id = '{{ $json.jobId }}' WHERE session_id = '{{ $json.sessionId }}';",
         "options": {}
       },
       "id": "c75dcb58-9777-45b9-9f24-bfa0e18b451b",

@@ -2,7 +2,17 @@
   "name": "Workflow C2: Audit Worker (Background Processor)",
   "nodes": [
     {
-      "parameters": {},
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 10,
+              "unit": "seconds"
+            }
+          ]
+        }
+      },
       "id": "0fb56361-5e41-42c2-9357-72b165d81396",
       "name": "Cron: Every 10s",
       "type": "n8n-nodes-base.cron",
@@ -13,7 +23,12 @@
       ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "operation": "pop",
+        "key": "audit_job_queue",
+        "keyType": "automatic",
+        "options": {}
+      },
       "id": "02204c41-30e3-435a-a890-ccc2d32f54c8",
       "name": "Dequeue Job from Redis",
       "type": "n8n-nodes-base.redis",
@@ -45,7 +60,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_sessions SET status = 'processing' WHERE session_id = ={{ $json.sessionId }}::uuid;",
+        "query": "UPDATE audit_sessions SET status = 'processing' WHERE session_id = '{{ $json.sessionId }}'::uuid;",
         "options": {}
       },
       "id": "6c51bb18-24a4-4694-805e-338b10b20305",
@@ -66,7 +81,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES (={{ $json.sessionId }}::uuid, 'processing', 'in_progress', 'Starting audit execution', 5);",
+        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $json.sessionId }}'::uuid, 'processing', 'in_progress', 'Starting audit execution', 5);",
         "options": {}
       },
       "id": "64081a31-ed75-4df8-b9f7-a366207ef97e",
@@ -100,7 +115,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, message, percentage)\nVALUES (\n  ={{ $json.sessionId }}::uuid,\n  ={{ $json.qId }},\n  'extracting',\n  'in_progress',\n  ='Processing question ' + ($json.questionIndex + 1) + ' of ' + $json.totalQuestions,\n  ={{ 10 + Math.floor(($json.questionIndex / $json.totalQuestions) * 80) }}\n);",
+        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  'extracting',\n  'in_progress',\n  '{{ \"Processing question \" + ($json.questionIndex + 1) + \" of \" + $json.totalQuestions }}',\n  {{ 10 + Math.floor(($json.questionIndex / $json.totalQuestions) * 80) }}\n);",
         "options": {}
       },
       "id": "9358544b-079f-4d7e-ba62-def8295440b2",
@@ -121,7 +136,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT file_hash, extracted_data, filename, file_size_bytes\nFROM audit_evidence\nWHERE session_id = ={{ $json.sessionId }}::uuid \n  AND q_id = ={{ $json.qId }}\n  AND file_hash = ANY(ARRAY[={{ $json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]);",
+        "query": "SELECT file_hash, extracted_data, filename, file_size_bytes\nFROM audit_evidence\nWHERE session_id = '{{ $json.sessionId }}'::uuid \n  AND q_id = '{{ $json.qId }}'\n  AND file_hash = ANY(ARRAY[{{ $json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]);",
         "options": {}
       },
       "id": "bd0ab794-c4d3-42cd-ad31-20200a03917d",
@@ -141,14 +156,49 @@
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst https = require('http');\n\nconst questionData = $('Split by Question').first().json;\nconst cachedEvidence = $input.all().map(item => item.json);\n\n// Determine which files need extraction\nconst cachedHashes = new Set(cachedEvidence.map(e => e.file_hash));\nconst filesToExtract = questionData.evidenceFiles.filter(f => !cachedHashes.has(f.hash));\n\nconst extractionResults = [];\nconst allEvidence = [];\n\n// Add cached evidence first\nfor (const cached of cachedEvidence) {\n  allEvidence.push({\n    hash: cached.file_hash,\n    filename: cached.filename,\n    extractedData: cached.extracted_data,\n    fileSize: cached.file_size_bytes,\n    fromCache: true\n  });\n}\n\n// Extract new files\nfor (const fileInfo of filesToExtract) {\n  const fileData = questionData.fileMap[fileInfo.hash];\n  if (!fileData) {\n    throw new Error(`File hash ${fileInfo.hash} not found in file map`);\n  }\n  \n  // Read file from disk\n  const filePath = fileData.diskPath;\n  const fileBuffer = fs.readFileSync(filePath);\n  const base64Data = fileBuffer.toString('base64');\n  \n  // Call Workflow A for extraction (HTTP request)\n  const extractionResponse = await new Promise((resolve, reject) => {\n    const postData = JSON.stringify({\n      data: base64Data,\n      mimeType: fileData.mimeType,\n      fileName: fileData.fileName\n    });\n    \n    const options = {\n      hostname: 'localhost',\n      port: 5678,\n      path: '/webhook/extract',\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        'Content-Length': Buffer.byteLength(postData)\n      },\n      timeout: 300000 // 5 min timeout for large files\n    };\n    \n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', chunk => { data += chunk; });\n      res.on('end', () => {\n        try {\n          resolve(JSON.parse(data));\n        } catch (e) {\n          reject(new Error('Failed to parse extraction response: ' + e.message));\n        }\n      });\n    });\n    \n    req.on('error', reject);\n    req.on('timeout', () => {\n      req.destroy();\n      reject(new Error('Extraction timeout'));\n    });\n    \n    req.write(postData);\n    req.end();\n  });\n  \n  allEvidence.push({\n    hash: fileInfo.hash,\n    filename: fileData.fileName,\n    extractedData: extractionResponse,\n    fileSize: fileData.fileSize,\n    fromCache: false\n  });\n  \n  extractionResults.push({\n    hash: fileInfo.hash,\n    filename: fileData.fileName,\n    extractedData: extractionResponse,\n    fileSize: fileData.fileSize\n  });\n}\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    domain: questionData.domain,\n    allEvidence: allEvidence,\n    newExtractions: extractionResults,\n    totalEvidence: allEvidence.length,\n    fromCache: cachedEvidence.length,\n    justExtracted: extractionResults.length\n  }\n}];"
+        "jsCode": "const fs = require('fs');\nconst questionData = $('Split by Question').first().json;\nconst cachedEvidence = $input.all().map(item => item.json);\n\n// Determine which files need extraction\nconst cachedHashes = new Set(cachedEvidence.map(e => e.file_hash));\nconst filesToExtract = questionData.evidenceFiles.filter(f => !cachedHashes.has(f.hash));\n\n// Prepare all evidence entries\nconst allEvidence = [];\n\n// Add cached evidence first\nfor (const cached of cachedEvidence) {\n  allEvidence.push({\n    hash: cached.file_hash,\n    filename: cached.filename,\n    extractedData: cached.extracted_data,\n    fileSize: cached.file_size_bytes,\n    fromCache: true\n  });\n}\n\n// Prepare files for extraction (one item per file)\nconst filesToProcess = [];\nfor (const fileInfo of filesToExtract) {\n  const fileData = questionData.fileMap[fileInfo.hash];\n  if (!fileData) {\n    throw new Error(`File hash ${fileInfo.hash} not found in file map`);\n  }\n  \n  // Read file from disk and prepare for extraction\n  const filePath = fileData.diskPath;\n  const fileBuffer = fs.readFileSync(filePath);\n  const base64Data = fileBuffer.toString('base64');\n  \n  filesToProcess.push({\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    domain: questionData.domain,\n    hash: fileInfo.hash,\n    filename: fileData.fileName,\n    fileSize: fileData.fileSize,\n    mimeType: fileData.mimeType,\n    binaryData: base64Data,\n    cachedEvidence: allEvidence\n  });\n}\n\n// If no files to extract, return cached evidence only\nif (filesToProcess.length === 0) {\n  return [{\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      allEvidence: allEvidence,\n      newExtractions: [],\n      totalEvidence: allEvidence.length,\n      fromCache: allEvidence.length,\n      justExtracted: 0\n    }\n  }];\n}\n\n// Return files to extract (will be processed by HTTP node)\nreturn filesToProcess.map(f => ({ json: f }));"
       },
       "id": "3bc35ea3-4258-4ecf-8bd5-9185e16dabec",
-      "name": "Extract or Retrieve Evidence",
+      "name": "Prepare Files for Extraction",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "url": "http://localhost:5678/webhook/extract",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"data\": $json.binaryData,\n  \"mimeType\": $json.mimeType,\n  \"fileName\": $json.filename\n} }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "call-workflow-a-extraction",
+      "name": "Call Workflow A: Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1984,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine extracted results with cached evidence\nconst extractedItems = $input.all();\nconst firstItem = extractedItems[0].json;\n\n// Get cached evidence from the first item\nconst cachedEvidence = firstItem.cachedEvidence || [];\n\n// Build all evidence array\nconst allEvidence = [...cachedEvidence];\nconst newExtractions = [];\n\nfor (const item of extractedItems) {\n  const extractedData = item.json.json || item.json;\n  \n  allEvidence.push({\n    hash: firstItem.hash,\n    filename: firstItem.filename,\n    extractedData: extractedData,\n    fileSize: firstItem.fileSize,\n    fromCache: false\n  });\n  \n  newExtractions.push({\n    hash: firstItem.hash,\n    filename: firstItem.filename,\n    extractedData: extractedData,\n    fileSize: firstItem.fileSize\n  });\n}\n\nreturn [{\n  json: {\n    sessionId: firstItem.sessionId,\n    qId: firstItem.qId,\n    domain: firstItem.domain,\n    allEvidence: allEvidence,\n    newExtractions: newExtractions,\n    totalEvidence: allEvidence.length,\n    fromCache: cachedEvidence.length,\n    justExtracted: newExtractions.length\n  }\n}];"
+      },
+      "id": "combine-extraction-results",
+      "name": "Combine Extraction Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
         0
       ]
     },
@@ -161,40 +211,6 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1984,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO audit_evidence (session_id, q_id, domain, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  ={{ $json.sessionId }}::uuid,\n  ={{ $json.qId }},\n  ={{ $json.domain }},\n  ={{ $json.filename }},\n  ={{ $json.fileHash }},\n  ={{ $json.fileSize }},\n  ={{ $json.extractedData }}::jsonb,\n  ={{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, q_id, file_hash) DO NOTHING;",
-        "options": {}
-      },
-      "id": "d0542fce-3c7a-49e8-b21e-749b5ed1c09e",
-      "name": "Store Evidence to DB",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        2208,
-        0
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "postgres-compliance"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Consolidate all evidence for this question with size limits\nconst evidenceData = $('Extract or Retrieve Evidence').first().json;\n\nlet combinedText = '';\nconst sourceFiles = [];\nlet totalPages = 0;\nlet totalWords = 0;\n\nfor (const evidence of evidenceData.allEvidence) {\n  const extracted = evidence.extractedData;\n  const fullText = extracted.fullDocument || '';\n  \n  // Per-file limit: 50,000 characters\n  const truncated = fullText.substring(0, 50000);\n  \n  combinedText += `\\n\\n=== Evidence File: ${evidence.filename} ===\\n${truncated}`;\n  \n  sourceFiles.push({\n    filename: evidence.filename,\n    hash: evidence.hash,\n    pages: extracted.totalPages || 0,\n    words: extracted.totalWords || 0,\n    diagrams: extracted.hasDiagrams || false,\n    truncated: fullText.length > 50000,\n    fromCache: evidence.fromCache\n  });\n  \n  totalPages += extracted.totalPages || 0;\n  totalWords += extracted.totalWords || 0;\n}\n\n// Overall limit: 200,000 characters\nif (combinedText.length > 200000) {\n  combinedText = combinedText.substring(0, 200000) + '\\n\\n[Evidence truncated at 200,000 characters]';\n}\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    domain: evidenceData.domain,\n    evidenceText: combinedText,\n    evidenceLength: combinedText.length,\n    sourceFiles: sourceFiles,\n    totalPages: totalPages,\n    totalWords: totalWords\n  }\n}];"
-      },
-      "id": "a93c7dd0-8137-49be-bcff-8db5e7dbf9e1",
-      "name": "Consolidate Evidence Text",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
         2432,
         0
       ]
@@ -202,7 +218,41 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT q_id, question_text, prompt_instructions, domain\nFROM audit_questions\nWHERE q_id = ={{ $json.qId }};",
+        "query": "INSERT INTO audit_evidence (session_id, q_id, domain, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  '{{ $json.domain }}',\n  '{{ $json.filename }}',\n  '{{ $json.fileHash }}',\n  {{ $json.fileSize }},\n  '{{ $json.extractedData }}'::jsonb,\n  {{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, q_id, file_hash) DO NOTHING;",
+        "options": {}
+      },
+      "id": "d0542fce-3c7a-49e8-b21e-749b5ed1c09e",
+      "name": "Store Evidence to DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2656,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidate all evidence for this question with size limits\nconst evidenceData = $('Combine Extraction Results').first().json;\n\nlet combinedText = '';\nconst sourceFiles = [];\nlet totalPages = 0;\nlet totalWords = 0;\n\nfor (const evidence of evidenceData.allEvidence) {\n  const extracted = evidence.extractedData;\n  const fullText = extracted.fullDocument || '';\n  \n  // Per-file limit: 50,000 characters\n  const truncated = fullText.substring(0, 50000);\n  \n  combinedText += `\\n\\n=== Evidence File: ${evidence.filename} ===\\n${truncated}`;\n  \n  sourceFiles.push({\n    filename: evidence.filename,\n    hash: evidence.hash,\n    pages: extracted.totalPages || 0,\n    words: extracted.totalWords || 0,\n    diagrams: extracted.hasDiagrams || false,\n    truncated: fullText.length > 50000,\n    fromCache: evidence.fromCache\n  });\n  \n  totalPages += extracted.totalPages || 0;\n  totalWords += extracted.totalWords || 0;\n}\n\n// Overall limit: 200,000 characters\nif (combinedText.length > 200000) {\n  combinedText = combinedText.substring(0, 200000) + '\\n\\n[Evidence truncated at 200,000 characters]';\n}\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    domain: evidenceData.domain,\n    evidenceText: combinedText,\n    evidenceLength: combinedText.length,\n    sourceFiles: sourceFiles,\n    totalPages: totalPages,\n    totalWords: totalWords\n  }\n}];"
+      },
+      "id": "a93c7dd0-8137-49be-bcff-8db5e7dbf9e1",
+      "name": "Consolidate Evidence Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT q_id, question_text, prompt_instructions, domain\nFROM audit_questions\nWHERE q_id = '{{ $json.qId }}';",
         "options": {}
       },
       "id": "52da4749-ecb2-4ef1-a311-3493fff52190",
@@ -210,7 +260,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2640,
+        3104,
         0
       ],
       "credentials": {
@@ -223,7 +273,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_logs SET step_name = 'searching', percentage = ={{ 30 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 50) }}\nWHERE session_id = ={{ $('Consolidate Evidence Text').first().json.sessionId }}::uuid AND q_id = ={{ $('Consolidate Evidence Text').first().json.qId }} AND step_name = 'extracting';",
+        "query": "UPDATE audit_logs SET step_name = 'searching', percentage = {{ 30 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 50) }}\nWHERE session_id = '{{ $('Consolidate Evidence Text').first().json.sessionId }}'::uuid AND q_id = '{{ $('Consolidate Evidence Text').first().json.qId }}' AND step_name = 'extracting';",
         "options": {}
       },
       "id": "3068bcbd-badf-4151-821e-2a0d9c1a53c9",
@@ -231,7 +281,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2864,
+        3328,
         0
       ],
       "credentials": {
@@ -243,47 +293,113 @@
     },
     {
       "parameters": {
-        "jsCode": "// Generate embedding for question + instructions\nconst https = require('http');\nconst question = $input.first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nconst embedding = await new Promise((resolve, reject) => {\n  const postData = JSON.stringify({\n    model: 'nomic-embed-text',\n    prompt: queryText\n  });\n  \n  const options = {\n    hostname: 'ollama',\n    port: 11434,\n    path: '/api/embeddings',\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json'\n    },\n    timeout: 30000\n  };\n  \n  const req = https.request(options, (res) => {\n    let data = '';\n    res.on('data', chunk => { data += chunk; });\n    res.on('end', () => {\n      try {\n        const parsed = JSON.parse(data);\n        resolve(parsed.embedding);\n      } catch (e) {\n        reject(e);\n      }\n    });\n  });\n  \n  req.on('error', reject);\n  req.write(postData);\n  req.end();\n});\n\nreturn [{\n  json: {\n    questionId: question.q_id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    questionDomain: question.domain,\n    embedding: embedding\n  }\n}];"
+        "jsCode": "// Prepare embedding request for question + instructions\nconst question = $input.first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId: question.q_id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    questionDomain: question.domain,\n    queryText: queryText\n  }\n}];"
       },
       "id": "9656f449-b95f-4528-8ec6-0f7efdadb4fd",
-      "name": "Generate Question Embedding",
+      "name": "Prepare Question for Embedding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3088,
+        3552,
         0
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Search Qdrant for relevant standards\nconst https = require('http');\nconst questionData = $input.first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\n\nconst searchPayload = {\n  vector: questionData.embedding,\n  limit: 5,\n  with_payload: true,\n  filter: evidenceData.domain ? {\n    must: [\n      {\n        key: 'domain',\n        match: { value: evidenceData.domain }\n      }\n    ]\n  } : undefined\n};\n\nconst ragResults = await new Promise((resolve, reject) => {\n  const postData = JSON.stringify(searchPayload);\n  \n  const options = {\n    hostname: 'qdrant',\n    port: 6333,\n    path: '/collections/compliance_standards/points/search',\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json'\n    },\n    timeout: 30000\n  };\n  \n  const req = https.request(options, (res) => {\n    let data = '';\n    res.on('data', chunk => { data += chunk; });\n    res.on('end', () => {\n      try {\n        resolve(JSON.parse(data));\n      } catch (e) {\n        reject(e);\n      }\n    });\n  });\n  \n  req.on('error', reject);\n  req.write(postData);\n  req.end();\n});\n\n// Format RAG sources\nconst ragSources = ragResults.result.map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit.payload.standardName,\n  chunkIndex: hit.payload.chunkIndex,\n  relevanceScore: hit.score,\n  text: hit.payload.text,\n  excerpt: hit.payload.text.substring(0, 600),\n  metadata: hit.payload.metadata\n}));\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    ragSources: ragSources,\n    totalSources: ragSources.length\n  }\n}];"
+        "url": "http://ollama:11434/api/embeddings",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"nomic-embed-text\",\n  \"prompt\": $json.queryText\n} }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "call-ollama-embedding",
+      "name": "Ollama: Generate Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3776,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract embedding from Ollama response\nconst ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').first().json;\n\nreturn [{\n  json: {\n    questionId: questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    questionDomain: questionData.questionDomain,\n    embedding: ollamaResponse.embedding\n  }\n}];"
+      },
+      "id": "extract-embedding",
+      "name": "Extract Embedding",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Qdrant search payload\nconst questionData = $input.first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\n\nconst searchPayload = {\n  vector: questionData.embedding,\n  limit: 5,\n  with_payload: true\n};\n\n// Add domain filter if specified\nif (evidenceData.domain && evidenceData.domain !== 'General') {\n  searchPayload.filter = {\n    must: [\n      {\n        key: 'domain',\n        match: { value: evidenceData.domain }\n      }\n    ]\n  };\n}\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    searchPayload: searchPayload,\n    questionData: questionData,\n    evidenceData: evidenceData\n  }\n}];"
       },
       "id": "0901ad33-590c-4a51-8a86-df519c293812",
-      "name": "RAG: Search Standards",
+      "name": "Prepare RAG Search",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3312,
+        4224,
         0
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Build comprehensive AI prompt\nconst questionData = $('Generate Question Embedding').first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\nconst ragData = $input.first().json;\n\n// Format RAG sources section\nconst ragSection = ragData.ragSources.map((source, i) => \n  `${i+1}. [${source.standardName}] (Relevance: ${source.relevanceScore.toFixed(2)})\\n${source.excerpt}\\n`\n).join('\\n');\n\n// Build master prompt\nconst prompt = `COMPLIANCE AUDIT EVALUATION\n\nQUESTION: ${questionData.questionText}\n\nINSTRUCTIONS: ${questionData.instructions || 'Evaluate based on industry best practices and standards.'}\n\nRELEVANT COMPLIANCE STANDARDS:\n${ragSection}\n\nEVIDENCE FROM SUBMITTED DOCUMENTS:\n${evidenceData.evidenceText}\n\n---\n\nEvaluate compliance with the question based on the provided evidence and standards.\nRespond in JSON format with the following structure:\n{\n  \"compliant\": boolean,\n  \"score\": 0-100,\n  \"confidence\": 0-100,\n  \"findings\": \"detailed description of what was found\",\n  \"evidence_summary\": \"specific references to evidence that supports the evaluation\",\n  \"gaps\": [\"list of missing or insufficient elements\"],\n  \"recommendations\": [\"actionable improvements\"]\n}`;\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    prompt: prompt,\n    promptLength: prompt.length,\n    ragSources: ragData.ragSources,\n    sourceFiles: evidenceData.sourceFiles\n  }\n}];"
+        "url": "http://qdrant:6333/collections/compliance_standards/points/search",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.searchPayload }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "call-qdrant-search",
+      "name": "Qdrant: Search Standards",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format RAG search results\nconst qdrantResponse = $input.first().json;\nconst contextData = $('Prepare RAG Search').first().json;\n\nconst ragSources = qdrantResponse.result.map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit.payload.standardName,\n  chunkIndex: hit.payload.chunkIndex,\n  relevanceScore: hit.score,\n  text: hit.payload.text,\n  excerpt: hit.payload.text.substring(0, 600),\n  metadata: hit.payload.metadata\n}));\n\nreturn [{\n  json: {\n    sessionId: contextData.sessionId,\n    qId: contextData.qId,\n    ragSources: ragSources,\n    totalSources: ragSources.length\n  }\n}];"
+      },
+      "id": "format-rag-results",
+      "name": "Format RAG Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build comprehensive AI prompt\nconst questionData = $('Extract Embedding').first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\nconst ragData = $('Format RAG Results').first().json;\n\n// Format RAG sources section\nconst ragSection = ragData.ragSources.map((source, i) => \n  `${i+1}. [${source.standardName}] (Relevance: ${source.relevanceScore.toFixed(2)})\\n${source.excerpt}\\n`\n).join('\\n');\n\n// Build master prompt\nconst prompt = `COMPLIANCE AUDIT EVALUATION\n\nQUESTION: ${questionData.questionText}\n\nINSTRUCTIONS: ${questionData.instructions || 'Evaluate based on industry best practices and standards.'}\n\nRELEVANT COMPLIANCE STANDARDS:\n${ragSection}\n\nEVIDENCE FROM SUBMITTED DOCUMENTS:\n${evidenceData.evidenceText}\n\n---\n\nEvaluate compliance with the question based on the provided evidence and standards.\nRespond in JSON format with the following structure:\n{\n  \"compliant\": boolean,\n  \"score\": 0-100,\n  \"confidence\": 0-100,\n  \"findings\": \"detailed description of what was found\",\n  \"evidence_summary\": \"specific references to evidence that supports the evaluation\",\n  \"gaps\": [\"list of missing or insufficient elements\"],\n  \"recommendations\": [\"actionable improvements\"]\n}`;\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    prompt: prompt,\n    promptLength: prompt.length,\n    ragSources: ragData.ragSources,\n    sourceFiles: evidenceData.sourceFiles\n  }\n}];"
       },
       "id": "b29e0ebb-9cf8-41a8-8ff9-bec6604effcf",
       "name": "Build AI Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3520,
+        4896,
         0
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = ={{ 85 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 10) }}\nWHERE session_id = ={{ $json.sessionId }}::uuid AND q_id = ={{ $json.qId }} AND step_name = 'searching';",
+        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = {{ 85 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 10) }}\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND q_id = '{{ $json.qId }}' AND step_name = 'searching';",
         "options": {}
       },
       "id": "9793deff-23f9-42cd-a514-79e52f694efb",
@@ -291,7 +407,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        3744,
+        5120,
         0
       ],
       "credentials": {
@@ -303,21 +419,41 @@
     },
     {
       "parameters": {
-        "jsCode": "// Call Ollama for AI evaluation with retries for large responses\nconst https = require('http');\nconst promptData = $('Build AI Prompt').first().json;\n\nconst aiResponse = await new Promise((resolve, reject) => {\n  const postData = JSON.stringify({\n    model: 'llama3.2',\n    prompt: promptData.prompt,\n    format: 'json',\n    stream: false,\n    options: {\n      temperature: 0.3,\n      num_ctx: 32768,\n      num_predict: 2000\n    }\n  });\n  \n  const options = {\n    hostname: 'ollama',\n    port: 11434,\n    path: '/api/generate',\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json'\n    },\n    timeout: 600000 // 10 min timeout for AI\n  };\n  \n  const req = https.request(options, (res) => {\n    let data = '';\n    res.on('data', chunk => { data += chunk; });\n    res.on('end', () => {\n      try {\n        resolve(JSON.parse(data));\n      } catch (e) {\n        reject(new Error('Failed to parse AI response: ' + e.message));\n      }\n    });\n  });\n  \n  req.on('error', reject);\n  req.on('timeout', () => {\n    req.destroy();\n    reject(new Error('AI evaluation timeout'));\n  });\n  \n  req.write(postData);\n  req.end();\n});\n\n// Parse AI response\nconst rawResponse = aiResponse.response;\nlet evaluation;\n\ntry {\n  evaluation = JSON.parse(rawResponse);\n  \n  // Validate required fields\n  if (!evaluation.hasOwnProperty('compliant')) evaluation.compliant = false;\n  if (!evaluation.hasOwnProperty('score')) evaluation.score = 0;\n  if (!evaluation.hasOwnProperty('confidence')) evaluation.confidence = 0;\n  if (!evaluation.findings) evaluation.findings = 'No findings provided';\n  if (!evaluation.gaps) evaluation.gaps = [];\n  if (!evaluation.recommendations) evaluation.recommendations = [];\n  \n} catch (e) {\n  // Fallback on parse failure\n  evaluation = {\n    compliant: false,\n    score: 0,\n    confidence: 0,\n    findings: 'AI response parsing failed: ' + e.message,\n    evidence_summary: '',\n    gaps: ['Unable to evaluate due to response format error'],\n    recommendations: ['Review question prompt and try again']\n  };\n}\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    evaluation: evaluation,\n    rawResponse: rawResponse,\n    ragSources: promptData.ragSources,\n    sourceFiles: promptData.sourceFiles,\n    promptLength: promptData.promptLength\n  }\n}];"
+        "url": "http://ollama:11434/api/generate",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"llama3.2\",\n  \"prompt\": $json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000\n  }\n} }}",
+        "options": {
+          "timeout": 600000
+        }
       },
       "id": "aeba3cde-03e9-45ee-8c14-65d147275e87",
-      "name": "AI: Evaluate Compliance",
+      "name": "Ollama: Evaluate Compliance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5344,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and validate AI response\nconst aiResponse = $input.first().json;\nconst promptData = $('Build AI Prompt').first().json;\n\nconst rawResponse = aiResponse.response;\nlet evaluation;\n\ntry {\n  evaluation = JSON.parse(rawResponse);\n  \n  // Validate required fields\n  if (!evaluation.hasOwnProperty('compliant')) evaluation.compliant = false;\n  if (!evaluation.hasOwnProperty('score')) evaluation.score = 0;\n  if (!evaluation.hasOwnProperty('confidence')) evaluation.confidence = 0;\n  if (!evaluation.findings) evaluation.findings = 'No findings provided';\n  if (!evaluation.gaps) evaluation.gaps = [];\n  if (!evaluation.recommendations) evaluation.recommendations = [];\n  \n} catch (e) {\n  // Fallback on parse failure\n  evaluation = {\n    compliant: false,\n    score: 0,\n    confidence: 0,\n    findings: 'AI response parsing failed: ' + e.message,\n    evidence_summary: '',\n    gaps: ['Unable to evaluate due to response format error'],\n    recommendations: ['Review question prompt and try again']\n  };\n}\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    evaluation: evaluation,\n    rawResponse: rawResponse,\n    ragSources: promptData.ragSources,\n    sourceFiles: promptData.sourceFiles,\n    promptLength: promptData.promptLength\n  }\n}];"
+      },
+      "id": "parse-ai-response",
+      "name": "Parse AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3968,
+        5568,
         0
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  ={{ $json.sessionId }}::uuid,\n  ={{ $json.qId }},\n  'completed',\n  'success',\n  ={{ JSON.stringify($json.evaluation) }}::jsonb,\n  ='Question evaluated successfully (Score: ' + $json.evaluation.score + ')',\n  ={{ 95 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 5) }}\n);",
+        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  'completed',\n  'success',\n  '{{ JSON.stringify($json.evaluation) }}'::jsonb,\n  '{{ \"Question evaluated successfully (Score: \" + $json.evaluation.score + \")\" }}',\n  {{ 95 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 5) }}\n);",
         "options": {}
       },
       "id": "8c57a6c0-3e26-4a15-94f4-85d35ca3f1d4",
@@ -325,7 +461,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        4192,
+        5792,
         0
       ],
       "credentials": {
@@ -344,14 +480,14 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4400,
+        6016,
         0
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_sessions SET\n  status = 'completed',\n  completed_at = NOW(),\n  answered_questions = ={{ $json.totalQuestions }},\n  overall_compliance_score = ={{ $json.overallScore }}\nWHERE session_id = ={{ $json.sessionId }}::uuid;",
+        "query": "UPDATE audit_sessions SET\n  status = 'completed',\n  completed_at = NOW(),\n  answered_questions = {{ $json.totalQuestions }},\n  overall_compliance_score = {{ $json.overallScore }}\nWHERE session_id = '{{ $json.sessionId }}'::uuid;",
         "options": {}
       },
       "id": "b598f4c0-ddae-4b44-b0d7-baf3e7288fa9",
@@ -359,7 +495,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        4624,
+        6240,
         0
       ],
       "credentials": {
@@ -372,7 +508,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES (={{ $json.sessionId }}::uuid, 'completed', 'success', ='All ' + $json.totalQuestions + ' questions evaluated. Overall score: ' + $json.overallScore, 100);",
+        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $json.sessionId }}'::uuid, 'completed', 'success', '{{ \"All \" + $json.totalQuestions + \" questions evaluated. Overall score: \" + $json.overallScore }}', 100);",
         "options": {}
       },
       "id": "87c2fa21-5ebd-465d-ae8c-63610a41c1c5",
@@ -380,7 +516,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        4848,
+        6464,
         0
       ],
       "credentials": {
@@ -399,14 +535,14 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5072,
+        6688,
         0
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM audit_evidence WHERE session_id = ={{ $json.sessionId }}::uuid;",
+        "query": "DELETE FROM audit_evidence WHERE session_id = '{{ $json.sessionId }}'::uuid;",
         "options": {}
       },
       "id": "0898354c-1d66-4fad-a6e5-0d60b5e977f7",
@@ -414,7 +550,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        5280,
+        6912,
         0
       ],
       "credentials": {
@@ -508,14 +644,36 @@
       "main": [
         [
           {
-            "node": "Extract or Retrieve Evidence",
+            "node": "Prepare Files for Extraction",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extract or Retrieve Evidence": {
+    "Prepare Files for Extraction": {
+      "main": [
+        [
+          {
+            "node": "Call Workflow A: Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Workflow A: Extract": {
+      "main": [
+        [
+          {
+            "node": "Combine Extraction Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Extraction Results": {
       "main": [
         [
           {
@@ -574,25 +732,69 @@
       "main": [
         [
           {
-            "node": "Generate Question Embedding",
+            "node": "Prepare Question for Embedding",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Generate Question Embedding": {
+    "Prepare Question for Embedding": {
       "main": [
         [
           {
-            "node": "RAG: Search Standards",
+            "node": "Ollama: Generate Embedding",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "RAG: Search Standards": {
+    "Ollama: Generate Embedding": {
+      "main": [
+        [
+          {
+            "node": "Extract Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Embedding": {
+      "main": [
+        [
+          {
+            "node": "Prepare RAG Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare RAG Search": {
+      "main": [
+        [
+          {
+            "node": "Qdrant: Search Standards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant: Search Standards": {
+      "main": [
+        [
+          {
+            "node": "Format RAG Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format RAG Results": {
       "main": [
         [
           {
@@ -618,14 +820,25 @@
       "main": [
         [
           {
-            "node": "AI: Evaluate Compliance",
+            "node": "Ollama: Evaluate Compliance",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI: Evaluate Compliance": {
+    "Ollama: Evaluate Compliance": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
       "main": [
         [
           {

@@ -33,7 +33,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT session_id, domain, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score\nFROM audit_sessions\nWHERE session_id = ={{ $json.sessionId }}::uuid AND status = 'completed';",
+        "query": "SELECT session_id, domain, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND status = 'completed';",
         "options": {}
       },
       "id": "76a357a1-c6a5-4312-894f-1af794d024de",
@@ -54,7 +54,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT l.q_id, q.question_text, q.domain as question_domain, l.ai_response, l.created_at\nFROM audit_logs l\nJOIN audit_questions q ON l.q_id = q.q_id\nWHERE l.session_id = ={{ $('Extract Session ID').first().json.sessionId }}::uuid \n  AND l.step_name = 'completed' \n  AND l.status = 'success'\nORDER BY l.created_at;",
+        "query": "SELECT l.q_id, q.question_text, q.domain as question_domain, l.ai_response, l.created_at\nFROM audit_logs l\nJOIN audit_questions q ON l.q_id = q.q_id\nWHERE l.session_id = '{{ $('Extract Session ID').first().json.sessionId }}'::uuid \n  AND l.step_name = 'completed' \n  AND l.status = 'success'\nORDER BY l.created_at;",
         "options": {}
       },
       "id": "407c89e3-01f4-4a14-8768-51838278aa95",

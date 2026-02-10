@@ -34,7 +34,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_sessions (session_id, domain, initiated_by, status, started_at, total_questions, answered_questions, overall_compliance_score)\nVALUES (gen_random_uuid(), '{{ $json.domain }}', 'api_user', 'queued', NOW(), {{ $json.questions.length }}, 0, 0)\nRETURNING session_id, domain, total_questions;",
+        "query": "INSERT INTO audit_sessions (session_id, domain, initiated_by, status, started_at, total_questions, answered_questions, overall_compliance_score)\nVALUES (gen_random_uuid(), '{{ $json.domain.replace(/'/g, \"''\") }}', 'api_user', 'queued', NOW(), {{ $json.questions.length }}, 0, 0)\nRETURNING session_id, domain, total_questions;",
         "options": {}
       },
       "id": "5d5acd07-a3db-481e-a191-164dbecca85f",

@@ -263,7 +263,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_evidence (session_id, q_id, domain, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  '{{ $json.domain }}',\n  '{{ $json.filename }}',\n  '{{ $json.fileHash }}',\n  {{ $json.fileSize }},\n  '{{ $json.extractedData }}'::jsonb,\n  {{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, q_id, file_hash) DO NOTHING;",
+        "query": "INSERT INTO audit_evidence (session_id, q_id, domain, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  '{{ $json.domain }}',\n  '{{ $json.filename.replace(/'/g, \"''\") }}',\n  '{{ $json.fileHash }}',\n  {{ $json.fileSize }},\n  '{{ $json.extractedData.replace(/'/g, \"''\") }}'::jsonb,\n  {{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, q_id, file_hash) DO NOTHING;",
         "options": {}
       },
       "id": "d0542fce-3c7a-49e8-b21e-749b5ed1c09e",
@@ -498,7 +498,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  'completed',\n  'success',\n  '{{ JSON.stringify($json.evaluation) }}'::jsonb,\n  '{{ \"Question evaluated successfully (Score: \" + $json.evaluation.score + \")\" }}',\n  {{ 95 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 5) }}\n);",
+        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  'completed',\n  'success',\n  '{{ JSON.stringify($json.evaluation).replace(/'/g, \"''\") }}'::jsonb,\n  '{{ (\"Question evaluated successfully (Score: \" + $json.evaluation.score + \")\").replace(/'/g, \"''\") }}',\n  {{ 95 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 5) }}\n);",
         "options": {}
       },
       "id": "8c57a6c0-3e26-4a15-94f4-85d35ca3f1d4",

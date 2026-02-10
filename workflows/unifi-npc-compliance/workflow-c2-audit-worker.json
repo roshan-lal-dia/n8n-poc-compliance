@@ -46,7 +46,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const result = $input.first().json;\n\n// If queue is empty, return empty array to stop execution\nif (!result || !result.output) {\n  return [];\n}\n\n// Parse job data\nconst job = JSON.parse(result.output);\n\nreturn [{ json: job }];"
+        "jsCode": "const result = $input.first().json;\n\n// If queue is empty, return empty array to stop execution\nif (!result || !result.output) {\n  return [];\n}\n\n// Handle both string and object output from Redis\nlet job;\nif (typeof result.output === 'string') {\n  job = JSON.parse(result.output);\n} else if (typeof result.output === 'object') {\n  job = result.output;\n} else {\n  console.error('Unexpected output type:', typeof result.output);\n  return [];\n}\n\nreturn [{ json: job }];"
       },
       "id": "29bdc0ed-86fc-45b8-8462-388a68b9e10d",
       "name": "Parse Job (Exit if Empty)",
@@ -81,7 +81,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $json.sessionId }}'::uuid, 'processing', 'in_progress', 'Starting audit execution', 5);",
+        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $('Parse Job (Exit if Empty)').first().json.sessionId }}'::uuid, 'processing', 'in_progress', 'Starting audit execution', 5);",
         "options": {}
       },
       "id": "64081a31-ed75-4df8-b9f7-a366207ef97e",
@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Split into one execution per question\n// Get job data from Parse Job node (not from Log: Start Processing which is INSERT)\nconst job = $('Parse Job (Exit if Empty)').first().json;\n\nreturn job.questions.map((q, index) => ({\n  json: {\n    sessionId: job.sessionId,\n    domain: job.domain,\n    qId: q.q_id,\n    evidenceFiles: q.evidence_files,\n    fileMap: job.fileMap,\n    sessionDir: job.sessionDir,\n    questionIndex: index,\n    totalQuestions: job.questions.length\n  }\n}));"
+        "jsCode": "// Split into one execution per question\n// Get job data from Parse Job node (not from Log: Start Processing which is INSERT)\nconst job = $('Parse Job (Exit if Empty)').first().json;\n\nreturn job.questions.map((q, index) => ({\n  json: {\n    sessionId: job.sessionId,\n    domain: job.domain,\n    qId: q.q_id,\n    evidenceFiles: q.evidence_files,\n    fileMap: job.fileMap,\n    questionIndex: index,\n    totalQuestions: job.questions.length\n  }\n}));"
       },
       "id": "c67828cc-06cd-4e80-91ec-903cf11ba750",
       "name": "Split by Question",
@@ -136,7 +136,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT file_hash, extracted_data, filename, file_size_bytes\nFROM audit_evidence\nWHERE session_id = '{{ $json.sessionId }}'::uuid \n  AND q_id = '{{ $json.qId }}'\n  AND file_hash = ANY(ARRAY[{{ $json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]);",
+        "query": "SELECT \n  file_hash,\n  extracted_data,\n  filename,\n  file_size_bytes\nFROM audit_evidence\nWHERE session_id = '{{ $('Split by Question').first().json.sessionId }}'::uuid \n  AND q_id = '{{ $('Split by Question').first().json.qId }}'\n  AND file_hash = ANY(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[])\nUNION ALL\nSELECT \n  'nocache' as file_hash,\n  NULL as extracted_data,\n  NULL as filename,\n  NULL as file_size_bytes\nWHERE NOT EXISTS (\n  SELECT 1 FROM audit_evidence\n  WHERE session_id = '{{ $('Split by Question').first().json.sessionId }}'::uuid \n    AND q_id = '{{ $('Split by Question').first().json.qId }}'\n    AND file_hash = ANY(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[])\n);",
         "options": {}
       },
       "id": "bd0ab794-c4d3-42cd-ad31-20200a03917d",
@@ -156,7 +156,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst questionData = $('Split by Question').first().json;\nconst cachedEvidence = $input.all().map(item => item.json);\n\n// Determine which files need extraction\nconst cachedHashes = new Set(cachedEvidence.map(e => e.file_hash));\nconst filesToExtract = questionData.evidenceFiles.filter(f => !cachedHashes.has(f.hash));\n\n// Store cached evidence for later\nconst allEvidence = [];\nfor (const cached of cachedEvidence) {\n  allEvidence.push({\n    hash: cached.file_hash,\n    filename: cached.filename,\n    extractedData: cached.extracted_data,\n    fileSize: cached.file_size_bytes,\n    fromCache: true\n  });\n}\n\n// Store in first item for access in Combine node\nconst cachedEvidenceData = allEvidence;\n\n// Prepare files for extraction (one item per file)\nconst filesToProcess = [];\nfor (const fileInfo of filesToExtract) {\n  const fileData = questionData.fileMap[fileInfo.hash];\n  if (!fileData) {\n    throw new Error(`File hash ${fileInfo.hash} not found in file map`);\n  }\n  \n  // Read file from disk as binary\n  const filePath = fileData.diskPath;\n  const fileBuffer = fs.readFileSync(filePath);\n  const base64Data = fileBuffer.toString('base64');\n  \n  filesToProcess.push({\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      hash: fileInfo.hash,\n      filename: fileData.fileName,\n      fileSize: fileData.fileSize,\n      mimeType: fileData.mimeType,\n      cachedEvidence: cachedEvidenceData\n    },\n    binary: {\n      data: {\n        data: base64Data,\n        mimeType: fileData.mimeType,\n        fileName: fileData.fileName,\n        fileExtension: fileData.fileName.split('.').pop()\n      }\n    }\n  });\n}\n\n// If no files to extract, return marker to skip extraction\nif (filesToProcess.length === 0) {\n  return [{\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      allEvidence: cachedEvidenceData,\n      newExtractions: [],\n      totalEvidence: cachedEvidenceData.length,\n      fromCache: cachedEvidenceData.length,\n      justExtracted: 0\n    }\n  }];\n}\n\n// Return files to extract with binary data\nreturn filesToProcess;"
+        "jsCode": "const questionData = $('Split by Question').first().json;\nconst cacheResults = $input.all();\n\nconsole.log('=== PREPARE FILES DEBUG ===');\nconsole.log('Cache results count:', cacheResults.length);\n\n// Extract cached evidence - filter out 'nocache' marker\nconst cachedEvidence = cacheResults\n  .map(item => item.json)\n  .filter(item => {\n    if (item.file_hash === 'nocache') {\n      return false;\n    }\n    return item && item.file_hash && item.extracted_data;\n  });\n\nconsole.log('Valid cached evidence count:', cachedEvidence.length);\n\n// Determine which files need extraction\nconst cachedHashes = new Set(cachedEvidence.map(e => e.file_hash));\nconst filesToExtract = questionData.evidenceFiles.filter(f => !cachedHashes.has(f.hash));\n\nconsole.log('Files to extract:', filesToExtract.length);\n\n// Store cached evidence for later\nconst cachedEvidenceData = cachedEvidence.map(cached => ({\n  hash: cached.file_hash,\n  filename: cached.filename,\n  extractedData: cached.extracted_data,\n  fileSize: cached.file_size_bytes,\n  fromCache: true\n}));\n\n// Prepare files for extraction (one item per file)\nconst filesToProcess = [];\nfor (const fileInfo of filesToExtract) {\n  const fileData = questionData.fileMap[fileInfo.fieldName];\n  if (!fileData) {\n    throw new Error(`File fieldName \"${fileInfo.fieldName}\" not found in fileMap. Available: ${Object.keys(questionData.fileMap).join(', ')}`);\n  }\n  \n  if (!fileData.binaryData) {\n    throw new Error(`No binary data found for ${fileData.fileName}. File may not have been uploaded correctly.`);\n  }\n  \n  const actualSize = Buffer.from(fileData.binaryData, 'base64').length;\n  console.log(`Prepared ${fileData.fileName}: ${actualSize} bytes`);\n  \n  filesToProcess.push({\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      hash: fileInfo.hash,\n      filename: fileData.fileName,\n      fileSize: actualSize,\n      mimeType: fileData.mimeType,\n      cachedEvidence: cachedEvidenceData\n    },\n    binary: {\n      data: {\n        data: fileData.binaryData,\n        mimeType: fileData.mimeType,\n        fileName: fileData.fileName,\n        fileExtension: fileData.fileName.split('.').pop()\n      }\n    }\n  });\n}\n\nif (filesToProcess.length === 0) {\n  console.log('No files to extract, returning cached-only result');\n  return[{\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      allEvidence: cachedEvidenceData,\n      newExtractions: [],\n      totalEvidence: cachedEvidenceData.length,\n      fromCache: cachedEvidenceData.length,\n      justExtracted: 0\n    }\n  }];\n}\n\nreturn filesToProcess;"
       },
       "id": "3bc35ea3-4258-4ecf-8bd5-9185e16dabec",
       "name": "Prepare Files for Extraction",
@@ -178,7 +178,7 @@
           "conditions": [
             {
               "id": "needs-extraction",
-              "leftValue": "={{ $json.binary !== undefined }}",
+              "leftValue": "={{ $json.binary !== undefined && $json.binary.data !== undefined }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -215,7 +215,14 @@
           ]
         },
         "options": {
-          "timeout": 300000
+          "timeout": 300000,
+          "response": {
+            "response": {
+              "neverError": false,
+              "responseFormat": "json",
+              "outputPropertyName": "data"
+            }
+          }
         }
       },
       "id": "call-workflow-a-extraction",
@@ -229,7 +236,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Combine extracted results with cached evidence\nconst currentItems = $input.all();\nconst preparedItems = $('Prepare Files for Extraction').all();\n\n// Check if this is the FALSE path (no extraction needed)\nif (currentItems.length > 0 && currentItems[0].json.allEvidence !== undefined) {\n  // Already has the complete structure, pass through\n  return currentItems;\n}\n\n// This is the TRUE path (extraction happened)\n// Get cached evidence from first prepared item\nconst cachedEvidence = preparedItems[0].json.cachedEvidence || [];\nconst firstPrepared = preparedItems[0].json;\n\nconst allEvidence = [...cachedEvidence];\nconst newExtractions = [];\n\n// Process each extraction result\nfor (let i = 0; i < currentItems.length; i++) {\n  const extractedData = currentItems[i].json;\n  const preparedData = preparedItems[i].json;\n  \n  allEvidence.push({\n    hash: preparedData.hash,\n    filename: preparedData.filename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize,\n    fromCache: false\n  });\n  \n  newExtractions.push({\n    hash: preparedData.hash,\n    filename: preparedData.filename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize\n  });\n}\n\nreturn [{\n  json: {\n    sessionId: firstPrepared.sessionId,\n    qId: firstPrepared.qId,\n    domain: firstPrepared.domain,\n    allEvidence: allEvidence,\n    newExtractions: newExtractions,\n    totalEvidence: allEvidence.length,\n    fromCache: cachedEvidence.length,\n    justExtracted: newExtractions.length\n  }\n}];"
+        "jsCode": "// Combine extracted results with cached evidence\nconst currentItems = $input.all();\nconst preparedItems = $('Prepare Files for Extraction').all();\n\n// Check if this is the FALSE path (no extraction needed)\nif (currentItems.length > 0 && currentItems[0].json.allEvidence !== undefined) {\n  // Already has the complete structure, pass through\n  return currentItems;\n}\n\n// This is the TRUE path (extraction happened)\n// Get cached evidence from first prepared item\nconst cachedEvidence = preparedItems[0].json.cachedEvidence || [];\nconst firstPrepared = preparedItems[0].json;\n\nconst allEvidence = [...cachedEvidence];\nconst newExtractions = [];\n\n// Process each extraction result\nfor (let i = 0; i < currentItems.length; i++) {\n  const extractedData = currentItems[i].json;\n  const preparedData = preparedItems[i].json;\n  \n  // Validate that extraction returned proper data\n  if (!extractedData.fullDocument && !extractedData.text) {\n    console.error('Extraction failed for file:', preparedData.filename);\n    console.error('Got data:', JSON.stringify(extractedData));\n    \n    // Use empty extraction as fallback\n    extractedData.fullDocument = `[Extraction failed for ${preparedData.filename}]`;\n    extractedData.totalPages = 0;\n    extractedData.totalWords = 0;\n    extractedData.hasDiagrams = false;\n  }\n  \n  allEvidence.push({\n    hash: preparedData.hash,\n    filename: preparedData.filename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize,\n    fromCache: false\n  });\n  \n  newExtractions.push({\n    hash: preparedData.hash,\n    filename: preparedData.filename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize\n  });\n}\n\nreturn [{\n  json: {\n    sessionId: firstPrepared.sessionId,\n    qId: firstPrepared.qId,\n    domain: firstPrepared.domain,\n    allEvidence: allEvidence,\n    newExtractions: newExtractions,\n    totalEvidence: allEvidence.length,\n    fromCache: cachedEvidence.length,\n    justExtracted: newExtractions.length\n  }\n}];"
       },
       "id": "combine-extraction-results",
       "name": "Combine Extraction Results",
@@ -242,7 +249,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Store newly extracted evidence to database\nconst data = $input.first().json;\nconst insertStatements = [];\n\nlet order = 1;\nfor (const evidence of data.newExtractions) {\n  insertStatements.push({\n    sessionId: data.sessionId,\n    qId: data.qId,\n    domain: data.domain,\n    filename: evidence.filename,\n    fileHash: evidence.hash,\n    fileSize: evidence.fileSize,\n    extractedData: JSON.stringify(evidence.extractedData),\n    evidenceOrder: order++\n  });\n}\n\nreturn insertStatements.length > 0 \n  ? insertStatements.map(s => ({ json: s }))\n  : [{ json: { skip: true } }];"
+        "jsCode": "// Store newly extracted evidence to database\nconst data = $input.first().json;\nconst insertStatements = [];\n\n// Safety check\nif (!data || !data.newExtractions || !Array.isArray(data.newExtractions)) {\n  return [];\n}\n\nlet order = 1;\nfor (const evidence of data.newExtractions) {\n  insertStatements.push({\n    sessionId: data.sessionId,\n    qId: data.qId,\n    domain: data.domain,\n    filename: evidence.filename,\n    fileHash: evidence.hash,\n    fileSize: evidence.fileSize,\n    extractedData: JSON.stringify(evidence.extractedData),\n    evidenceOrder: order++\n  });\n}\n\n// If nothing to insert, return empty array to skip DB insert\nif (insertStatements.length === 0) {\n  return [];\n}\n\nreturn insertStatements.map(s => ({ json: s }));"
       },
       "id": "886fff62-80ec-47e3-8a27-d08c4e0177db",
       "name": "Prepare Evidence Inserts",
@@ -276,7 +283,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Consolidate all evidence for this question with size limits\nconst evidenceData = $('Combine Extraction Results').first().json;\n\nlet combinedText = '';\nconst sourceFiles = [];\nlet totalPages = 0;\nlet totalWords = 0;\n\nfor (const evidence of evidenceData.allEvidence) {\n  const extracted = evidence.extractedData;\n  const fullText = extracted.fullDocument || '';\n  \n  // Per-file limit: 50,000 characters\n  const truncated = fullText.substring(0, 50000);\n  \n  combinedText += `\\n\\n=== Evidence File: ${evidence.filename} ===\\n${truncated}`;\n  \n  sourceFiles.push({\n    filename: evidence.filename,\n    hash: evidence.hash,\n    pages: extracted.totalPages || 0,\n    words: extracted.totalWords || 0,\n    diagrams: extracted.hasDiagrams || false,\n    truncated: fullText.length > 50000,\n    fromCache: evidence.fromCache\n  });\n  \n  totalPages += extracted.totalPages || 0;\n  totalWords += extracted.totalWords || 0;\n}\n\n// Overall limit: 200,000 characters\nif (combinedText.length > 200000) {\n  combinedText = combinedText.substring(0, 200000) + '\\n\\n[Evidence truncated at 200,000 characters]';\n}\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    domain: evidenceData.domain,\n    evidenceText: combinedText,\n    evidenceLength: combinedText.length,\n    sourceFiles: sourceFiles,\n    totalPages: totalPages,\n    totalWords: totalWords\n  }\n}];"
+        "jsCode": "// Consolidate all evidence for this question with size limits\nconst evidenceData = $('Combine Extraction Results').first().json;\n\n// Safety check\nif (!evidenceData || !evidenceData.allEvidence || !Array.isArray(evidenceData.allEvidence)) {\n  throw new Error('No evidence data available from extraction step');\n}\n\nlet combinedText = '';\nconst sourceFiles = [];\nlet totalPages = 0;\nlet totalWords = 0;\n\nfor (const evidence of evidenceData.allEvidence) {\n  const extracted = evidence.extractedData || {};\n  const fullText = extracted.fullDocument || extracted.text || '';\n  \n  // Per-file limit: 50,000 characters\n  const truncated = fullText.substring(0, 50000);\n  \n  combinedText += `\\n\\n=== Evidence File: ${evidence.filename} ===\\n${truncated}`;\n  \n  sourceFiles.push({\n    filename: evidence.filename,\n    hash: evidence.hash,\n    pages: extracted.totalPages || 0,\n    words: extracted.totalWords || 0,\n    diagrams: extracted.hasDiagrams || false,\n    truncated: fullText.length > 50000,\n    fromCache: evidence.fromCache\n  });\n  \n  totalPages += extracted.totalPages || 0;\n  totalWords += extracted.totalWords || 0;\n}\n\n// Overall limit: 200,000 characters\nif (combinedText.length > 200000) {\n  combinedText = combinedText.substring(0, 200000) + '\\n\\n[Evidence truncated at 200,000 characters]';\n}\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    domain: evidenceData.domain,\n    evidenceText: combinedText,\n    evidenceLength: combinedText.length,\n    sourceFiles: sourceFiles,\n    totalPages: totalPages,\n    totalWords: totalWords\n  }\n}];"
       },
       "id": "a93c7dd0-8137-49be-bcff-8db5e7dbf9e1",
       "name": "Consolidate Evidence Text",
@@ -290,7 +297,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT q_id, question_text, prompt_instructions, domain\nFROM audit_questions\nWHERE q_id = '{{ $json.qId }}';",
+        "query": "SELECT q_id, question_text, prompt_instructions, domain\nFROM audit_questions\nWHERE q_id = '{{ $('Consolidate Evidence Text').first().json.qId }}';",
         "options": {}
       },
       "id": "52da4749-ecb2-4ef1-a311-3493fff52190",
@@ -364,7 +371,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract embedding from Ollama response\nconst ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').first().json;\n\nreturn [{\n  json: {\n    questionId: questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    questionDomain: questionData.questionDomain,\n    embedding: ollamaResponse.embedding\n  }\n}];"
+        "jsCode": "// Extract embedding from Ollama response\nconst ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').first().json;\n\n// Safety check\nif (!ollamaResponse || !ollamaResponse.embedding) {\n  throw new Error('Ollama did not return embedding. Response: ' + JSON.stringify(ollamaResponse));\n}\n\nreturn [{\n  json: {\n    questionId: questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    questionDomain: questionData.questionDomain,\n    embedding: ollamaResponse.embedding\n  }\n}];"
       },
       "id": "extract-embedding",
       "name": "Extract Embedding",
@@ -410,7 +417,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Format RAG search results\nconst qdrantResponse = $input.first().json;\nconst contextData = $('Prepare RAG Search').first().json;\n\nconst ragSources = qdrantResponse.result.map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit.payload.standardName,\n  chunkIndex: hit.payload.chunkIndex,\n  relevanceScore: hit.score,\n  text: hit.payload.text,\n  excerpt: hit.payload.text.substring(0, 600),\n  metadata: hit.payload.metadata\n}));\n\nreturn [{\n  json: {\n    sessionId: contextData.sessionId,\n    qId: contextData.qId,\n    ragSources: ragSources,\n    totalSources: ragSources.length\n  }\n}];"
+        "jsCode": "// Format RAG search results\nconst qdrantResponse = $input.first().json;\nconst contextData = $('Prepare RAG Search').first().json;\n\n// Safety check\nif (!qdrantResponse || !qdrantResponse.result || !Array.isArray(qdrantResponse.result)) {\n  console.warn('Qdrant returned no results:', qdrantResponse);\n  return [{\n    json: {\n      sessionId: contextData.sessionId,\n      qId: contextData.qId,\n      ragSources: [],\n      totalSources: 0\n    }\n  }];\n}\n\nconst ragSources = qdrantResponse.result.map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit.payload.standardName,\n  chunkIndex: hit.payload.chunkIndex,\n  relevanceScore: hit.score,\n  text: hit.payload.text,\n  excerpt: hit.payload.text.substring(0, 600),\n  metadata: hit.payload.metadata\n}));\n\nreturn [{\n  json: {\n    sessionId: contextData.sessionId,\n    qId: contextData.qId,\n    ragSources: ragSources,\n    totalSources: ragSources.length\n  }\n}];"
       },
       "id": "format-rag-results",
       "name": "Format RAG Results",
@@ -423,7 +430,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Build comprehensive AI prompt\nconst questionData = $('Extract Embedding').first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\nconst ragData = $('Format RAG Results').first().json;\n\n// Format RAG sources section\nconst ragSection = ragData.ragSources.map((source, i) => \n  `${i+1}. [${source.standardName}] (Relevance: ${source.relevanceScore.toFixed(2)})\\n${source.excerpt}\\n`\n).join('\\n');\n\n// Build master prompt\nconst prompt = `COMPLIANCE AUDIT EVALUATION\n\nQUESTION: ${questionData.questionText}\n\nINSTRUCTIONS: ${questionData.instructions || 'Evaluate based on industry best practices and standards.'}\n\nRELEVANT COMPLIANCE STANDARDS:\n${ragSection}\n\nEVIDENCE FROM SUBMITTED DOCUMENTS:\n${evidenceData.evidenceText}\n\n---\n\nEvaluate compliance with the question based on the provided evidence and standards.\nRespond in JSON format with the following structure:\n{\n  \"compliant\": boolean,\n  \"score\": 0-100,\n  \"confidence\": 0-100,\n  \"findings\": \"detailed description of what was found\",\n  \"evidence_summary\": \"specific references to evidence that supports the evaluation\",\n  \"gaps\": [\"list of missing or insufficient elements\"],\n  \"recommendations\": [\"actionable improvements\"]\n}`;\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    prompt: prompt,\n    promptLength: prompt.length,\n    ragSources: ragData.ragSources,\n    sourceFiles: evidenceData.sourceFiles\n  }\n}];"
+        "jsCode": "// Build comprehensive AI prompt\nconst questionData = $('Extract Embedding').first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\nconst ragData = $('Format RAG Results').first().json;\n\n// Format RAG sources section\nconst ragSources = ragData.ragSources || [];\nconst ragSection = ragSources.length > 0 \n  ? ragSources.map((source, i) => \n      `${i+1}. [${source.standardName}] (Relevance: ${source.relevanceScore.toFixed(2)})\\n${source.excerpt}\\n`\n    ).join('\\n')\n  : 'No specific compliance standards found in knowledge base. Evaluate based on general industry best practices.';\n\n// Build master prompt\nconst prompt = `COMPLIANCE AUDIT EVALUATION\n\nQUESTION: ${questionData.questionText}\n\nINSTRUCTIONS: ${questionData.instructions || 'Evaluate based on industry best practices and standards.'}\n\nRELEVANT COMPLIANCE STANDARDS:\n${ragSection}\n\nEVIDENCE FROM SUBMITTED DOCUMENTS:\n${evidenceData.evidenceText}\n\n---\n\nEvaluate compliance with the question based on the provided evidence and standards.\nRespond in JSON format with the following structure:\n{\n  \"compliant\": boolean,\n  \"score\": 0-100,\n  \"confidence\": 0-100,\n  \"findings\": \"detailed description of what was found\",\n  \"evidence_summary\": \"specific references to evidence that supports the evaluation\",\n  \"gaps\": [\"list of missing or insufficient elements\"],\n  \"recommendations\": [\"actionable improvements\"]\n}`;\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    prompt: prompt,\n    promptLength: prompt.length,\n    ragSources: ragSources,\n    sourceFiles: evidenceData.sourceFiles\n  }\n}];"
       },
       "id": "b29e0ebb-9cf8-41a8-8ff9-bec6604effcf",
       "name": "Build AI Prompt",
@@ -437,7 +444,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = {{ 85 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 10) }}\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND q_id = '{{ $json.qId }}' AND step_name = 'searching';",
+        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = {{ 85 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 10) }}\nWHERE session_id = '{{ $('Build AI Prompt').first().json.sessionId }}'::uuid AND q_id = '{{ $('Build AI Prompt').first().json.qId }}' AND step_name = 'searching';",
         "options": {}
       },
       "id": "9793deff-23f9-42cd-a514-79e52f694efb",
@@ -511,7 +518,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// After all questions complete, aggregate scores\nconst allResults = $input.all();\n\n// Calculate average score\nconst scores = allResults.map(r => r.json.evaluation.score);\nconst avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;\n\n// Get session ID from first result\nconst sessionId = allResults[0].json.sessionId;\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    overallScore: Math.round(avgScore * 100) / 100,\n    totalQuestions: allResults.length,\n    questionResults: allResults.map(r => ({\n      qId: r.json.qId,\n      score: r.json.evaluation.score,\n      compliant: r.json.evaluation.compliant\n    }))\n  }\n}];"
+        "jsCode": "// After all questions complete, aggregate scores\nconst allResults = $input.all();\n\n// Safety check\nif (!allResults || allResults.length === 0) {\n  throw new Error('No question results to aggregate');\n}\n\n// Calculate average score\nconst scores = allResults.map(r => r.json?.evaluation?.score || 0);\nconst avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;\n\n// Get session ID from first result\nconst sessionId = allResults[0].json.sessionId;\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    overallScore: Math.round(avgScore * 100) / 100,\n    totalQuestions: allResults.length,\n    questionResults: allResults.map(r => ({\n      qId: r.json.qId,\n      score: r.json?.evaluation?.score || 0,\n      compliant: r.json?.evaluation?.compliant || false\n    }))\n  }\n}];"
       },
       "id": "06806e4d-fd6b-4ddb-acf7-30416ce9afc7",
       "name": "Aggregate Scores",
@@ -546,7 +553,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $json.sessionId }}'::uuid, 'completed', 'success', '{{ \"All \" + $json.totalQuestions + \" questions evaluated. Overall score: \" + $json.overallScore }}', 100);",
+        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $('Aggregate Scores').first().json.sessionId }}'::uuid, 'completed', 'success', '{{ \"All \" + $('Aggregate Scores').first().json.totalQuestions + \" questions evaluated. Overall score: \" + $('Aggregate Scores').first().json.overallScore }}', 100);",
         "options": {}
       },
       "id": "87c2fa21-5ebd-465d-ae8c-63610a41c1c5",
@@ -566,7 +573,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Cleanup: Delete evidence and temp files\nconst fs = require('fs');\nconst job = $('Parse Job (Exit if Empty)').first().json;\n\ntry {\n  // Delete session directory\n  if (job.sessionDir && fs.existsSync(job.sessionDir)) {\n    fs.rmSync(job.sessionDir, { recursive: true, force: true });\n  }\n} catch (e) {\n  console.error('Cleanup error:', e.message);\n}\n\nreturn [{\n  json: {\n    sessionId: job.sessionId,\n    cleanupComplete: true\n  }\n}];"
+        "jsCode": "// No cleanup needed - binary data stays in n8n\nconst job = $('Parse Job (Exit if Empty)').first().json;\n\nreturn [{\n  json: {\n    sessionId: job.sessionId,\n    cleanupComplete: true\n  }\n}];"
       },
       "id": "661ce606-1194-4010-a931-d67313cbf4f6",
       "name": "Cleanup: Temp Files",
@@ -580,7 +587,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM audit_evidence WHERE session_id = '{{ $json.sessionId }}'::uuid;",
+        "query": "DELETE FROM audit_evidence WHERE session_id = '{{ $('Cleanup: Temp Files').first().json.sessionId }}'::uuid;",
         "options": {}
       },
       "id": "0898354c-1d66-4fad-a6e5-0d60b5e977f7",
@@ -736,6 +743,11 @@
             "node": "Prepare Evidence Inserts",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Consolidate Evidence Text",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -752,15 +764,7 @@
       ]
     },
     "Store Evidence to DB": {
-      "main": [
-        [
-          {
-            "node": "Consolidate Evidence Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": []
     },
     "Consolidate Evidence Text": {
       "main": [

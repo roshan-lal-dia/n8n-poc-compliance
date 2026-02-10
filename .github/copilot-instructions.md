@@ -5,6 +5,7 @@
 - The workflow is intended for local execution using Docker with custom CLI tools (`libreoffice`, `pdftoppm`).
 
 ## Key rules
+- Never try try to import workflows I will do it manually. Just generate the JSON for the nodes and connections.
 - **JSON Structure**: Prefer n8n UI-generated node JSON formats. Keep `typeVersion` consistent (e.g., Switch v3.4, Set v3.4).
 - **Node IDs/Positions**: Preserve existing `id`, `name`, and `position` values to avoid breaking the UI layout.
 - **Connections**: Maintain the strict `connections` object structure where keys are node names.

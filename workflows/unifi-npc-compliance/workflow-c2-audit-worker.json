@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Split into one execution per question\nconst job = $input.first().json;\n\nreturn job.questions.map((q, index) => ({\n  json: {\n    sessionId: job.sessionId,\n    domain: job.domain,\n    qId: q.q_id,\n    evidenceFiles: q.evidence_files,\n    fileMap: job.fileMap,\n    sessionDir: job.sessionDir,\n    questionIndex: index,\n    totalQuestions: job.questions.length\n  }\n}));"
+        "jsCode": "// Split into one execution per question\n// Get job data from Parse Job node (not from Log: Start Processing which is INSERT)\nconst job = $('Parse Job (Exit if Empty)').first().json;\n\nreturn job.questions.map((q, index) => ({\n  json: {\n    sessionId: job.sessionId,\n    domain: job.domain,\n    qId: q.q_id,\n    evidenceFiles: q.evidence_files,\n    fileMap: job.fileMap,\n    sessionDir: job.sessionDir,\n    questionIndex: index,\n    totalQuestions: job.questions.length\n  }\n}));"
       },
       "id": "c67828cc-06cd-4e80-91ec-903cf11ba750",
       "name": "Split by Question",
@@ -331,7 +331,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepare embedding request for question + instructions\nconst question = $input.first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId: question.q_id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    questionDomain: question.domain,\n    queryText: queryText\n  }\n}];"
+        "jsCode": "// Prepare embedding request for question + instructions\n// Get question data from Load Question node (not from Update Log which is UPDATE)\nconst question = $('Load Question').first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId: question.q_id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    questionDomain: question.domain,\n    queryText: queryText\n  }\n}];"
       },
       "id": "9656f449-b95f-4528-8ec6-0f7efdadb4fd",
       "name": "Prepare Question for Embedding",
@@ -461,7 +461,7 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"llama3.2\",\n  \"prompt\": $json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000\n  }\n} }}",
+        "jsonBody": "={{ {\n  \"model\": \"llama3.2\",\n  \"prompt\": $('Build AI Prompt').first().json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000\n  }\n} }}",
         "options": {
           "timeout": 600000
         }

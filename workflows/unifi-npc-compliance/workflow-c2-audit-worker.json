@@ -3,20 +3,19 @@
   "nodes": [
     {
       "parameters": {
-        "triggerTimes": {
-          "item": [
+        "rule": {
+          "interval": [
             {
-              "mode": "everyX",
-              "value": 10,
-              "unit": "seconds"
+              "field": "seconds",
+              "secondsInterval": 10
             }
           ]
         }
       },
       "id": "0fb56361-5e41-42c2-9357-72b165d81396",
       "name": "Cron: Every 10s",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -202,7 +201,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:5678/webhook/extract",
+        "url": "http://n8n:5678/webhook/extract",
         "method": "POST",
         "sendBody": true,
         "contentType": "multipart-form-data",

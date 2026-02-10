@@ -151,7 +151,7 @@ services:
       # Security
       - NODES_EXCLUDE=[]
       - NODES_ALLOW_BUILTIN=ExecuteCommand
-      - NODE_FUNCTION_ALLOW_BUILTIN=crypto
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
       - N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=false
       - N8N_RESTRICT_FILE_ACCESS_TO=/tmp/n8n_processing

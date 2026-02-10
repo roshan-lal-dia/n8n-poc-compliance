@@ -104,10 +104,9 @@
     {
       "parameters": {
         "operation": "push",
-        "key": "audit_job_queue",
-        "keyType": "automatic",
-        "value": "={{ $json.jobData }}",
-        "pushType": "head",
+        "list": "audit_job_queue",
+        "messageData": "={{ $json.jobData }}",
+        "tail": false,
         "options": {}
       },
       "id": "9bdb2ccb-842f-4240-bbcc-303a26af98c9",

@@ -25,8 +25,9 @@
     {
       "parameters": {
         "operation": "pop",
-        "key": "audit_job_queue",
-        "keyType": "automatic",
+        "list": "audit_job_queue",
+        "tail": true,
+        "propertyName": "output",
         "options": {}
       },
       "id": "02204c41-30e3-435a-a890-ccc2d32f54c8",
@@ -156,7 +157,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst questionData = $('Split by Question').first().json;\nconst cachedEvidence = $input.all().map(item => item.json);\n\n// Determine which files need extraction\nconst cachedHashes = new Set(cachedEvidence.map(e => e.file_hash));\nconst filesToExtract = questionData.evidenceFiles.filter(f => !cachedHashes.has(f.hash));\n\n// Prepare all evidence entries\nconst allEvidence = [];\n\n// Add cached evidence first\nfor (const cached of cachedEvidence) {\n  allEvidence.push({\n    hash: cached.file_hash,\n    filename: cached.filename,\n    extractedData: cached.extracted_data,\n    fileSize: cached.file_size_bytes,\n    fromCache: true\n  });\n}\n\n// Prepare files for extraction (one item per file)\nconst filesToProcess = [];\nfor (const fileInfo of filesToExtract) {\n  const fileData = questionData.fileMap[fileInfo.hash];\n  if (!fileData) {\n    throw new Error(`File hash ${fileInfo.hash} not found in file map`);\n  }\n  \n  // Read file from disk and prepare for extraction\n  const filePath = fileData.diskPath;\n  const fileBuffer = fs.readFileSync(filePath);\n  const base64Data = fileBuffer.toString('base64');\n  \n  filesToProcess.push({\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    domain: questionData.domain,\n    hash: fileInfo.hash,\n    filename: fileData.fileName,\n    fileSize: fileData.fileSize,\n    mimeType: fileData.mimeType,\n    binaryData: base64Data,\n    cachedEvidence: allEvidence\n  });\n}\n\n// If no files to extract, return cached evidence only\nif (filesToProcess.length === 0) {\n  return [{\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      allEvidence: allEvidence,\n      newExtractions: [],\n      totalEvidence: allEvidence.length,\n      fromCache: allEvidence.length,\n      justExtracted: 0\n    }\n  }];\n}\n\n// Return files to extract (will be processed by HTTP node)\nreturn filesToProcess.map(f => ({ json: f }));"
+        "jsCode": "const fs = require('fs');\nconst questionData = $('Split by Question').first().json;\nconst cachedEvidence = $input.all().map(item => item.json);\n\n// Determine which files need extraction\nconst cachedHashes = new Set(cachedEvidence.map(e => e.file_hash));\nconst filesToExtract = questionData.evidenceFiles.filter(f => !cachedHashes.has(f.hash));\n\n// Store cached evidence for later\nconst allEvidence = [];\nfor (const cached of cachedEvidence) {\n  allEvidence.push({\n    hash: cached.file_hash,\n    filename: cached.filename,\n    extractedData: cached.extracted_data,\n    fileSize: cached.file_size_bytes,\n    fromCache: true\n  });\n}\n\n// Store in first item for access in Combine node\nconst cachedEvidenceData = allEvidence;\n\n// Prepare files for extraction (one item per file)\nconst filesToProcess = [];\nfor (const fileInfo of filesToExtract) {\n  const fileData = questionData.fileMap[fileInfo.hash];\n  if (!fileData) {\n    throw new Error(`File hash ${fileInfo.hash} not found in file map`);\n  }\n  \n  // Read file from disk as binary\n  const filePath = fileData.diskPath;\n  const fileBuffer = fs.readFileSync(filePath);\n  const base64Data = fileBuffer.toString('base64');\n  \n  filesToProcess.push({\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      hash: fileInfo.hash,\n      filename: fileData.fileName,\n      fileSize: fileData.fileSize,\n      mimeType: fileData.mimeType,\n      cachedEvidence: cachedEvidenceData\n    },\n    binary: {\n      data: {\n        data: base64Data,\n        mimeType: fileData.mimeType,\n        fileName: fileData.fileName,\n        fileExtension: fileData.fileName.split('.').pop()\n      }\n    }\n  });\n}\n\n// If no files to extract, return marker to skip extraction\nif (filesToProcess.length === 0) {\n  return [{\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      domain: questionData.domain,\n      allEvidence: cachedEvidenceData,\n      newExtractions: [],\n      totalEvidence: cachedEvidenceData.length,\n      fromCache: cachedEvidenceData.length,\n      justExtracted: 0\n    }\n  }];\n}\n\n// Return files to extract with binary data\nreturn filesToProcess;"
       },
       "id": "3bc35ea3-4258-4ecf-8bd5-9185e16dabec",
       "name": "Prepare Files for Extraction",
@@ -169,13 +170,51 @@
     },
     {
       "parameters": {
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBasicAuth",
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-extraction",
+              "leftValue": "={{ $json.binary !== undefined }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-extraction-needed",
+      "name": "Check if Extraction Needed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        0
+      ]
+    },
+    {
+      "parameters": {
         "url": "http://localhost:5678/webhook/extract",
         "method": "POST",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"data\": $json.binaryData,\n  \"mimeType\": $json.mimeType,\n  \"fileName\": $json.filename\n} }}",
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
         "options": {
           "timeout": 300000
         }
@@ -185,20 +224,20 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1984,
+        2208,
         0
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Combine extracted results with cached evidence\nconst extractedItems = $input.all();\nconst firstItem = extractedItems[0].json;\n\n// Get cached evidence from the first item\nconst cachedEvidence = firstItem.cachedEvidence || [];\n\n// Build all evidence array\nconst allEvidence = [...cachedEvidence];\nconst newExtractions = [];\n\nfor (const item of extractedItems) {\n  const extractedData = item.json.json || item.json;\n  \n  allEvidence.push({\n    hash: firstItem.hash,\n    filename: firstItem.filename,\n    extractedData: extractedData,\n    fileSize: firstItem.fileSize,\n    fromCache: false\n  });\n  \n  newExtractions.push({\n    hash: firstItem.hash,\n    filename: firstItem.filename,\n    extractedData: extractedData,\n    fileSize: firstItem.fileSize\n  });\n}\n\nreturn [{\n  json: {\n    sessionId: firstItem.sessionId,\n    qId: firstItem.qId,\n    domain: firstItem.domain,\n    allEvidence: allEvidence,\n    newExtractions: newExtractions,\n    totalEvidence: allEvidence.length,\n    fromCache: cachedEvidence.length,\n    justExtracted: newExtractions.length\n  }\n}];"
+        "jsCode": "// Combine extracted results with cached evidence\nconst currentItems = $input.all();\nconst preparedItems = $('Prepare Files for Extraction').all();\n\n// Check if this is the FALSE path (no extraction needed)\nif (currentItems.length > 0 && currentItems[0].json.allEvidence !== undefined) {\n  // Already has the complete structure, pass through\n  return currentItems;\n}\n\n// This is the TRUE path (extraction happened)\n// Get cached evidence from first prepared item\nconst cachedEvidence = preparedItems[0].json.cachedEvidence || [];\nconst firstPrepared = preparedItems[0].json;\n\nconst allEvidence = [...cachedEvidence];\nconst newExtractions = [];\n\n// Process each extraction result\nfor (let i = 0; i < currentItems.length; i++) {\n  const extractedData = currentItems[i].json;\n  const preparedData = preparedItems[i].json;\n  \n  allEvidence.push({\n    hash: preparedData.hash,\n    filename: preparedData.filename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize,\n    fromCache: false\n  });\n  \n  newExtractions.push({\n    hash: preparedData.hash,\n    filename: preparedData.filename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize\n  });\n}\n\nreturn [{\n  json: {\n    sessionId: firstPrepared.sessionId,\n    qId: firstPrepared.qId,\n    domain: firstPrepared.domain,\n    allEvidence: allEvidence,\n    newExtractions: newExtractions,\n    totalEvidence: allEvidence.length,\n    fromCache: cachedEvidence.length,\n    justExtracted: newExtractions.length\n  }\n}];"
       },
       "id": "combine-extraction-results",
       "name": "Combine Extraction Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2208,
+        2432,
         0
       ]
     },
@@ -211,7 +250,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2432,
+        2656,
         0
       ]
     },
@@ -226,7 +265,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2656,
+        2880,
         0
       ],
       "credentials": {
@@ -245,7 +284,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2880,
+        3104,
         0
       ]
     },
@@ -260,7 +299,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        3104,
+        3328,
         0
       ],
       "credentials": {
@@ -281,7 +320,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        3328,
+        3552,
         0
       ],
       "credentials": {
@@ -655,7 +694,25 @@
       "main": [
         [
           {
+            "node": "Check if Extraction Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Extraction Needed": {
+      "main": [
+        [
+          {
             "node": "Call Workflow A: Extract",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Combine Extraction Results",
             "type": "main",
             "index": 0
           }

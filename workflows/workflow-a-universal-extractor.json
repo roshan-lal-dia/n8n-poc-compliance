@@ -66,7 +66,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst timestamp = Date.now();\nconst random = crypto.randomBytes(4).toString('hex');\nconst filePrefix = `${timestamp}_${random}_`;\n\nconst fileName = $binary.data.fileName || 'upload';\nconst fileExt = fileName.split('.').pop().toLowerCase();\n\n// Set binary.data.fileName to include the prefix\nconst prefixedFileName = `${filePrefix}input.${fileExt}`;\n$binary.data.fileName = prefixedFileName;\n\nreturn [{\n  json: {\n    filePrefix,\n    fileExtension: fileExt,\n    originalFileName: fileName,\n    timestamp\n  },\n  binary: $binary\n}];"
+        "jsCode": "const crypto = require('crypto');\n\nfor (const item of $input.all()) {\n  if (item.binary && item.binary.data) {\n    const timestamp = Date.now();\n    const random = crypto.randomBytes(4).toString('hex');\n    const filePrefix = `${timestamp}_${random}_`;\n    \n    const fileName = item.binary.data.fileName || 'upload';\n    const fileExt = fileName.split('.').pop().toLowerCase();\n    \n    // Set binary.data.fileName to include the prefix\n    const prefixedFileName = `${filePrefix}input.${fileExt}`;\n    item.binary.data.fileName = prefixedFileName;\n    \n    // Store metadata in json\n    item.json.filePrefix = filePrefix;\n    item.json.fileExtension = fileExt;\n    item.json.originalFileName = fileName;\n    item.json.timestamp = timestamp;\n  }\n}\n\nreturn $input.all();"
       },
       "id": "set-file-prefix",
       "name": "Set Binary Filename",

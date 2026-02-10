@@ -66,7 +66,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst timestamp = Date.now();\nconst random = crypto.randomBytes(4).toString('hex');\nconst filePrefix = `${timestamp}_${random}_`;\n\nconst fileName = $binary.data.fileName || 'upload';\nconst fileExt = fileName.split('.').pop().toLowerCase();\n\nreturn [{\n  json: {\n    filePrefix,\n    fileExtension: fileExt,\n    originalFileName: fileName,\n    timestamp\n  },\n  binary: $binary\n}];"
+        "jsCode": "const crypto = require('crypto');\nconst timestamp = Date.now();\nconst random = crypto.randomBytes(4).toString('hex');\nconst filePrefix = `${timestamp}_${random}_`;\n\nconst fileName = $binary.data.fileName || 'upload';\nconst fileExt = fileName.split('.').pop().toLowerCase();\n\n// Set binary.data.fileName to include the prefix\nconst prefixedFileName = `${filePrefix}input.${fileExt}`;\n$binary.data.fileName = prefixedFileName;\n\nreturn [{\n  json: {\n    filePrefix,\n    fileExtension: fileExt,\n    originalFileName: fileName,\n    timestamp\n  },\n  binary: $binary\n}];"
       },
       "id": "set-file-prefix",
       "name": "Set Binary Filename",
@@ -181,7 +181,7 @@
     {
       "parameters": {
         "operation": "write",
-        "fileName": "=/tmp/n8n_processing/{{ $json.filePrefix }}input.{{ $json.fileExtension }}",
+        "fileName": "=/tmp/n8n_processing/{{ $binary.data.fileName }}",
         "options": {}
       },
       "id": "write-temp-file",
@@ -192,84 +192,48 @@
     },
     {
       "parameters": {
-        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page\""
+        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.pdf\" \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page\""
       },
-      "id": "extract-images-from-pdf",
-      "name": "Extract Images from PDF",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [1560, 140]
-    },
-    {
-      "parameters": {
-        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pptx\" --outdir /tmp/n8n_processing"
-      },
-      "id": "convert-pptx-to-pdf",
-      "name": "Convert PPTX to PDF",
+      "id": "extract-images",
+      "name": "Extract Images",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [1560, 300]
     },
     {
       "parameters": {
-        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page\""
+        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.pptx\" --outdir /tmp/n8n_processing"
       },
-      "id": "extract-images-from-pptx",
-      "name": "Extract Images from PPTX",
+      "id": "convert-pptx-to-pdf",
+      "name": "Convert PPTX to PDF",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1780, 300]
+      "position": [1340, 220]
     },
+
     {
       "parameters": {
-        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $json.filePrefix }}input.docx\" --outdir /tmp/n8n_processing"
+        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.docx\" --outdir /tmp/n8n_processing"
       },
       "id": "convert-docx-to-pdf",
       "name": "Convert DOCX to PDF",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1560, 460]
+      "position": [1340, 380]
     },
+
     {
       "parameters": {
-        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page\""
-      },
-      "id": "extract-images-from-docx",
-      "name": "Extract Images from DOCX",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [1780, 460]
-    },
-    {
-      "parameters": {
-        "command": "=cp \"/tmp/n8n_processing/{{ $json.filePrefix }}input.{{ $json.fileExtension }}\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page-1.png\""
+        "command": "=cp \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.{{ $json.fileExtension }}\" \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page-1.png\""
       },
       "id": "copy-single-image",
       "name": "Copy Single Image",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1560, 620]
+      "position": [1340, 540]
     },
-    {
-      "parameters": {
-        "command": "=ls -la \"/tmp/n8n_processing/{{ $json.filePrefix }}*\""
-      },
-      "id": "debug-ls-temp",
-      "name": "Debug: List Temp Prefix",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [1320, 440]
-    },
-    {
-      "parameters": {
-        "command": "=sh -c 'file=\"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\"; i=0; until [ -f \"$file\" ] || [ $i -ge 8 ]; do sleep 1; i=$((i+1)); done; if [ -f \"$file\" ]; then echo \"found\"; exit 0; else echo \"missing\" >&2; exit 2; fi'"
-      },
-      "id": "wait-for-pdf",
-      "name": "Wait for PDF (exists)",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [1560, 220]
-    },
+
+
     {
       "parameters": {
         "mode": "raw",
@@ -367,6 +331,34 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [3100, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-error-no-file",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 620]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-error-unsupported",
+      "name": "Respond Error Type",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 780]
     }
   ],
   "connections": {
@@ -414,6 +406,17 @@
       "main": [
         [
           {
+            "node": "Write Temp File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Temp File": {
+      "main": [
+        [
+          {
             "node": "Switch by File Type",
             "type": "main",
             "index": 0
@@ -425,28 +428,28 @@
       "main": [
         [
           {
-            "node": "Write Temp File",
+            "node": "Extract Images",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Write Temp File",
+            "node": "Convert PPTX to PDF",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Write Temp File",
+            "node": "Convert DOCX to PDF",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Write Temp File",
+            "node": "Copy Single Image",
             "type": "main",
             "index": 0
           }
@@ -460,95 +463,11 @@
         ]
       ]
     },
-    "Write Temp File": {
-      "main": [
-        [
-          {
-            "node": "Debug: List Temp Prefix",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Convert PPTX to PDF",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Convert DOCX to PDF",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Copy Single Image",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract Images from PDF": {
-      "main": [
-        [
-          {
-            "node": "List Generated Images",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Debug: List Temp Prefix": {
-      "main": [
-        [
-          {
-            "node": "Wait for PDF (exists)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait for PDF (exists)": {
-      "main": [
-        [
-          {
-            "node": "Extract Images from PDF",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Extract Images from PPTX",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Extract Images from DOCX",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Convert PPTX to PDF": {
       "main": [
         [
           {
-            "node": "Wait for PDF (exists)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract Images from PPTX": {
-      "main": [
-        [
-          {
-            "node": "List Generated Images",
+            "node": "Extract Images",
             "type": "main",
             "index": 0
           }
@@ -559,14 +478,14 @@
       "main": [
         [
           {
-            "node": "Wait for PDF (exists)",
+            "node": "Extract Images",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extract Images from DOCX": {
+    "Extract Images": {
       "main": [
         [
           {

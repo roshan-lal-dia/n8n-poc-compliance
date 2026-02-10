@@ -8,13 +8,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "bfef5a2f-3953-469d-ac6d-e4d66ccd001b",
+      "id": "d378d604-3ee2-4b8f-9e66-df7ded655530",
       "name": "Webhook: Ingest Standard",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        2464,
-        -336
+        3376,
+        1200
       ],
       "webhookId": "kb-ingest-webhook"
     },
@@ -53,10 +53,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        2688,
-        -336
+        3600,
+        1200
       ],
-      "id": "1341a916-76c8-41ef-b378-c4107ebb0e01",
+      "id": "0a9c4d57-eef3-46bb-9254-0088bdec0ec5",
       "name": "Validate Input"
     },
     {
@@ -65,26 +65,26 @@
         "jsonOutput": "={{ { \"error\": \"Missing file or metadata\", \"status\": 400 } }}",
         "options": {}
       },
-      "id": "a5270dfa-1e4d-46e5-8db1-4f93c012c3eb",
+      "id": "8bb61157-4f90-4fc8-8898-74e72ae441b5",
       "name": "Error: Missing Data",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3696,
-        -176
+        4608,
+        1360
       ]
     },
     {
       "parameters": {
         "jsCode": "// Normalize binary data to 'data' field for consistent processing\nfor (const item of $input.all()) {\n  if (item.binary) {\n    const binaryKeys = Object.keys(item.binary);\n    if (binaryKeys.length > 0) {\n      const firstKey = binaryKeys[0];\n      if (firstKey !== 'data') {\n        item.binary.data = item.binary[firstKey];\n        delete item.binary[firstKey];\n      }\n    }\n  }\n}\nreturn $input.all();"
       },
-      "id": "9bd6813f-bf7b-42dd-a2e6-2b9d03d56f24",
+      "id": "31ee58ae-3474-4dc2-ba8f-7ed00899515b",
       "name": "Normalize Binary Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3696,
-        -496
+        4608,
+        1040
       ]
     },
     {
@@ -109,39 +109,39 @@
           "timeout": 1800000
         }
       },
-      "id": "5c6739a3-5a84-44d0-a986-5ce30558eb69",
+      "id": "75ec6ee1-2b43-460f-99d8-8c40e1a5b763",
       "name": "Call Universal Extractor",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3920,
-        -496
+        4832,
+        1040
       ]
     },
     {
       "parameters": {
         "jsCode": "const extracted = $input.first().json;\nconst webhookData = $('Webhook: Ingest Standard').first();\nconst standardName = webhookData.json.query?.standardName || webhookData.json.body?.standardName || 'Unknown Standard';\nconst domain = webhookData.json.query?.domain || webhookData.json.body?.domain || 'General';\nconst version = webhookData.json.query?.version || webhookData.json.body?.version || '1.0';\n\nreturn [{\n  json: {\n    standardName,\n    domain,\n    version,\n    fullText: extracted.fullDocument,\n    totalPages: extracted.totalPages,\n    metadata: {\n      originalFileName: extracted.originalFileName,\n      totalWords: extracted.totalWords,\n      hasDiagrams: extracted.hasDiagrams,\n      uploadedAt: new Date().toISOString(),\n      fileHash: $('Calculate File Hash').first().json.fileHash\n    }\n  }\n}];"
       },
-      "id": "a1237448-d0b6-40a4-a869-d5fabef91f66",
+      "id": "3ed78410-eb6f-4532-a3d6-e5332349a8e5",
       "name": "Prepare Metadata",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4144,
-        -496
+        5056,
+        1040
       ]
     },
     {
       "parameters": {
         "jsCode": "const text = $input.first().json.fullText;\nconst chunkSize = 1000;\nconst chunkOverlap = 200;\nconst metadata = $input.first().json;\n\nconst chunks = [];\nconst words = text.split(/\\s+/);\n\nfor (let i = 0; i < words.length; i += (chunkSize - chunkOverlap)) {\n  const chunk = words.slice(i, i + chunkSize).join(' ');\n  if (chunk.trim().length > 50) {\n    chunks.push({\n      json: {\n        text: chunk,\n        chunkIndex: chunks.length,\n        standardName: metadata.standardName,\n        domain: metadata.domain,\n        version: metadata.version,\n        metadata: metadata.metadata\n      }\n    });\n  }\n}\n\nreturn chunks;"
       },
-      "id": "9b570dcb-94aa-40be-8aa3-0a3efbc70d70",
+      "id": "1818b43e-c68d-46a8-bf28-43f12d850f7d",
       "name": "Chunk Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4368,
-        -496
+        5280,
+        1040
       ]
     },
     {
@@ -153,26 +153,26 @@
         "jsonBody": "={{ { \"model\": \"nomic-embed-text\", \"prompt\": $json.text } }}",
         "options": {}
       },
-      "id": "e0bd8d3d-f3a3-4c01-8e70-b37b155fa0fc",
+      "id": "41c3cc18-37c9-4ade-aa21-f5fcd7d5d131",
       "name": "Generate Embedding",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4576,
-        -496
+        5488,
+        1040
       ]
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst embeddings = $input.all();\nconst chunks = $('Chunk Text').all();\n\nconst results = [];\n\n// Iterate over all items to ensure we process every chunk, not just the first one\nfor (let i = 0; i < embeddings.length; i++) {\n  const item = embeddings[i];\n  // Match embedding with its corresponding chunk source\n  // Assumes 1-to-1 mapping, which is standard for HTTP request nodes processing items\n  const chunkData = chunks[i] ? chunks[i].json : {};\n  \n  // Handle cases where Ollama might return error or different structure\n  const vector = item.json.embedding;\n  if (!vector) continue;\n\n  // \ud83d\udee1\ufe0f Proactive Fix: Create a unique key that includes the filename\n  const uniqueKey = `${chunkData.standardName}_${chunkData.metadata.originalFileName || 'doc'}_${chunkData.chunkIndex}`;\n\n  // \ud83c\udd94 Generate a valid UUID v4-like string from the hash (Deterministic)\n  const hash = crypto.createHash('md5').update(uniqueKey).digest('hex');\n  const uuid = [\n    hash.substring(0, 8),\n    hash.substring(8, 12),\n    hash.substring(12, 16),\n    hash.substring(16, 20),\n    hash.substring(20, 32)\n  ].join('-');\n\n  results.push({\n    json: {\n      id: uuid,\n      vector: vector,\n      payload: {\n        text: chunkData.text,\n        standardName: chunkData.standardName,\n        domain: chunkData.domain,\n        version: chunkData.version,\n        chunkIndex: chunkData.chunkIndex,\n        metadata: chunkData.metadata\n      }\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const crypto = require('crypto');\nconst embeddings = $input.all();\nconst chunks = $('Chunk Text').all();\n\nconst results = [];\n\n// Iterate over all items to ensure we process every chunk, not just the first one\nfor (let i = 0; i < embeddings.length; i++) {\n  const item = embeddings[i];\n  // Match embedding with its corresponding chunk source\n  // Assumes 1-to-1 mapping, which is standard for HTTP request nodes processing items\n  const chunkData = chunks[i] ? chunks[i].json : {};\n  \n  // Handle cases where Ollama might return error or different structure\n  const vector = item.json.embedding;\n  if (!vector) continue;\n\n  // 🛡️ Proactive Fix: Create a unique key that includes the filename\n  const uniqueKey = `${chunkData.standardName}_${chunkData.metadata.originalFileName || 'doc'}_${chunkData.chunkIndex}`;\n\n  // 🆔 Generate a valid UUID v4-like string from the hash (Deterministic)\n  const hash = crypto.createHash('md5').update(uniqueKey).digest('hex');\n  const uuid = [\n    hash.substring(0, 8),\n    hash.substring(8, 12),\n    hash.substring(12, 16),\n    hash.substring(16, 20),\n    hash.substring(20, 32)\n  ].join('-');\n\n  results.push({\n    json: {\n      id: uuid,\n      vector: vector,\n      payload: {\n        text: chunkData.text,\n        standardName: chunkData.standardName,\n        domain: chunkData.domain,\n        version: chunkData.version,\n        chunkIndex: chunkData.chunkIndex,\n        metadata: chunkData.metadata\n      }\n    }\n  });\n}\n\nreturn results;"
       },
-      "id": "fc59ad00-f3b3-4148-a6c5-35b0ab8b6f7f",
+      "id": "57f0f548-b2b8-4191-a64d-72b2d73d48d9",
       "name": "Format Qdrant Point",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4800,
-        -496
+        5712,
+        1040
       ]
     },
     {
@@ -184,13 +184,13 @@
         "jsonBody": "={{ { \"points\": $input.all().map(item => item.json) } }}",
         "options": {}
       },
-      "id": "a5cf5133-7086-44ea-865b-c6eb2a2bdf0e",
+      "id": "34e2a57d-4f23-48bd-af34-99cb89da1f9e",
       "name": "Upsert to Qdrant",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        5024,
-        -496
+        5936,
+        1040
       ]
     },
     {
@@ -198,16 +198,16 @@
         "operation": "executeQuery",
         "query": "\n            INSERT INTO kb_standards (standard_name, domain, file_hash, filename, total_chunks, uploaded_at) \n            VALUES ($1, $2, $3, $4, $5, NOW()) \n            ON CONFLICT (file_hash) DO UPDATE SET uploaded_at = NOW() \n            RETURNING id\n            ",
         "options": {
-          "queryParameters": "={{ [\n  $('Prepare Metadata').first().json.standardName,\n  $('Prepare Metadata').first().json.domain,\n  $('Prepare Metadata').first().json.metadata.fileHash,\n  $('Prepare Metadata').first().json.metadata.originalFileName,\n  $('Format Qdrant Point').all().length\n] }}"
+          "queryReplacement": "={{ $('Prepare Metadata').first().json.standardName }},{{ $('Prepare Metadata').first().json.domain }},{{ $('Prepare Metadata').first().json.metadata.fileHash }},{{ $('Prepare Metadata').first().json.metadata.originalFileName }},{{ $('Format Qdrant Point').all().length }}"
         }
       },
-      "id": "a6eb14a3-63b6-4d22-b449-f9534db101e2",
+      "id": "7e3136a2-2523-4359-a79a-bf5e2c2a31bd",
       "name": "Insert to Postgres",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        5248,
-        -496
+        6160,
+        1040
       ],
       "credentials": {
         "postgres": {
@@ -222,13 +222,13 @@
         "jsonOutput": "={{ {\n  \"status\": \"success\",\n  \"message\": \"Standard ingested successfully\",\n  \"standardName\": $('Prepare Metadata').first().json.standardName,\n  \"domain\": $('Prepare Metadata').first().json.domain,\n  \"chunksCreated\": $('Format Qdrant Point').all().length,\n  \"dbRecordId\": $json[0]?.id\n} }}",
         "options": {}
       },
-      "id": "df63e3d0-d6ac-4a3f-97f3-9ed61485d408",
+      "id": "61be4649-9d4a-4d30-bbbf-b2a9efc39459",
       "name": "Format Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5456,
-        -496
+        6368,
+        1040
       ]
     },
     {
@@ -237,24 +237,24 @@
         "responseBody": "={{ $json }}",
         "options": {}
       },
-      "id": "32088c1c-ff7a-454e-8d8c-440d4375eb32",
+      "id": "7b60002f-0874-4d78-99a3-7a7e0b99a0ce",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        5680,
-        -496
+        6592,
+        1040
       ]
     },
     {
       "parameters": {},
-      "id": "0435d0d6-da63-4f78-a6c8-2ee9acc58fa4",
+      "id": "f7ad98ad-1362-4933-ab8a-0713b72f8f15",
       "name": "Note: Collection Init",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        2464,
-        -96
+        3376,
+        1440
       ],
       "notes": "Run this curl command once to initialize the Qdrant collection:\n\ncurl -X PUT http://qdrant:6333/collections/compliance_standards \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"vectors\": {\n      \"size\": 768,\n      \"distance\": \"Cosine\"\n    }\n  }'"
     },
@@ -262,30 +262,30 @@
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst items = $input.all();\nreturn items.map(item => {\n  const binaryKey = Object.keys(item.binary)[0];\n  const binaryData = item.binary[binaryKey];\n  // Calculate SHA-256 hash of the binary data\n  const hash = crypto.createHash('sha256').update(Buffer.from(binaryData.data, 'base64')).digest('hex');\n  \n  return {\n    json: {\n      ...item.json,\n      fileHash: hash\n    },\n    binary: item.binary\n  };\n});"
       },
-      "id": "calculate-file-hash",
+      "id": "c21cf090-2f53-4aad-bad3-b9739215ff35",
       "name": "Calculate File Hash",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2896,
-        -336
+        3808,
+        1200
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, standard_name FROM kb_standards WHERE file_hash = $1",
+        "query": "SELECT id, standard_name FROM kb_standards WHERE file_hash = $1\nUNION ALL\nSELECT NULL as id, NULL as standard_name WHERE NOT EXISTS (SELECT 1 FROM kb_standards WHERE file_hash = $1)\nLIMIT 1",
         "options": {
-          "queryParameters": "={{ [$json.fileHash || ''] }}"
+          "queryReplacement": "={{ $json.fileHash }}"
         }
       },
-      "id": "check-hash-db",
+      "id": "0a6e3f84-8b87-4b63-b3e4-e14cd1239ca5",
       "name": "Check Hash in DB",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        3100,
-        -336
+        4000,
+        1200
       ],
       "credentials": {
         "postgres": {
@@ -303,17 +303,17 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "strict",
+                  "typeValidation": "loose",
                   "version": 3
                 },
                 "conditions": [
                   {
                     "id": "is-new",
-                    "leftValue": "={{ $json.id }}",
-                    "rightValue": "",
+                    "leftValue": "={{ $json.id == null || $json.id === '' }}",
+                    "rightValue": true,
                     "operator": {
                       "type": "boolean",
-                      "operation": "empty"
+                      "operation": "true"
                     }
                   }
                 ],
@@ -329,10 +329,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        3300,
-        -336
+        4208,
+        1200
       ],
-      "id": "switch-is-new",
+      "id": "0ab27cad-fe07-4ca5-8a8a-018ed0d34bce",
       "name": "Is New File?"
     },
     {
@@ -341,26 +341,26 @@
         "jsonOutput": "={{ { \"message\": \"File already ingested\", \"standardName\": $json.standard_name, \"status\": \"skipped\", \"dbId\": $json.id } }}",
         "options": {}
       },
-      "id": "set-exists-msg",
+      "id": "e03db23d-9d98-4678-b8b7-99a0ebb7f8b7",
       "name": "Set: Already Exists",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3500,
-        -150
+        4400,
+        1376
       ]
     },
     {
       "parameters": {
         "jsCode": "const originalItems = $('Calculate File Hash').all();\n// We assume 1-to-1 processing\nreturn originalItems.map(item => ({\n  json: item.json,\n  binary: item.binary\n}));"
       },
-      "id": "restore-binary",
+      "id": "c1f577b6-fefe-46b0-bee9-e21eec665d02",
       "name": "Restore Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3500,
-        -500
+        4400,
+        1024
       ]
     }
   ],
@@ -574,7 +574,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "6cfa3423-2455-4ef4-98b8-af1379ee38ba",
+  "versionId": "b54bcd31-4cfb-40df-959d-de3f24d2d949",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"

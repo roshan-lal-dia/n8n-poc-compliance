@@ -1,0 +1,218 @@
+{
+  "name": "Workflow C4: Results Retrieval (Completed Audits)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "audit/results/:sessionId",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6c59382f-8ac2-4155-bfd3-3b35e52ad1f9",
+      "name": "Webhook: Get Results",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "audit-results-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sessionId = $input.first().json.params.sessionId;\n\nif (!sessionId) {\n  throw new Error('Session ID is required');\n}\n\nreturn [{ json: { sessionId } }];"
+      },
+      "id": "f66bdd6d-ef08-40e5-a5b6-dcfecdd4d8f9",
+      "name": "Extract Session ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT session_id, domain, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score\nFROM audit_sessions\nWHERE session_id = ={{ $json.sessionId }}::uuid AND status = 'completed';",
+        "options": {}
+      },
+      "id": "76a357a1-c6a5-4312-894f-1af794d024de",
+      "name": "Query Completed Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT l.q_id, q.question_text, q.domain as question_domain, l.ai_response, l.created_at\nFROM audit_logs l\nJOIN audit_questions q ON l.q_id = q.q_id\nWHERE l.session_id = ={{ $('Extract Session ID').first().json.sessionId }}::uuid \n  AND l.step_name = 'completed' \n  AND l.status = 'success'\nORDER BY l.created_at;",
+        "options": {}
+      },
+      "id": "407c89e3-01f4-4a14-8768-51838278aa95",
+      "name": "Query Evaluations",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const session = $('Query Completed Session').first().json;\nconst evaluations = $input.all().map(item => item.json);\n\n// Build comprehensive results response\nconst results = evaluations.map(eval => ({\n  qId: eval.q_id,\n  question: eval.question_text,\n  questionDomain: eval.question_domain,\n  evaluation: eval.ai_response,\n  evaluatedAt: eval.created_at\n}));\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    domain: session.domain,\n    status: session.status,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    overallScore: session.overall_compliance_score,\n    results: results,\n    summary: {\n      compliantCount: results.filter(r => r.evaluation?.compliant === true).length,\n      nonCompliantCount: results.filter(r => r.evaluation?.compliant === false).length,\n      averageConfidence: results.length > 0 \n        ? Math.round(results.reduce((sum, r) => sum + (r.evaluation?.confidence || 0), 0) / results.length)\n        : 0\n    }\n  }\n}];"
+      },
+      "id": "ac113aa4-e341-4a8d-8dba-5d0a375280f9",
+      "name": "Build Results Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "ecd1914c-a7a9-4095-b96e-8ab74ed519b9",
+      "name": "Respond: Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": \"Session not found or not completed\", \"status\": 404 } }}",
+        "options": {}
+      },
+      "id": "06cb5647-fe9d-4208-aada-c5a1ee4fe200",
+      "name": "Error: Not Found",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "d6a59195-56f9-426a-a40a-4d896ae31691",
+      "name": "Respond: Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Get Results": {
+      "main": [
+        [
+          {
+            "node": "Extract Session ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Session ID": {
+      "main": [
+        [
+          {
+            "node": "Query Completed Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Completed Session": {
+      "main": [
+        [
+          {
+            "node": "Query Evaluations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Evaluations": {
+      "main": [
+        [
+          {
+            "node": "Build Results Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Results Response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: Not Found": {
+      "main": [
+        [
+          {
+            "node": "Respond: Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f751ccab-736e-46dd-8143-3b7abaa9a4eb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"
+  },
+  "id": "zoG_XXKOZs_hBCsGFErE8",
+  "tags": []
+}

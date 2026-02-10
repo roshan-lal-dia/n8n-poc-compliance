@@ -1,0 +1,35 @@
+type: http_request
+model: http_request
+id: rq_submit_multi_q
+createdAt: 2026-02-10T14:00:00.000000
+updatedAt: 2026-02-10T14:00:00.000000
+workspaceId: wk_fyV8LrMfV8
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: true
+    id: questions_json
+    name: questions
+    value: '[{"q_id":"privacy_q1","files":["sql_advanced_concepts.pdf"]},{"q_id":"privacy_q2","files":["sql_advanced_concepts.pdf"]}]'
+  - enabled: true
+    file: /tmp/sql_and_dba_advanced_concepts.pdf
+    id: file_sql_pdf
+    name: sql_advanced_concepts.pdf
+  - enabled: true
+    id: domain_field
+    name: domain
+    value: 'Privacy'
+bodyType: multipart/form-data
+description: 'Submit audit with multiple questions using the same PDF file'
+headers:
+- enabled: true
+  name: Accept
+  value: application/json
+  id: header_accept
+method: POST
+name: 1b. Submit Multi-Question Audit
+sortPriority: -1770114397924.9
+url: http://172.206.67.83:5678/webhook/audit/submit
+urlParameters: []

@@ -47,6 +47,24 @@ services:
       start_period: 10s
 
   # ============================================
+  # Job Queue (Redis)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: compliance-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
   # AI Engine (LLM + Embeddings)
   # ============================================
   ollama:
@@ -151,6 +169,8 @@ services:
       - QDRANT_HOST=http://qdrant:6333
       - FLORENCE_HOST=http://florence:5000
       - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
 
     volumes:
       - n8n_data:/home/node/.n8n
@@ -182,6 +202,8 @@ volumes:
   n8n_data:
     driver: local
   postgres_data:
+    driver: local
+  redis_data:
     driver: local
   qdrant_storage:
     driver: local

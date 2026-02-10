@@ -1,0 +1,333 @@
+{
+  "name": "Workflow C1: Audit Entry (Job Submission)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit/submit",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "963c0ad2-d4eb-4463-ab4b-406360080aab",
+      "name": "Webhook: Submit Audit",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "audit-submit-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse multipart form data and extract files + questions mapping\nconst crypto = require('crypto');\nconst items = $input.all();\n\n// Get questions JSON from form data\nconst questionsRaw = $input.first().json.body?.questions || $input.first().json.query?.questions;\nif (!questionsRaw) {\n  throw new Error('Missing \"questions\" parameter. Expected JSON array: [{\"q_id\":\"q1\",\"files\":[\"file1.pdf\"]}]');\n}\n\nlet questions;\ntry {\n  questions = typeof questionsRaw === 'string' ? JSON.parse(questionsRaw) : questionsRaw;\n} catch (e) {\n  throw new Error('Invalid questions JSON format: ' + e.message);\n}\n\nif (!Array.isArray(questions) || questions.length === 0) {\n  throw new Error('Questions must be non-empty array');\n}\n\n// Extract domain (optional, can be inferred from questions)\nconst domain = $input.first().json.body?.domain || $input.first().json.query?.domain || 'General';\n\n// Collect binary files from multipart upload\nconst files = {};\nlet totalSize = 0;\n\nfor (const item of items) {\n  if (item.binary) {\n    for (const [fieldName, binaryData] of Object.entries(item.binary)) {\n      if (binaryData && binaryData.data) {\n        const fileSize = Buffer.byteLength(binaryData.data, 'base64');\n        totalSize += fileSize;\n        \n        // Enforce 500MB total limit for large file support\n        if (totalSize > 500 * 1024 * 1024) {\n          throw new Error(`Total file size exceeds 500MB limit (current: ${Math.round(totalSize/1024/1024)}MB)`);\n        }\n        \n        files[fieldName] = {\n          data: binaryData.data,\n          fileName: binaryData.fileName || fieldName,\n          mimeType: binaryData.mimeType || 'application/octet-stream',\n          fileSize: fileSize\n        };\n      }\n    }\n  }\n}\n\n// Validate: each question references valid uploaded files\nfor (const q of questions) {\n  if (!q.q_id) {\n    throw new Error('Each question must have a \"q_id\" field');\n  }\n  if (!q.files || !Array.isArray(q.files) || q.files.length === 0) {\n    throw new Error(`Question ${q.q_id} has no files specified`);\n  }\n  \n  for (const fileName of q.files) {\n    if (!files[fileName]) {\n      throw new Error(`Question ${q.q_id} references file \"${fileName}\" which was not uploaded`);\n    }\n  }\n}\n\nreturn [{\n  json: {\n    questions,\n    domain,\n    files: Object.keys(files).map(name => ({\n      fieldName: name,\n      fileName: files[name].fileName,\n      fileSize: files[name].fileSize,\n      mimeType: files[name].mimeType\n    })),\n    totalSizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,\n    totalFiles: Object.keys(files).length\n  },\n  binary: files\n}];"
+      },
+      "id": "54d4e0ed-4ed7-4d46-8dbe-4b7472dca4a8",
+      "name": "Parse & Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_sessions (session_id, domain, initiated_by, status, started_at, total_questions, answered_questions, overall_compliance_score)\nVALUES (gen_random_uuid(), ={{ $json.domain }}, 'api_user', 'queued', NOW(), ={{ $json.questions.length }}, 0, 0)\nRETURNING session_id, domain, total_questions;",
+        "options": {}
+      },
+      "id": "5d5acd07-a3db-481e-a191-164dbecca85f",
+      "name": "Create Audit Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate unique session directory and calculate file hashes\nconst crypto = require('crypto');\nconst fs = require('fs');\nconst path = require('path');\n\nconst sessionId = $input.first().json.session_id;\nconst domain = $input.first().json.domain;\nconst questions = $('Parse & Validate Input').first().json.questions;\nconst binaryData = $('Parse & Validate Input').first().binary;\n\n// Create session directory\nconst sessionDir = `/tmp/n8n_processing/sessions/${sessionId}`;\nfs.mkdirSync(sessionDir, { recursive: true });\n\n// Process each file: calculate hash, write to disk\nconst fileMap = {};\n\nfor (const [fieldName, fileData] of Object.entries(binaryData)) {\n  // Decode base64 to buffer for hashing\n  const buffer = Buffer.from(fileData.data, 'base64');\n  \n  // Calculate SHA-256 hash\n  const hash = crypto.createHash('sha256').update(buffer).digest('hex');\n  \n  // Write file to disk with hash as filename (prevents name collisions)\n  const diskPath = path.join(sessionDir, `${hash}.bin`);\n  fs.writeFileSync(diskPath, buffer);\n  \n  fileMap[fieldName] = {\n    hash: hash,\n    fileName: fileData.fileName,\n    fileSize: fileData.fileSize,\n    mimeType: fileData.mimeType,\n    diskPath: diskPath,\n    fieldName: fieldName\n  };\n}\n\n// Map questions to their file hashes\nconst questionsWithHashes = questions.map(q => ({\n  q_id: q.q_id,\n  evidence_files: q.files.map(fileName => {\n    const fileInfo = fileMap[fileName];\n    return {\n      hash: fileInfo.hash,\n      originalName: fileInfo.fileName,\n      fieldName: fileName\n    };\n  })\n}));\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    domain: domain,\n    questions: questionsWithHashes,\n    fileMap: fileMap,\n    sessionDir: sessionDir,\n    totalFiles: Object.keys(fileMap).length\n  }\n}];"
+      },
+      "id": "556223b3-e1bc-449a-beb8-1e410681653e",
+      "name": "Hash & Store Files to Disk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, message, percentage, created_at)\nVALUES (={{ $json.sessionId }}, NULL, 'queued', 'in_progress', ='Job queued: ' + $json.questions.length + ' questions, ' + $json.totalFiles + ' files', 0, NOW());",
+        "options": {}
+      },
+      "id": "1abceb9b-5f50-460c-9715-912ec0a3a7d9",
+      "name": "Log: Job Queued",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create Redis job payload\nconst crypto = require('crypto');\n\nconst data = $input.first().json;\nconst jobId = crypto.randomUUID();\n\nconst job = {\n  jobId: jobId,\n  sessionId: data.sessionId,\n  domain: data.domain,\n  questions: data.questions,\n  fileMap: data.fileMap,\n  sessionDir: data.sessionDir,\n  status: 'queued',\n  createdAt: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    jobData: JSON.stringify(job),\n    jobId: jobId,\n    sessionId: data.sessionId,\n    totalQuestions: data.questions.length\n  }\n}];"
+      },
+      "id": "58f9435e-943f-4d20-addf-70b48b57e8d3",
+      "name": "Build Redis Job Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9bdb2ccb-842f-4240-bbcc-303a26af98c9",
+      "name": "Enqueue Job to Redis",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        0
+      ],
+      "credentials": {
+        "redis": {
+          "id": "K8jo4houPYYpv2hq",
+          "name": "redis-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE audit_sessions SET job_id = ={{ $json.jobId }} WHERE session_id = ={{ $json.sessionId }};",
+        "options": {}
+      },
+      "id": "c75dcb58-9777-45b9-9f24-bfa0e18b451b",
+      "name": "Update Session Job ID",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1552,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ {\n  \"sessionId\": $json.sessionId,\n  \"jobId\": $json.jobId,\n  \"status\": \"queued\",\n  \"totalQuestions\": $json.totalQuestions,\n  \"message\": \"Audit submitted successfully. Poll /webhook/audit/status/\" + $json.sessionId + \" for progress.\",\n  \"estimatedCompletionMinutes\": Math.ceil($json.totalQuestions * 2.5)\n} }}",
+        "options": {}
+      },
+      "id": "86c7f920-8289-4fd2-8bb3-061f4d445bc8",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "a628ef24-86fd-4f4b-b13a-8279df7da245",
+      "name": "Respond: Accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": $json.error?.message || \"Internal server error\", \"status\": 500 } }}",
+        "options": {}
+      },
+      "id": "8efe4f3d-27b7-46b3-9a3c-9cf34c41402f",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status || 500 }}"
+        }
+      },
+      "id": "a79f2a75-c7d0-41af-a11a-6680755627bb",
+      "name": "Respond: Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Submit Audit": {
+      "main": [
+        [
+          {
+            "node": "Parse & Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Create Audit Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audit Session": {
+      "main": [
+        [
+          {
+            "node": "Hash & Store Files to Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hash & Store Files to Disk": {
+      "main": [
+        [
+          {
+            "node": "Log: Job Queued",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log: Job Queued": {
+      "main": [
+        [
+          {
+            "node": "Build Redis Job Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Redis Job Payload": {
+      "main": [
+        [
+          {
+            "node": "Enqueue Job to Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enqueue Job to Redis": {
+      "main": [
+        [
+          {
+            "node": "Update Session Job ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Session Job ID": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond: Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0fa326ba-97c7-452d-93be-5329161f5d9c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"
+  },
+  "id": "7ibMTMmHJlg58JywK1lVx",
+  "tags": []
+}

@@ -1,0 +1,31 @@
+type: http_request
+model: http_request
+id: rq_extract_sql_pdf
+createdAt: 2026-02-10T14:00:00.000000
+updatedAt: 2026-02-10T14:00:00.000000
+workspaceId: wk_fyV8LrMfV8
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: true
+    file: /tmp/sql_and_dba_advanced_concepts.pdf
+    id: file_data
+    name: data
+bodyType: multipart/form-data
+description: 'Test Workflow A (Text Extraction) with SQL PDF - returns extracted text only'
+headers:
+- enabled: true
+  name: Accept
+  value: application/json
+  id: header_accept
+method: POST
+name: 0. Extract Text Only (SQL PDF)
+sortPriority: -1770114397925.1
+url: http://172.206.67.83:5678/webhook/extract
+urlParameters:
+- enabled: true
+  name: domain
+  value: Data Quality Management
+  id: param_domain

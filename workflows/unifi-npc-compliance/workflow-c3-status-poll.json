@@ -1,0 +1,218 @@
+{
+  "name": "Workflow C3: Status Polling (Real-time Progress)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "audit/status/:sessionId",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "42a58730-42a3-44a5-a674-a209280f522d",
+      "name": "Webhook: Get Status",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "audit-status-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sessionId = $input.first().json.params.sessionId;\n\nif (!sessionId) {\n  throw new Error('Session ID is required');\n}\n\nreturn [{ json: { sessionId } }];"
+      },
+      "id": "06e1ac0e-87df-4bfe-beab-8ac0e0be69c9",
+      "name": "Extract Session ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT session_id, domain, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score, job_id\nFROM audit_sessions\nWHERE session_id = ={{ $json.sessionId }}::uuid;",
+        "options": {}
+      },
+      "id": "03a643d6-0242-4ff9-9bea-c4f380e3ea84",
+      "name": "Query Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT q_id, step_name, status, message, percentage, created_at\nFROM audit_logs\nWHERE session_id = ={{ $('Extract Session ID').first().json.sessionId }}::uuid\nORDER BY created_at DESC\nLIMIT 50;",
+        "options": {}
+      },
+      "id": "36deed95-7f9b-425d-a519-f6d54330c10b",
+      "name": "Query Recent Logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const session = $('Query Session').first().json;\nconst logs = $input.all().map(item => item.json);\n\n// Calculate overall percentage from logs\nlet overallPercentage = 0;\nlet currentStep = 'queued';\n\nif (session.status === 'completed') {\n  overallPercentage = 100;\n  currentStep = 'completed';\n} else if (session.status === 'failed') {\n  currentStep = 'failed';\n  const lastLog = logs.find(l => l.percentage);\n  overallPercentage = lastLog ? lastLog.percentage : 0;\n} else {\n  // In progress: get latest percentage\n  const latestLog = logs[0];\n  if (latestLog) {\n    overallPercentage = latestLog.percentage || 0;\n    currentStep = latestLog.step_name || 'processing';\n  }\n}\n\n// Group logs by q_id to show per-question progress\nconst questionProgress = {};\nfor (const log of logs) {\n  if (log.q_id && !questionProgress[log.q_id]) {\n    questionProgress[log.q_id] = {\n      qId: log.q_id,\n      status: log.status,\n      step: log.step_name,\n      percentage: log.percentage || 0,\n      lastUpdate: log.created_at\n    };\n  }\n}\n\n// Estimate completion time\nlet estimatedCompletionAt = null;\nif (session.status === 'processing' && overallPercentage > 0) {\n  const elapsed = new Date() - new Date(session.started_at);\n  const estimatedTotal = (elapsed / overallPercentage) * 100;\n  estimatedCompletionAt = new Date(new Date(session.started_at).getTime() + estimatedTotal);\n}\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    jobId: session.job_id,\n    status: session.status,\n    domain: session.domain,\n    overallPercentage: Math.round(overallPercentage),\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    currentStep: currentStep,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    estimatedCompletionAt: estimatedCompletionAt,\n    overallScore: session.overall_compliance_score,\n    questionProgress: Object.values(questionProgress)\n  }\n}];"
+      },
+      "id": "6fdfeab7-7400-4a0c-a2ca-6140bf1dbf61",
+      "name": "Build Status Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "d7f71c57-f0c7-472a-b880-6216ca57a01e",
+      "name": "Respond: Status",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": \"Session not found\", \"status\": 404 } }}",
+        "options": {}
+      },
+      "id": "99041b38-9bef-493c-ab20-12b6bbd19aa8",
+      "name": "Error: Not Found",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "c5042ef4-b0ae-4a16-84e2-f1de707203dd",
+      "name": "Respond: Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Get Status": {
+      "main": [
+        [
+          {
+            "node": "Extract Session ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Session ID": {
+      "main": [
+        [
+          {
+            "node": "Query Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Session": {
+      "main": [
+        [
+          {
+            "node": "Query Recent Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Recent Logs": {
+      "main": [
+        [
+          {
+            "node": "Build Status Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Status Response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: Not Found": {
+      "main": [
+        [
+          {
+            "node": "Respond: Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1ee7b722-a96e-44c2-a534-295d6a09bb9e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"
+  },
+  "id": "HmA39Z-oFgvZh5-KoQojG",
+  "tags": []
+}

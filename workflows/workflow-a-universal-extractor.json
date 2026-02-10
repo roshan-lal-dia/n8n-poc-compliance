@@ -6,13 +6,18 @@
         "httpMethod": "POST",
         "path": "extract",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "responseTimeout": 1800000
+        }
       },
       "id": "webhook-extract",
       "name": "Webhook: Extract Content",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 460],
+      "position": [
+        240,
+        460
+      ],
       "webhookId": "universal-extractor-webhook"
     },
     {
@@ -30,7 +35,7 @@
                 "conditions": [
                   {
                     "id": "has-binary",
-                    "leftValue": "={{ $binary.data !== undefined }}",
+                    "leftValue": "={{ Object.keys($binary).length > 0 }}",
                     "rightValue": true,
                     "operator": {
                       "type": "boolean",
@@ -49,7 +54,10 @@
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
-      "position": [460, 460],
+      "position": [
+        680,
+        200
+      ],
       "id": "validate-binary",
       "name": "Validate Binary"
     },
@@ -62,17 +70,23 @@
       "name": "Error: No File",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [680, 620]
+      "position": [
+        1280,
+        620
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\n\nfor (const item of $input.all()) {\n  if (item.binary && item.binary.data) {\n    const timestamp = Date.now();\n    const random = crypto.randomBytes(4).toString('hex');\n    const filePrefix = `${timestamp}_${random}_`;\n    \n    const fileName = item.binary.data.fileName || 'upload';\n    const fileExt = fileName.split('.').pop().toLowerCase();\n    \n    // Set binary.data.fileName to include the prefix\n    const prefixedFileName = `${filePrefix}input.${fileExt}`;\n    item.binary.data.fileName = prefixedFileName;\n    \n    // Store metadata in json\n    item.json.filePrefix = filePrefix;\n    item.json.fileExtension = fileExt;\n    item.json.originalFileName = fileName;\n    item.json.timestamp = timestamp;\n  }\n}\n\nreturn $input.all();"
+        "jsCode": "const crypto = require('crypto');\n\nfor (const item of $input.all()) {\n  if (item.binary) {\n    // Find the first binary data field (could be 'data', 'file', or any other name)\n    const binaryKey = Object.keys(item.binary)[0];\n    \n    if (binaryKey && item.binary[binaryKey]) {\n      const timestamp = Date.now();\n      const random = crypto.randomBytes(4).toString('hex');\n      const filePrefix = `${timestamp}_${random}_`;\n      \n      const fileName = item.binary[binaryKey].fileName || 'upload';\n      const fileExt = fileName.split('.').pop().toLowerCase();\n      \n      // Normalize to 'data' field for consistent downstream processing\n      if (binaryKey !== 'data') {\n        item.binary.data = item.binary[binaryKey];\n        delete item.binary[binaryKey];\n      }\n      \n      // Set binary.data.fileName to include the prefix\n      const prefixedFileName = `${filePrefix}input.${fileExt}`;\n      item.binary.data.fileName = prefixedFileName;\n      \n      // Store metadata in json\n      item.json.filePrefix = filePrefix;\n      item.json.fileExtension = fileExt;\n      item.json.originalFileName = fileName;\n      item.json.timestamp = timestamp;\n    }\n  }\n}\n\nreturn $input.all();"
       },
       "id": "set-file-prefix",
       "name": "Set Binary Filename",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        1120,
+        300
+      ]
     },
     {
       "parameters": {
@@ -174,7 +188,10 @@
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
-      "position": [900, 300],
+      "position": [
+        1500,
+        300
+      ],
       "id": "switch-by-filetype",
       "name": "Switch by File Type"
     },
@@ -188,7 +205,10 @@
       "name": "Write Temp File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [1120, 300]
+      "position": [
+        1720,
+        300
+      ]
     },
     {
       "parameters": {
@@ -198,7 +218,10 @@
       "name": "Extract Images",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1560, 300]
+      "position": [
+        2160,
+        300
+      ]
     },
     {
       "parameters": {
@@ -208,9 +231,11 @@
       "name": "Convert PPTX to PDF",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1340, 220]
+      "position": [
+        1940,
+        220
+      ]
     },
-
     {
       "parameters": {
         "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.docx\" --outdir /tmp/n8n_processing"
@@ -219,9 +244,11 @@
       "name": "Convert DOCX to PDF",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1340, 380]
+      "position": [
+        1940,
+        380
+      ]
     },
-
     {
       "parameters": {
         "command": "=cp \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.{{ $json.fileExtension }}\" \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page-1.png\""
@@ -230,10 +257,11 @@
       "name": "Copy Single Image",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1340, 540]
+      "position": [
+        1940,
+        540
+      ]
     },
-
-
     {
       "parameters": {
         "mode": "raw",
@@ -243,7 +271,10 @@
       "name": "Error: Unsupported Type",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1340, 780]
+      "position": [
+        1940,
+        780
+      ]
     },
     {
       "parameters": {
@@ -253,7 +284,10 @@
       "name": "List Generated Images",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1780, 300]
+      "position": [
+        2380,
+        300
+      ]
     },
     {
       "parameters": {
@@ -263,7 +297,10 @@
       "name": "Prepare Generated File List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 300]
+      "position": [
+        2600,
+        300
+      ]
     },
     {
       "parameters": {
@@ -274,7 +311,10 @@
       "name": "OCR Processing",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [2220, 220],
+      "position": [
+        2820,
+        220
+      ],
       "executeOnce": false
     },
     {
@@ -286,7 +326,10 @@
       "name": "Florence Vision Analysis",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [2220, 380]
+      "position": [
+        2820,
+        380
+      ]
     },
     {
       "parameters": {
@@ -298,7 +341,10 @@
       "name": "Merge Vision & OCR",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [2440, 300]
+      "position": [
+        3040,
+        300
+      ]
     },
     {
       "parameters": {
@@ -308,7 +354,10 @@
       "name": "Parse OCR & Vision",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2660, 300]
+      "position": [
+        3260,
+        300
+      ]
     },
     {
       "parameters": {
@@ -318,7 +367,10 @@
       "name": "Aggregate Pages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2880, 300]
+      "position": [
+        3480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -330,7 +382,10 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [3100, 300]
+      "position": [
+        3700,
+        300
+      ]
     },
     {
       "parameters": {
@@ -344,7 +399,10 @@
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 620]
+      "position": [
+        1500,
+        620
+      ]
     },
     {
       "parameters": {
@@ -358,7 +416,111 @@
       "name": "Respond Error Type",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1560, 780]
+      "position": [
+        2160,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "command": "curl -sf --max-time 5 http://florence:5000/health && curl -sf --max-time 5 http://ollama:11434/ && curl -sf --max-time 5 http://qdrant:6333/healthz"
+      },
+      "id": "services-health-check",
+      "name": "Services Health Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        460,
+        460
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "health-check-pass",
+                    "leftValue": "={{ $json.exitCode }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        460
+      ],
+      "id": "check-health-status",
+      "name": "Check Health Status"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": \"Service Dependency Check Failed. One or more services (Florence, Ollama, Qdrant) are unavailable.\", \"status\": 503, \"details\": $json } }}"
+      },
+      "id": "set-service-error",
+      "name": "Set Service Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "respond-error-service",
+      "name": "Respond Error Service",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge-health-data",
+      "name": "Merge Health & Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        900,
+        460
+      ]
     }
   ],
   "connections": {
@@ -369,6 +531,11 @@
             "node": "Validate Binary",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Services Health Check",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -377,7 +544,7 @@
       "main": [
         [
           {
-            "node": "Set Binary Filename",
+            "node": "Merge Health & Data",
             "type": "main",
             "index": 0
           }
@@ -594,6 +761,57 @@
         [
           {
             "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Services Health Check": {
+      "main": [
+        [
+          {
+            "node": "Check Health Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Health Status": {
+      "main": [
+        [
+          {
+            "node": "Merge Health & Data",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Set Service Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error Service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Health & Data": {
+      "main": [
+        [
+          {
+            "node": "Set Binary Filename",
             "type": "main",
             "index": 0
           }

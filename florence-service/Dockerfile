@@ -14,8 +14,8 @@ COPY requirements.txt .
 # Install Python deps
 # Optimization: Force PyTorch CPU version (~3GB savings)
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
-# Install remaining deps
-RUN pip install --no-cache-dir -r requirements.txt
+# Install remaining deps (including gunicorn for production)
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 # Create the shared directory structure to match n8n
 RUN mkdir -p /tmp/n8n_processing && chmod 777 /tmp/n8n_processing
@@ -30,4 +30,5 @@ RUN mkdir -p /app/hf_cache
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+# Use Gunicorn with increased timeout for large image processing
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "600", "--workers", "2", "--threads", "2", "app:app"]

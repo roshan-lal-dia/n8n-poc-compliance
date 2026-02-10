@@ -1,6 +1,7 @@
 import os
 import logging
 import sys
+import threading
 from unittest.mock import MagicMock
 
 # Mock flash_attn to bypass transformers dynamic module import check
@@ -118,6 +119,12 @@ def analyze():
     except Exception as e:
         logger.error(f"Error analyzing image: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+# Start loading model in background when imported by Gunicorn
+if __name__ != '__main__':
+    t = threading.Thread(target=load_model)
+    t.daemon = True
+    t.start()
 
 if __name__ == '__main__':
     load_model()

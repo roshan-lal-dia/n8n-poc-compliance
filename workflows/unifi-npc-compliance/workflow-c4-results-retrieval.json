@@ -111,8 +111,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        672,
-        208
+        384,
+        384
       ]
     },
     {
@@ -128,8 +128,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        880,
-        208
+        672,
+        400
       ]
     }
   ],
@@ -140,6 +140,11 @@
         [
           {
             "node": "Extract Session ID",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Error: Not Found",
             "type": "main",
             "index": 0
           }
@@ -208,7 +213,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "f751ccab-736e-46dd-8143-3b7abaa9a4eb",
+  "versionId": "e8f624ce-9497-4802-a6f1-dd10cfeff39b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"

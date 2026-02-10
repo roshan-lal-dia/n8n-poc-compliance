@@ -182,8 +182,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1104,
-        208
+        240,
+        192
       ]
     },
     {
@@ -199,8 +199,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1328,
-        208
+        528,
+        288
       ]
     }
   ],
@@ -211,6 +211,11 @@
         [
           {
             "node": "Parse & Validate Input",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Error Handler",
             "type": "main",
             "index": 0
           }
@@ -323,7 +328,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "0fa326ba-97c7-452d-93be-5329161f5d9c",
+  "versionId": "ef82fe03-c79e-4314-a91e-327a7eb22081",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"

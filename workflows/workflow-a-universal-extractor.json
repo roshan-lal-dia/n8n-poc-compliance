@@ -1,0 +1,638 @@
+{
+  "name": "Workflow A: Universal Extractor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "extract",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-extract",
+      "name": "Webhook: Extract Content",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 460],
+      "webhookId": "universal-extractor-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "has-binary",
+                    "leftValue": "={{ $binary.data !== undefined }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [460, 460],
+      "id": "validate-binary",
+      "name": "Validate Binary"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": \"No file provided\", \"status\": 400 } }}"
+      },
+      "id": "error-no-file",
+      "name": "Error: No File",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [680, 620]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst timestamp = Date.now();\nconst random = crypto.randomBytes(4).toString('hex');\nconst filePrefix = `${timestamp}_${random}_`;\n\nconst fileName = $binary.data.fileName || 'upload';\nconst fileExt = fileName.split('.').pop().toLowerCase();\n\nreturn [{\n  json: {\n    filePrefix,\n    fileExtension: fileExt,\n    originalFileName: fileName,\n    timestamp\n  },\n  binary: $binary\n}];"
+      },
+      "id": "set-file-prefix",
+      "name": "Set Binary Filename",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "pdf-check",
+                    "leftValue": "={{ $json.fileExtension }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "pptx-check",
+                    "leftValue": "={{ $json.fileExtension }}",
+                    "rightValue": "pptx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "docx-check",
+                    "leftValue": "={{ $json.fileExtension }}",
+                    "rightValue": "docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "image-check",
+                    "leftValue": "={{ ['png', 'jpg', 'jpeg'].includes($json.fileExtension) }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [900, 300],
+      "id": "switch-by-filetype",
+      "name": "Switch by File Type"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/tmp/n8n_processing/{{ $json.filePrefix }}input.{{ $json.fileExtension }}",
+        "options": {}
+      },
+      "id": "write-temp-file",
+      "name": "Write Temp File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page\""
+      },
+      "id": "extract-images-from-pdf",
+      "name": "Extract Images from PDF",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 140]
+    },
+    {
+      "parameters": {
+        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pptx\" --outdir /tmp/n8n_processing"
+      },
+      "id": "convert-pptx-to-pdf",
+      "name": "Convert PPTX to PDF",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page\""
+      },
+      "id": "extract-images-from-pptx",
+      "name": "Extract Images from PPTX",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $json.filePrefix }}input.docx\" --outdir /tmp/n8n_processing"
+      },
+      "id": "convert-docx-to-pdf",
+      "name": "Convert DOCX to PDF",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 460]
+    },
+    {
+      "parameters": {
+        "command": "=pdftoppm -png -r 300 \"/tmp/n8n_processing/{{ $json.filePrefix }}input.pdf\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page\""
+      },
+      "id": "extract-images-from-docx",
+      "name": "Extract Images from DOCX",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1560, 460]
+    },
+    {
+      "parameters": {
+        "command": "=cp \"/tmp/n8n_processing/{{ $json.filePrefix }}input.{{ $json.fileExtension }}\" \"/tmp/n8n_processing/{{ $json.filePrefix }}page-1.png\""
+      },
+      "id": "copy-single-image",
+      "name": "Copy Single Image",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 620]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": \"Unsupported file type: \" + $json.fileExtension, \"status\": 400 } }}"
+      },
+      "id": "error-unsupported-type",
+      "name": "Error: Unsupported Type",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1340, 780]
+    },
+    {
+      "parameters": {
+        "command": "=ls /tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}page-*.png"
+      },
+      "id": "list-generated-images",
+      "name": "List Generated Images",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const files = $input.all()[0].json.stdout.split('\\n').filter(f => f.trim() !== '');\nconst filePrefix = $('Set Binary Filename').all()[0].json.filePrefix;\nconst originalFileName = $('Set Binary Filename').all()[0].json.originalFileName;\n\nreturn files.map((filePath, index) => {\n  const fileName = filePath.split('/').pop();\n  return {\n    json: {\n      pageNumber: index + 1,\n      fileName: fileName,\n      filePath: filePath,\n      originalFile: originalFileName,\n      filePrefix: filePrefix\n    }\n  };\n});"
+      },
+      "id": "prepare-file-list",
+      "name": "Prepare Generated File List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=tesseract \"{{ $json.filePath }}\" stdout -l eng+ara --oem 3 --psm 3"
+      },
+      "id": "ocr-processing",
+      "name": "OCR Processing",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2220, 220],
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=curl -v --retry 3 --retry-delay 2 -X POST -H \"Content-Type: application/json\" -d \"{\\\"filePath\\\": \\\"{{ $json.filePath }}\\\"}\" http://florence:5000/analyze"
+      },
+      "id": "florence-vision-analysis",
+      "name": "Florence Vision Analysis",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2220, 380]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge-vision-ocr",
+      "name": "Merge Vision & OCR",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [2440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst ocrItems = $('OCR Processing').all();\nconst visionItems = $('Florence Vision Analysis').all();\nconst metaItems = $('Prepare Generated File List').all();\n\nfor (let i = 0; i < items.length; i++) {\n  const ocrText = ocrItems[i]?.json?.stdout || '';\n  const visionText = visionItems[i]?.json?.stdout || '';\n  const meta = metaItems[i]?.json || {};\n  \n  let visionData = {};\n  try {\n    visionData = JSON.parse(visionText);\n  } catch (e) {\n    visionData = { raw: visionText };\n  }\n  \n  const text = ocrText;\n  const wordCount = text.split(/\\s+/).length;\n  const complexityScore = (wordCount < 50) ? 0.8 : 0.2;\n\n  results.push({\n    json: {\n      ...meta,\n      extractedText: text,\n      visionAnalysis: visionData,\n      wordCount,\n      complexityScore,\n      isDiagram: complexityScore > 0.5\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "parse-ocr",
+      "name": "Parse OCR & Vision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pages = $input.all();\nconst filePrefix = pages[0]?.json?.filePrefix || 'unknown';\nconst originalFile = pages[0]?.json?.originalFile || 'unknown';\n\nconst fullText = pages.map(p => p.json.extractedText).join('\\n\\n');\nconst totalWords = pages.reduce((sum, p) => sum + p.json.wordCount, 0);\nconst hasDiagrams = pages.some(p => p.json.isDiagram);\n\nconst result = {\n  filePrefix,\n  originalFileName: originalFile,\n  totalPages: pages.length,\n  totalWords,\n  hasDiagrams,\n  fullDocument: fullText,\n  pages: pages.map(p => ({\n    pageNumber: p.json.pageNumber,\n    text: p.json.extractedText,\n    wordCount: p.json.wordCount,\n    visionAnalysis: p.json.visionAnalysis,\n    isDiagram: p.json.isDiagram\n  }))\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "aggregate-pages",
+      "name": "Aggregate Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3100, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Extract Content": {
+      "main": [
+        [
+          {
+            "node": "Validate Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Binary": {
+      "main": [
+        [
+          {
+            "node": "Set Binary Filename",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: No File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: No File": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Binary Filename": {
+      "main": [
+        [
+          {
+            "node": "Switch by File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by File Type": {
+      "main": [
+        [
+          {
+            "node": "Write Temp File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Temp File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Temp File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Temp File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Unsupported Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Temp File": {
+      "main": [
+        [
+          {
+            "node": "Extract Images from PDF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Convert PPTX to PDF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Convert DOCX to PDF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Copy Single Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Images from PDF": {
+      "main": [
+        [
+          {
+            "node": "List Generated Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert PPTX to PDF": {
+      "main": [
+        [
+          {
+            "node": "Extract Images from PPTX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Images from PPTX": {
+      "main": [
+        [
+          {
+            "node": "List Generated Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert DOCX to PDF": {
+      "main": [
+        [
+          {
+            "node": "Extract Images from DOCX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Images from DOCX": {
+      "main": [
+        [
+          {
+            "node": "List Generated Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Single Image": {
+      "main": [
+        [
+          {
+            "node": "List Generated Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: Unsupported Type": {
+      "main": [
+        [
+          {
+            "node": "Respond Error Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Generated Images": {
+      "main": [
+        [
+          {
+            "node": "Prepare Generated File List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Generated File List": {
+      "main": [
+        [
+          {
+            "node": "OCR Processing",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Florence Vision Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR Processing": {
+      "main": [
+        [
+          {
+            "node": "Merge Vision & OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Florence Vision Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge Vision & OCR",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Vision & OCR": {
+      "main": [
+        [
+          {
+            "node": "Parse OCR & Vision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse OCR & Vision": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Pages": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-02-09T00:00:00.000Z",
+  "versionId": "1"
+}

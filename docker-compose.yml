@@ -34,6 +34,8 @@ services:
       # Allow Execute Command Node
       - NODES_EXCLUDE=[]
       - NODES_ALLOW_BUILTIN=ExecuteCommand
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
       
       # Security: Allow file access to /tmp
       - N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=false

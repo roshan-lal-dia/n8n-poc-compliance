@@ -1,0 +1,436 @@
+{
+  "name": "Workflow C: Audit Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit/run",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-audit-run",
+      "name": "Webhook: Run Audit",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 460],
+      "webhookId": "audit-run-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst domain = body.domain || 'Data Architecture';\nconst sessionId = body.sessionId;\n\nif (!sessionId) {\n  throw new Error('Missing sessionId in request');\n}\n\nreturn [{\n  json: {\n    sessionId,\n    domain,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "extract-params",
+      "name": "Extract Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 460]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE audit_sessions SET status = 'in_progress', started_at = NOW() WHERE session_id = $1",
+        "options": {
+          "queryParameters": "={{ [$json.sessionId] }}"
+        }
+      },
+      "id": "update-session-start",
+      "name": "Update Session Start",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 460],
+      "credentials": {
+        "postgres": "Compliance DB"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM audit_questions WHERE domain = $1 ORDER BY q_id",
+        "options": {
+          "queryParameters": "={{ [$('Extract Parameters').first().json.domain] }}"
+        }
+      },
+      "id": "load-questions",
+      "name": "Load Audit Questions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 460],
+      "credentials": {
+        "postgres": "Compliance DB"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM v_latest_evidence WHERE session_id = $1",
+        "options": {
+          "queryParameters": "={{ [$('Extract Parameters').first().json.sessionId] }}"
+        }
+      },
+      "id": "load-evidence",
+      "name": "Load Evidence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1120, 460],
+      "credentials": {
+        "postgres": "Compliance DB"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const questions = $('Load Audit Questions').all();\nconst evidence = $('Load Evidence').all();\nconst sessionId = $('Extract Parameters').first().json.sessionId;\n\nconst evidenceMap = {};\nevidence.forEach(e => {\n  if (!evidenceMap[e.json.q_id]) {\n    evidenceMap[e.json.q_id] = [];\n  }\n  evidenceMap[e.json.q_id].push(e.json);\n});\n\nreturn questions.map(q => ({\n  json: {\n    sessionId,\n    questionId: q.json.q_id,\n    domain: q.json.domain,\n    questionText: q.json.question_text,\n    promptInstructions: q.json.prompt_instructions,\n    evidence: evidenceMap[q.json.q_id] || []\n  }\n}));"
+      },
+      "id": "match-evidence-to-questions",
+      "name": "Match Evidence to Questions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst evidenceTexts = item.evidence.map(e => {\n  if (e.extracted_data?.fullDocument) {\n    return e.extracted_data.fullDocument.substring(0, 3000);\n  }\n  return JSON.stringify(e.extracted_data).substring(0, 3000);\n});\n\nconst combinedEvidence = evidenceTexts.join('\\n\\n--- Next Document ---\\n\\n');\n\nreturn [{\n  json: {\n    ...item,\n    combinedEvidence,\n    hasEvidence: evidenceTexts.length > 0\n  }\n}];"
+      },
+      "id": "prepare-evidence-text",
+      "name": "Prepare Evidence Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embeddings",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"model\": \"nomic-embed-text\", \"prompt\": $json.questionText + ' ' + $json.promptInstructions } }}",
+        "options": {}
+      },
+      "id": "generate-query-embedding",
+      "name": "Generate Query Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/compliance_standards/points/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"vector\": $json.embedding,\n  \"limit\": 5,\n  \"with_payload\": true\n} }}",
+        "options": {}
+      },
+      "id": "search-qdrant",
+      "name": "RAG: Search Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "const questionData = $('Prepare Evidence Text').item.json;\nconst qdrantResults = $input.first().json.result || [];\n\nconst relevantStandards = qdrantResults.map(r => ({\n  text: r.payload?.text || '',\n  standardName: r.payload?.standardName || 'Unknown',\n  score: r.score || 0\n}));\n\nconst standardsText = relevantStandards\n  .map(s => `[${s.standardName} (score: ${s.score.toFixed(2)})]: ${s.text.substring(0, 500)}`)\n  .join('\\n\\n');\n\nconst prompt = `You are a compliance auditor. Evaluate the following evidence against this audit question.\n\nQUESTION:\n${questionData.questionText}\n\nINSTRUCTIONS:\n${questionData.promptInstructions}\n\nEVIDENCE PROVIDED:\n${questionData.combinedEvidence}\n\nRELEVANT STANDARDS:\n${standardsText}\n\nProvide a structured JSON evaluation with:\n{\n  \"compliant\": boolean,\n  \"confidence\": number (0-100),\n  \"score\": number (0-100),\n  \"findings\": string,\n  \"evidence_summary\": string,\n  \"gaps\": string[],\n  \"recommendations\": string[]\n}`;\n\nreturn [{\n  json: {\n    ...questionData,\n    prompt,\n    relevantStandards\n  }\n}];"
+      },
+      "id": "build-evaluation-prompt",
+      "name": "Build Evaluation Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"llama3.2\",\n  \"prompt\": $json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.7,\n    \"top_p\": 0.9\n  }\n} }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "call-llm",
+      "name": "AI Evaluation: Call LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2440, 460]
+    },
+    {
+      "parameters": {
+        "jsCode": "const questionData = $('Build Evaluation Prompt').item.json;\nconst llmResponse = $input.first().json;\n\nlet evaluation = {};\ntry {\n  let content = llmResponse.response || '{}';\n  content = content.replace(/^```json\\s*/, '').replace(/\\s*```$/, '').trim();\n  evaluation = JSON.parse(content);\n} catch (e) {\n  evaluation = {\n    compliant: false,\n    confidence: 0,\n    score: 0,\n    findings: 'Failed to parse LLM response',\n    error: e.message\n  };\n}\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    questionId: questionData.questionId,\n    domain: questionData.domain,\n    questionText: questionData.questionText,\n    evaluation,\n    hasEvidence: questionData.hasEvidence,\n    relevantStandardsCount: questionData.relevantStandards?.length || 0,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-llm-response",
+      "name": "Parse LLM Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 460]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_logs (session_id, q_id, domain, question_text, evaluation_result, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id",
+        "options": {
+          "queryParameters": "={{ [\n  $json.sessionId,\n  $json.questionId,\n  $json.domain,\n  $json.questionText,\n  JSON.stringify($json.evaluation),\n  'completed'\n] }}"
+        }
+      },
+      "id": "log-evaluation",
+      "name": "Log Evaluation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2880, 460],
+      "credentials": {
+        "postgres": "Compliance DB"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH stats AS (SELECT COUNT(*) as total, AVG((evaluation_result->>'score')::numeric) as avg_score FROM audit_logs WHERE session_id = $1) UPDATE audit_sessions SET status = 'completed', completed_at = NOW(), answered_questions = (SELECT total FROM stats), overall_compliance_score = (SELECT avg_score FROM stats) WHERE session_id = $1",
+        "options": {
+          "queryParameters": "={{ [$('Extract Parameters').first().json.sessionId] }}"
+        }
+      },
+      "id": "update-session-complete",
+      "name": "Update Session Complete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3100, 460],
+      "credentials": {
+        "postgres": "Compliance DB"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT al.*, aq.question_text, aq.prompt_instructions FROM audit_logs al JOIN audit_questions aq ON al.q_id = aq.q_id WHERE al.session_id = $1 ORDER BY al.created_at",
+        "options": {
+          "queryParameters": "={{ [$('Extract Parameters').first().json.sessionId] }}"
+        }
+      },
+      "id": "get-final-results",
+      "name": "Get Final Results",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3320, 460],
+      "credentials": {
+        "postgres": "Compliance DB"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all();\nconst sessionId = $('Extract Parameters').first().json.sessionId;\nconst domain = $('Extract Parameters').first().json.domain;\n\nconst totalQuestions = results.length;\nconst compliantCount = results.filter(r => r.json.evaluation_result?.compliant === true).length;\nconst avgScore = results.reduce((sum, r) => sum + (r.json.evaluation_result?.score || 0), 0) / totalQuestions;\n\nconst summary = {\n  sessionId,\n  domain,\n  totalQuestions,\n  compliantCount,\n  nonCompliantCount: totalQuestions - compliantCount,\n  overallScore: Math.round(avgScore * 10) / 10,\n  compliancePercentage: Math.round((compliantCount / totalQuestions) * 100),\n  completedAt: new Date().toISOString()\n};\n\nconst detailedResults = results.map(r => ({\n  questionId: r.json.q_id,\n  questionText: r.json.question_text,\n  compliant: r.json.evaluation_result?.compliant || false,\n  score: r.json.evaluation_result?.score || 0,\n  confidence: r.json.evaluation_result?.confidence || 0,\n  findings: r.json.evaluation_result?.findings || '',\n  gaps: r.json.evaluation_result?.gaps || [],\n  recommendations: r.json.evaluation_result?.recommendations || []\n}));\n\nreturn [{\n  json: {\n    summary,\n    results: detailedResults,\n    status: 'success'\n  }\n}];"
+      },
+      "id": "format-final-report",
+      "name": "Format Final Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3540, 460]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3760, 460]
+    },
+    {
+      "parameters": {},
+      "id": "note-create-session",
+      "name": "Note: Create Session First",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [240, 700],
+      "notes": "Before running this workflow, create an audit session:\n\nINSERT INTO audit_sessions (session_id, domain, initiated_by) VALUES (uuid_generate_v4(), 'Data Architecture', 'api_user') RETURNING session_id;\n\nThen use that session_id in the webhook POST body."
+    }
+  ],
+  "connections": {
+    "Webhook: Run Audit": {
+      "main": [
+        [
+          {
+            "node": "Extract Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Parameters": {
+      "main": [
+        [
+          {
+            "node": "Update Session Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Session Start": {
+      "main": [
+        [
+          {
+            "node": "Load Audit Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Audit Questions": {
+      "main": [
+        [
+          {
+            "node": "Load Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Evidence": {
+      "main": [
+        [
+          {
+            "node": "Match Evidence to Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Evidence to Questions": {
+      "main": [
+        [
+          {
+            "node": "Prepare Evidence Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Evidence Text": {
+      "main": [
+        [
+          {
+            "node": "Generate Query Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Query Embedding": {
+      "main": [
+        [
+          {
+            "node": "RAG: Search Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG: Search Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Build Evaluation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Evaluation Prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Evaluation: Call LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Evaluation: Call LLM": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response": {
+      "main": [
+        [
+          {
+            "node": "Log Evaluation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Evaluation": {
+      "main": [
+        [
+          {
+            "node": "Update Session Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Session Complete": {
+      "main": [
+        [
+          {
+            "node": "Get Final Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Final Results": {
+      "main": [
+        [
+          {
+            "node": "Format Final Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Final Report": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-02-09T00:00:00.000Z",
+  "versionId": "1"
+}

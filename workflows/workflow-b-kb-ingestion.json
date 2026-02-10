@@ -1,0 +1,346 @@
+{
+  "name": "Workflow B: KB Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kb/ingest",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-kb-ingest",
+      "name": "Webhook: Ingest Standard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 460],
+      "webhookId": "kb-ingest-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "has-file",
+                    "leftValue": "={{ $binary.data !== undefined }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [460, 460],
+      "id": "validate-input",
+      "name": "Validate Input"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": \"Missing file or metadata\", \"status\": 400 } }}"
+      },
+      "id": "error-missing-data",
+      "name": "Error: Missing Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [680, 620]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/extract",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "responseFormat": "autodetect"
+            }
+          }
+        }
+      },
+      "id": "call-extractor",
+      "name": "Call Universal Extractor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const extracted = $input.first().json;\nconst webhookData = $('Webhook: Ingest Standard').first();\nconst standardName = webhookData.json.query?.standardName || webhookData.json.body?.standardName || 'Unknown Standard';\nconst domain = webhookData.json.query?.domain || webhookData.json.body?.domain || 'General';\nconst version = webhookData.json.query?.version || webhookData.json.body?.version || '1.0';\n\nreturn [{\n  json: {\n    standardName,\n    domain,\n    version,\n    fullText: extracted.fullDocument,\n    totalPages: extracted.totalPages,\n    metadata: {\n      originalFileName: extracted.originalFileName,\n      totalWords: extracted.totalWords,\n      hasDiagrams: extracted.hasDiagrams,\n      uploadedAt: new Date().toISOString()\n    }\n  }\n}];"
+      },
+      "id": "prepare-metadata",
+      "name": "Prepare Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.fullText;\nconst chunkSize = 1000;\nconst chunkOverlap = 200;\nconst metadata = $input.first().json;\n\nconst chunks = [];\nconst words = text.split(/\\s+/);\n\nfor (let i = 0; i < words.length; i += (chunkSize - chunkOverlap)) {\n  const chunk = words.slice(i, i + chunkSize).join(' ');\n  if (chunk.trim().length > 50) {\n    chunks.push({\n      json: {\n        text: chunk,\n        chunkIndex: chunks.length,\n        standardName: metadata.standardName,\n        domain: metadata.domain,\n        version: metadata.version,\n        metadata: metadata.metadata\n      }\n    });\n  }\n}\n\nreturn chunks;"
+      },
+      "id": "chunk-text",
+      "name": "Chunk Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embeddings",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"model\": \"nomic-embed-text\", \"prompt\": $json.text } }}",
+        "options": {}
+      },
+      "id": "generate-embedding",
+      "name": "Generate Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst chunkData = $('Chunk Text').item.json;\nconst embedding = item.json.embedding;\n\nreturn [{\n  json: {\n    id: `${chunkData.standardName}_${chunkData.chunkIndex}`.replace(/[^a-zA-Z0-9_-]/g, '_'),\n    vector: embedding,\n    payload: {\n      text: chunkData.text,\n      standardName: chunkData.standardName,\n      domain: chunkData.domain,\n      version: chunkData.version,\n      chunkIndex: chunkData.chunkIndex,\n      metadata: chunkData.metadata\n    }\n  }\n}];"
+      },
+      "id": "format-qdrant-point",
+      "name": "Format Qdrant Point",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=http://qdrant:6333/collections/compliance_standards/points",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"points\": [$input.all().map(item => item.json)] } }}",
+        "options": {}
+      },
+      "id": "upsert-to-qdrant",
+      "name": "Upsert to Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO kb_standards (standard_name, domain, version, content_hash, full_text, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) ON CONFLICT (content_hash) DO UPDATE SET updated_at = NOW() RETURNING id",
+        "options": {
+          "queryParameters": "={{ [\n  $('Prepare Metadata').first().json.standardName,\n  $('Prepare Metadata').first().json.domain,\n  $('Prepare Metadata').first().json.version,\n  require('crypto').createHash('sha256').update($('Prepare Metadata').first().json.fullText).digest('hex'),\n  $('Prepare Metadata').first().json.fullText,\n  JSON.stringify($('Prepare Metadata').first().json.metadata)\n] }}"
+        }
+      },
+      "id": "insert-to-postgres",
+      "name": "Insert to Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2000, 300],
+      "credentials": {
+        "postgres": "Compliance DB"
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ {\n  \"status\": \"success\",\n  \"message\": \"Standard ingested successfully\",\n  \"standardName\": $('Prepare Metadata').first().json.standardName,\n  \"domain\": $('Prepare Metadata').first().json.domain,\n  \"chunksCreated\": $('Format Qdrant Point').all().length,\n  \"dbRecordId\": $json[0]?.id\n} }}"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2440, 300]
+    },
+    {
+      "parameters": {},
+      "id": "init-collection",
+      "name": "Note: Collection Init",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [240, 700],
+      "notes": "Run this curl command once to initialize the Qdrant collection:\n\ncurl -X PUT http://qdrant:6333/collections/compliance_standards \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"vectors\": {\n      \"size\": 768,\n      \"distance\": \"Cosine\"\n    }\n  }'"
+    }
+  ],
+  "connections": {
+    "Webhook: Ingest Standard": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Call Universal Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Missing Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: Missing Data": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Universal Extractor": {
+      "main": [
+        [
+          {
+            "node": "Prepare Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Metadata": {
+      "main": [
+        [
+          {
+            "node": "Chunk Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chunk Text": {
+      "main": [
+        [
+          {
+            "node": "Generate Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Embedding": {
+      "main": [
+        [
+          {
+            "node": "Format Qdrant Point",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Qdrant Point": {
+      "main": [
+        [
+          {
+            "node": "Upsert to Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert to Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Insert to Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert to Postgres": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-02-09T00:00:00.000Z",
+  "versionId": "1"
+}

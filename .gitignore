@@ -4,3 +4,5 @@ custom_libs/
 
 /.private*
 /.public*
+
+api-playground/

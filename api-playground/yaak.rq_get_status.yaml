@@ -1,8 +1,8 @@
 type: http_request
 model: http_request
 id: rq_get_status_001
-createdAt: 2026-02-10T14:00:00.000000
-updatedAt: 2026-02-10T14:00:00.000000
+createdAt: 2026-02-10T14:00:00
+updatedAt: 2026-02-11T00:25:18.322162300
 workspaceId: wk_fyV8LrMfV8
 folderId: null
 authentication: {}
@@ -10,7 +10,7 @@ authenticationType: null
 body:
   form: []
 bodyType: null
-description: 'Poll audit status - replace SESSION_ID with actual sessionId from submit response'
+description: Poll audit status - replace SESSION_ID with actual sessionId from submit response
 headers:
 - enabled: true
   name: Accept
@@ -18,6 +18,14 @@ headers:
   id: header_accept
 method: GET
 name: 2. Get Audit Status
-sortPriority: -1770114397924.8
-url: http://172.206.67.83:5678/webhook/audit/status/SESSION_ID_HERE
-urlParameters: []
+sortPriority: 4000.0
+url: http://172.206.67.83:5678/webhook/audit-status-webhook/audit/status/:sessionId
+urlParameters:
+- enabled: true
+  name: :sessionId
+  value: c83e34fd-1d4a-4b86-938e-8e33dffe7f7f
+  id: j4Bi6rIxHq
+- enabled: true
+  name: ''
+  value: ''
+  id: IedWyvyFFP

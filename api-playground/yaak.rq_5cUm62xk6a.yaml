@@ -2,9 +2,9 @@ type: http_request
 model: http_request
 id: rq_5cUm62xk6a
 createdAt: 2026-02-10T10:57:03.126454
-updatedAt: 2026-02-10T12:29:59.863308
+updatedAt: 2026-02-10T20:43:19.410735200
 workspaceId: wk_fyV8LrMfV8
-folderId: null
+folderId: fl_ombAvDZDSL
 authentication: {}
 authenticationType: null
 body:
@@ -26,7 +26,7 @@ headers:
   id: bPRD9TETPM
 method: POST
 name: dev extract
-sortPriority: -1770114397923.998
+sortPriority: 3000.0
 url: http://172.206.67.83:5678/webhook-test/extract
 urlParameters:
 - enabled: false

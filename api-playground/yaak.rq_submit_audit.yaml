@@ -1,8 +1,8 @@
 type: http_request
 model: http_request
 id: rq_submit_audit_001
-createdAt: 2026-02-10T14:00:00.000000
-updatedAt: 2026-02-10T14:00:00.000000
+createdAt: 2026-02-10T14:00:00
+updatedAt: 2026-02-10T22:00:59.003294400
 workspaceId: wk_fyV8LrMfV8
 folderId: null
 authentication: {}
@@ -12,24 +12,28 @@ body:
   - enabled: true
     id: questions_json
     name: questions
-    value: '[{"q_id":"privacy_q1","files":["sql_advanced_concepts.pdf"]}]'
+    value: '[{"q_id":"data_quality_management_q1","files":["sql_advanced_concepts.pdf"]}]'
   - enabled: true
-    file: /tmp/sql_and_dba_advanced_concepts.pdf
+    file: C:\Users\infaw\Downloads\sql and dba advanced concepts.pdf
     id: file_sql_pdf
     name: sql_advanced_concepts.pdf
   - enabled: true
     id: domain_field
     name: domain
-    value: 'Data Quality Management'
+    value: Data Quality Management
+  - enabled: true
+    id: xAEh5QGyXH
+    name: ''
+    value: ''
 bodyType: multipart/form-data
-description: 'Submit audit with SQL/DBA PDF for privacy compliance check'
+description: Submit audit with SQL/DBA PDF for privacy compliance check
 headers:
 - enabled: true
   name: Accept
   value: application/json
   id: header_accept
 method: POST
-name: 1. Submit Audit (SQL PDF)
-sortPriority: -1770114397925.0
+name: 1. Submit Audit
+sortPriority: 2000.0
 url: http://172.206.67.83:5678/webhook/audit/submit
 urlParameters: []

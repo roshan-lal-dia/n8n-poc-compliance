@@ -1,0 +1,22 @@
+type: http_request
+model: http_request
+id: rq_NG9tHDMSqd
+createdAt: 2026-02-10T20:48:09.113960400
+updatedAt: 2026-02-10T22:27:16.184321900
+workspaceId: wk_fyV8LrMfV8
+folderId: null
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: multipart/form-data
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: multipart/form-data
+  id: mjrrcMtN2a
+method: POST
+name: '#. Upload KB'
+sortPriority: 6000.0
+url: http://172.206.67.83:5678/webhook/kb/ingest
+urlParameters: []

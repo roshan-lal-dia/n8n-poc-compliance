@@ -8,27 +8,27 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "963c0ad2-d4eb-4463-ab4b-406360080aab",
+      "id": "b78a966b-8234-47ba-9bae-9fc5d4278006",
       "name": "Webhook: Submit Audit",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        0,
-        0
+        16800,
+        1120
       ],
       "webhookId": "audit-submit-webhook"
     },
     {
       "parameters": {
-        "jsCode": "// Parse multipart form data and extract files + questions mapping\nconst crypto = require('crypto');\nconst items = $input.all();\n\n// Get questions JSON from form data (try multiple locations)\nconst firstItem = $input.first();\nlet questionsRaw = firstItem.json?.questions || firstItem.json?.body?.questions || firstItem.json?.query?.questions;\n\n// Debug logging\nconsole.log('First item keys:', Object.keys(firstItem.json || {}));\nconsole.log('Questions raw value:', questionsRaw);\n\nif (!questionsRaw) {\n  throw new Error('Missing \"questions\" parameter. Expected JSON array: [{\"q_id\":\"q1\",\"files\":[\"file1.pdf\"]}]. Received structure: ' + JSON.stringify(Object.keys(firstItem.json || {})));\n}\n\nlet questions;\ntry {\n  questions = typeof questionsRaw === 'string' ? JSON.parse(questionsRaw) : questionsRaw;\n} catch (e) {\n  throw new Error('Invalid questions JSON format: ' + e.message);\n}\n\nif (!questions || !Array.isArray(questions) || questions.length === 0) {\n  throw new Error('Questions must be non-empty array. Got: ' + typeof questions);\n}\n\n// Extract domain (optional, can be inferred from questions)\nconst domain = firstItem.json?.domain || firstItem.json?.body?.domain || firstItem.json?.query?.domain || 'General';\n\n// Collect binary files from multipart upload\nconst files = {};\nlet totalSize = 0;\n\nfor (const item of items) {\n  if (item.binary) {\n    for (const [fieldName, binaryData] of Object.entries(item.binary)) {\n      if (binaryData && binaryData.data) {\n        const fileSize = Buffer.byteLength(binaryData.data, 'base64');\n        totalSize += fileSize;\n        \n        // Enforce 500MB total limit for large file support\n        if (totalSize > 500 * 1024 * 1024) {\n          throw new Error(`Total file size exceeds 500MB limit (current: ${Math.round(totalSize/1024/1024)}MB)`);\n        }\n        \n        files[fieldName] = {\n          data: binaryData.data,\n          fileName: binaryData.fileName || fieldName,\n          mimeType: binaryData.mimeType || 'application/octet-stream',\n          fileSize: fileSize\n        };\n      }\n    }\n  }\n}\n\n// Validate: each question references valid uploaded files\nfor (const q of questions) {\n  if (!q.q_id) {\n    throw new Error('Each question must have a \"q_id\" field');\n  }\n  if (!q.files || !Array.isArray(q.files) || q.files.length === 0) {\n    throw new Error(`Question ${q.q_id} has no files specified`);\n  }\n  \n  for (const fileName of q.files) {\n    if (!files[fileName]) {\n      throw new Error(`Question ${q.q_id} references file \"${fileName}\" which was not uploaded`);\n    }\n  }\n}\n\nreturn [{\n  json: {\n    questions,\n    domain,\n    files: Object.keys(files).map(name => ({\n      fieldName: name,\n      fileName: files[name].fileName,\n      fileSize: files[name].fileSize,\n      mimeType: files[name].mimeType\n    })),\n    totalSizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,\n    totalFiles: Object.keys(files).length\n  },\n  binary: files\n}];"
+        "jsCode": "// Parse multipart form data and extract files + questions mapping\nconst crypto = require('crypto');\nconst items = $input.all();\nconst firstItem = items[0];\n\n// Get questions JSON from form data (try multiple locations)\nlet questionsRaw = firstItem.json?.questions || firstItem.json?.body?.questions || firstItem.json?.query?.questions;\n\n// Debug logging\nconsole.log('First item keys:', Object.keys(firstItem.json || {}));\nconsole.log('Questions raw value:', questionsRaw);\n\nif (!questionsRaw) {\n  throw new Error('Missing \"questions\" parameter. Expected JSON array: [{\"q_id\":\"q1\",\"files\":[\"file1.pdf\"]}]. Received structure: ' + JSON.stringify(Object.keys(firstItem.json || {})));\n}\n\nlet questions;\ntry {\n  questions = typeof questionsRaw === 'string' ? JSON.parse(questionsRaw) : questionsRaw;\n} catch (e) {\n  throw new Error('Invalid questions JSON format: ' + e.message);\n}\n\nif (!questions || !Array.isArray(questions) || questions.length === 0) {\n  throw new Error('Questions must be non-empty array. Got: ' + typeof questions);\n}\n\n// Extract domain (optional, can be inferred from questions)\nconst domain = firstItem.json?.domain || firstItem.json?.body?.domain || firstItem.json?.query?.domain || 'General';\n\n// Calculate file stats and validate total size\n// We keep the original binary object to avoid data loss (corruption to 9 bytes)\nlet totalSize = 0;\nconst fileMetadata = [];\n\nif (firstItem.binary) {\n  for (const [fieldName, binaryData] of Object.entries(firstItem.binary)) {\n    if (binaryData && binaryData.data) {\n      const fileSize = Buffer.byteLength(binaryData.data, 'base64');\n      totalSize += fileSize;\n      \n      fileMetadata.push({\n        fieldName: fieldName,\n        fileName: binaryData.fileName || fieldName,\n        fileSize: fileSize,\n        mimeType: binaryData.mimeType || 'application/octet-stream'\n      });\n    }\n  }\n}\n\n// Enforce 500MB total limit for large file support\nif (totalSize > 500 * 1024 * 1024) {\n  throw new Error(`Total file size exceeds 500MB limit (current: ${Math.round(totalSize/1024/1024)}MB)`);\n}\n\n// Validate: each question references valid uploaded files\nfor (const q of questions) {\n  if (!q.q_id) {\n    throw new Error('Each question must have a \"q_id\" field');\n  }\n  if (!q.files || !Array.isArray(q.files) || q.files.length === 0) {\n    throw new Error(`Question ${q.q_id} has no files specified`);\n  }\n  \n  for (const fileName of q.files) {\n    const found = fileMetadata.find(f => f.fieldName === fileName);\n    if (!found) {\n      throw new Error(`Question ${q.q_id} references file \"${fileName}\" which was not uploaded`);\n    }\n  }\n}\n\n// Update JSON content but preserve original binary attachment\nfirstItem.json = {\n  questions,\n  domain,\n  files: fileMetadata,\n  totalSizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,\n  totalFiles: fileMetadata.length\n};\n\nreturn [firstItem];"
       },
-      "id": "54d4e0ed-4ed7-4d46-8dbe-4b7472dca4a8",
+      "id": "b135bedb-52bf-44ab-8792-fbc75357b314",
       "name": "Parse & Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        0
+        17024,
+        1120
       ]
     },
     {
@@ -37,13 +37,13 @@
         "query": "INSERT INTO audit_sessions (session_id, domain, initiated_by, status, started_at, total_questions, answered_questions, overall_compliance_score)\nVALUES (gen_random_uuid(), '{{ $json.domain.replace(/'/g, \"''\") }}', 'api_user', 'queued', NOW(), {{ $json.questions.length }}, 0, 0)\nRETURNING session_id, domain, total_questions;",
         "options": {}
       },
-      "id": "5d5acd07-a3db-481e-a191-164dbecca85f",
+      "id": "82ceda42-6c52-4a2d-bdc6-8aecd13587d7",
       "name": "Create Audit Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        448,
-        0
+        17248,
+        1120
       ],
       "credentials": {
         "postgres": {
@@ -60,25 +60,25 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        672,
-        0
+        17472,
+        1120
       ],
-      "id": "prepare-file-writes"
+      "id": "754c7f4b-0c57-401d-a997-ce58b38e06bf"
     },
     {
       "parameters": {
         "operation": "write",
         "fileName": "={{ $json.filePath }}",
-        "dataPropertyName": "data"
+        "options": {}
       },
       "name": "Write Binary File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
       "position": [
-        880,
-        0
+        17680,
+        1120
       ],
-      "id": "write-binary-file"
+      "id": "74b4c682-fc63-497c-b259-85f16328ca44"
     },
     {
       "parameters": {
@@ -88,10 +88,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
-        0
+        17904,
+        1120
       ],
-      "id": "aggregate-files"
+      "id": "76acc9ae-d643-40d2-831a-7ee7a2c0eaeb"
     },
     {
       "parameters": {
@@ -99,13 +99,13 @@
         "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, message, percentage, created_at)\nVALUES ('{{ $json.sessionId }}', NULL, 'queued', 'in_progress', '{{ \"Job queued: \" + $json.questions.length + \" questions, \" + $json.totalFiles + \" files\" }}', 0, NOW());",
         "options": {}
       },
-      "id": "1abceb9b-5f50-460c-9715-912ec0a3a7d9",
+      "id": "c0c6047b-0802-420a-9bff-4eec22b4fafa",
       "name": "Log: Job Queued",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1320,
-        0
+        18128,
+        1120
       ],
       "credentials": {
         "postgres": {
@@ -118,30 +118,28 @@
       "parameters": {
         "jsCode": "// Create Redis job payload\nconst crypto = require('crypto');\n\n// Get data from Aggregate Files node\nconst data = $('Aggregate Files').first().json;\n\n// Debug: log what we received\nconsole.log('Build Redis Job - received data keys:', Object.keys(data));\nconsole.log('Build Redis Job - questions value:', data.questions);\n\nif (!data.questions || !Array.isArray(data.questions)) {\n  throw new Error('Invalid data received: questions is ' + typeof data.questions + '. Full data keys: ' + Object.keys(data).join(', '));\n}\n\nconst jobId = crypto.randomUUID();\n\nconst job = {\n  jobId: jobId,\n  sessionId: data.sessionId,\n  domain: data.domain,\n  questions: data.questions,\n  fileMap: data.fileMap,\n  sessionDir: `/tmp/n8n_processing/${data.sessionId}`,\n  status: 'queued',\n  createdAt: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    jobData: JSON.stringify(job),\n    jobId: jobId,\n    sessionId: data.sessionId,\n    totalQuestions: data.questions.length\n  }\n}];"
       },
-      "id": "58f9435e-943f-4d20-addf-70b48b57e8d3",
+      "id": "84dc3d26-c399-4bbd-8a96-3dc52145361e",
       "name": "Build Redis Job Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1550,
-        0
+        18352,
+        1120
       ]
     },
     {
       "parameters": {
         "operation": "push",
         "list": "audit_job_queue",
-        "messageData": "={{ $json.jobData }}",
-        "tail": false,
-        "options": {}
+        "messageData": "={{ $json.jobData }}"
       },
-      "id": "9bdb2ccb-842f-4240-bbcc-303a26af98c9",
+      "id": "c466ed1c-c19c-4dc5-bab8-77802814355a",
       "name": "Enqueue Job to Redis",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1770,
-        0
+        18576,
+        1120
       ],
       "credentials": {
         "redis": {
@@ -156,13 +154,13 @@
         "query": "UPDATE audit_sessions SET job_id = '{{ $json.jobId }}' WHERE session_id = '{{ $json.sessionId }}';",
         "options": {}
       },
-      "id": "c75dcb58-9777-45b9-9f24-bfa0e18b451b",
+      "id": "f94d5f9a-ac4f-4903-9ff5-b144e5ca23da",
       "name": "Update Session Job ID",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1990,
-        0
+        18800,
+        1120
       ],
       "credentials": {
         "postgres": {
@@ -174,16 +172,16 @@
     {
       "parameters": {
         "mode": "raw",
-        "jsonOutput": "={{ {\n  \"sessionId\": $('Build Redis Job Payload').first().json.sessionId,\n  \"jobId\": $('Build Redis Job Payload').first().json.jobId,\n  \"status\": \"queued\",\n  \"totalQuestions\": $('Build Redis Job Payload').first().json.totalQuestions,\n  \"message\": \"Audit submitted successfully. Poll /webhook/audit/status/\" + $('Build Redis Job Payload').first().json.sessionId + \" for progress.\",\n  \"estimatedCompletionMinutes\": Math.ceil($('Build Redis Job Payload').first().json.totalQuestions * 2.5)\n} }}",
+        "jsonOutput": "={{ {\n  \"sessionId\": $('Build Redis Job Payload').first().json.sessionId,\n  \"jobId\": $('Build Redis Job Payload').first().json.jobId,\n  \"status\": \"queued\",\n  \"totalQuestions\": $('Build Redis Job Payload').first().json.totalQuestions,\n  \"message\": \"Audit submitted successfully. Poll /webhook/audit-status-webhook/audit/status/\" + $('Build Redis Job Payload').first().json.sessionId + \" for progress.\",\n  \"estimatedCompletionMinutes\": Math.ceil($('Build Redis Job Payload').first().json.totalQuestions * 2.5)\n} }}",
         "options": {}
       },
-      "id": "86c7f920-8289-4fd2-8bb3-061f4d445bc8",
+      "id": "81a33153-285b-460a-9dc1-7fc2851a6647",
       "name": "Build Success Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2210,
-        0
+        19024,
+        1120
       ]
     },
     {
@@ -194,13 +192,13 @@
           "responseCode": 202
         }
       },
-      "id": "a628ef24-86fd-4f4b-b13a-8279df7da245",
+      "id": "5f419239-42d7-44e9-9e33-c34b321b5112",
       "name": "Respond: Accepted",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        2430,
-        0
+        19232,
+        1120
       ]
     },
     {
@@ -209,13 +207,13 @@
         "jsonOutput": "={{ { \"error\": $json.error?.message || \"Internal server error\", \"status\": 500 } }}",
         "options": {}
       },
-      "id": "8efe4f3d-27b7-46b3-9a3c-9cf34c41402f",
+      "id": "7e70b414-93c8-470f-88e6-ad5f6ce56860",
       "name": "Error Handler",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        240,
-        192
+        17040,
+        1312
       ]
     },
     {
@@ -226,13 +224,13 @@
           "responseCode": "={{ $json.status || 500 }}"
         }
       },
-      "id": "a79f2a75-c7d0-41af-a11a-6680755627bb",
+      "id": "95b19548-901f-47a8-8d9a-4fac43a597c4",
       "name": "Respond: Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        528,
-        288
+        17328,
+        1408
       ]
     }
   ],
@@ -382,7 +380,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "ef82fe03-c79e-4314-a91e-327a7eb22081",
+  "versionId": "c11961c1-9cd5-4733-9e21-2be896b3d4c3",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"

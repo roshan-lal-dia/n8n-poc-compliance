@@ -54,16 +54,44 @@
     },
     {
       "parameters": {
-        "jsCode": "// Calculate file hashes and prepare metadata (no disk writes)\nconst crypto = require('crypto');\n\nconst sessionId = $input.first().json.session_id;\nconst domain = $input.first().json.domain;\nconst questions = $('Parse & Validate Input').first().json.questions;\nconst binaryData = $('Parse & Validate Input').first().binary;\n\n// Process each file: calculate hash and store base64 data\nconst fileMap = {};\n\nfor (const [fieldName, fileData] of Object.entries(binaryData)) {\n  const buffer = Buffer.from(fileData.data, 'base64');\n  const actualSize = buffer.length;\n  \n  // Calculate SHA-256 hash\n  const hash = crypto.createHash('sha256').update(buffer).digest('hex');\n  \n  console.log(`Processed ${fieldName}: ${actualSize} bytes, hash: ${hash.substring(0, 16)}...`);\n  \n  fileMap[fieldName] = {\n    hash: hash,\n    fileName: fileData.fileName,\n    fileSize: actualSize,\n    mimeType: fileData.mimeType,\n    fieldName: fieldName,\n    binaryData: fileData.data\n  };\n}\n\n// Map questions to their file hashes\nconst questionsWithHashes = questions.map(q => ({\n  q_id: q.q_id,\n  evidence_files: q.files.map(fileName => {\n    const fileInfo = fileMap[fileName];\n    return {\n      hash: fileInfo.hash,\n      originalName: fileInfo.fileName,\n      fieldName: fileName\n    };\n  })\n}));\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    domain: domain,\n    questions: questionsWithHashes,\n    fileMap: fileMap,\n    totalFiles: Object.keys(fileMap).length\n  }\n}];"
+        "jsCode": "// Calculate hashes and prepare items for writing\nconst crypto = require('crypto');\nconst fs = require('fs');\nconst path = require('path');\n\nconst sessionData = $input.first().json;\nconst sessionId = sessionData.session_id;\nconst domain = sessionData.domain;\nconst questions = $('Parse & Validate Input').first().json.questions;\nconst binaryData = $('Parse & Validate Input').first().binary;\n\n// Create session directory (fs.mkdirSync is usually safe/stable)\nconst sessionDir = `/tmp/n8n_processing/${sessionId}`;\nif (!fs.existsSync(sessionDir)) {\n  fs.mkdirSync(sessionDir, { recursive: true });\n}\n\nconsole.log(`Created session directory: ${sessionDir}`);\n\nconst items = [];\n\nfor (const [fieldName, fileData] of Object.entries(binaryData)) {\n  if (!fileData || !fileData.data) continue;\n  \n  const buffer = Buffer.from(fileData.data, 'base64');\n  const hash = crypto.createHash('sha256').update(buffer).digest('hex');\n  const ext = path.extname(fileData.fileName) || '.bin';\n  const diskFileName = `${hash}${ext}`;\n  const filePath = path.join(sessionDir, diskFileName);\n  \n  items.push({\n    json: {\n      sessionId,\n      domain,\n      fieldName,\n      fileName: fileData.fileName,\n      mimeType: fileData.mimeType,\n      fileSize: buffer.length,\n      hash,\n      filePath,\n      questions // Pass questions for aggregation later\n    },\n    binary: {\n      data: fileData // Move this specific file to 'data' key for Write node\n    }\n  });\n}\n\nreturn items;"
       },
-      "id": "556223b3-e1bc-449a-beb8-1e410681653e",
-      "name": "Hash & Store Files to Disk",
+      "name": "Prepare File Writes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         672,
         0
-      ]
+      ],
+      "id": "prepare-file-writes"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $json.filePath }}",
+        "dataPropertyName": "data"
+      },
+      "name": "Write Binary File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "id": "write-binary-file"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reconstruct fileMap and question structure\nconst items = $input.all();\nconst firstItem = items[0].json;\nconst sessionId = firstItem.sessionId;\nconst domain = firstItem.domain;\nconst questions = firstItem.questions;\n\nconst fileMap = {};\n\nfor (const item of items) {\n  const row = item.json;\n  fileMap[row.fieldName] = {\n    hash: row.hash,\n    fileName: row.fileName,\n    fileSize: row.fileSize,\n    mimeType: row.mimeType,\n    fieldName: row.fieldName,\n    filePath: row.filePath\n  };\n}\n\n// Map questions to hashes\nconst questionsWithHashes = questions.map(q => ({\n  q_id: q.q_id,\n  evidence_files: q.files.map(fileName => {\n    const fileInfo = fileMap[fileName];\n    return {\n      hash: fileInfo.hash,\n      originalName: fileInfo.fileName,\n      fieldName: fileName\n    };\n  })\n}));\n\nreturn [{\n  json: {\n    sessionId,\n    domain,\n    questions: questionsWithHashes,\n    fileMap,\n    totalFiles: Object.keys(fileMap).length\n  }\n}];"
+      },
+      "name": "Aggregate Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "aggregate-files"
     },
     {
       "parameters": {
@@ -76,7 +104,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        880,
+        1320,
         0
       ],
       "credentials": {
@@ -88,14 +116,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// Create Redis job payload\nconst crypto = require('crypto');\n\n// Get data from Hash & Store Files node (not from Log node which only returns INSERT result)\nconst data = $('Hash & Store Files to Disk').first().json;\n\n// Debug: log what we received\nconsole.log('Build Redis Job - received data keys:', Object.keys(data));\nconsole.log('Build Redis Job - questions value:', data.questions);\n\nif (!data.questions || !Array.isArray(data.questions)) {\n  throw new Error('Invalid data received: questions is ' + typeof data.questions + '. Full data keys: ' + Object.keys(data).join(', '));\n}\n\nconst jobId = crypto.randomUUID();\n\nconst job = {\n  jobId: jobId,\n  sessionId: data.sessionId,\n  domain: data.domain,\n  questions: data.questions,\n  fileMap: data.fileMap,\n  status: 'queued',\n  createdAt: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    jobData: JSON.stringify(job),\n    jobId: jobId,\n    sessionId: data.sessionId,\n    totalQuestions: data.questions.length\n  }\n}];"
+        "jsCode": "// Create Redis job payload\nconst crypto = require('crypto');\n\n// Get data from Aggregate Files node\nconst data = $('Aggregate Files').first().json;\n\n// Debug: log what we received\nconsole.log('Build Redis Job - received data keys:', Object.keys(data));\nconsole.log('Build Redis Job - questions value:', data.questions);\n\nif (!data.questions || !Array.isArray(data.questions)) {\n  throw new Error('Invalid data received: questions is ' + typeof data.questions + '. Full data keys: ' + Object.keys(data).join(', '));\n}\n\nconst jobId = crypto.randomUUID();\n\nconst job = {\n  jobId: jobId,\n  sessionId: data.sessionId,\n  domain: data.domain,\n  questions: data.questions,\n  fileMap: data.fileMap,\n  sessionDir: `/tmp/n8n_processing/${data.sessionId}`,\n  status: 'queued',\n  createdAt: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    jobData: JSON.stringify(job),\n    jobId: jobId,\n    sessionId: data.sessionId,\n    totalQuestions: data.questions.length\n  }\n}];"
       },
       "id": "58f9435e-943f-4d20-addf-70b48b57e8d3",
       "name": "Build Redis Job Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1104,
+        1550,
         0
       ]
     },
@@ -112,7 +140,7 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1328,
+        1770,
         0
       ],
       "credentials": {
@@ -133,7 +161,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1552,
+        1990,
         0
       ],
       "credentials": {
@@ -154,7 +182,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1760,
+        2210,
         0
       ]
     },
@@ -171,7 +199,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1984,
+        2430,
         0
       ]
     },
@@ -241,14 +269,36 @@
       "main": [
         [
           {
-            "node": "Hash & Store Files to Disk",
+            "node": "Prepare File Writes",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Hash & Store Files to Disk": {
+    "Prepare File Writes": {
+      "main": [
+        [
+          {
+            "node": "Write Binary File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Binary File": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Files": {
       "main": [
         [
           {

@@ -2,21 +2,38 @@ type: http_request
 model: http_request
 id: rq_NG9tHDMSqd
 createdAt: 2026-02-10T20:48:09.113960400
-updatedAt: 2026-02-10T22:27:16.184321900
+updatedAt: 2026-02-11T00:58:38.017121700
 workspaceId: wk_fyV8LrMfV8
 folderId: null
 authentication: {}
 authenticationType: null
-body: {}
+body:
+  form:
+  - enabled: true
+    file: C:\Users\infaw\Downloads\poc-unifi\n8n-poc-compliance\assets\QDKC - Data Quality Management 1.pdf
+    id: 8TNEu4PbSP
+    name: data
+  - enabled: true
+    id: QdXxJExHHZ
+    name: ''
+    value: ''
 bodyType: multipart/form-data
 description: ''
 headers:
 - enabled: true
-  name: Content-Type
-  value: multipart/form-data
-  id: mjrrcMtN2a
+  name: ''
+  value: ''
+  id: PffSNtW58N
 method: POST
 name: '#. Upload KB'
 sortPriority: 6000.0
 url: http://172.206.67.83:5678/webhook/kb/ingest
-urlParameters: []
+urlParameters:
+- enabled: true
+  name: domain
+  value: Data Quality Management
+  id: tPXJ7CpsaP
+- enabled: true
+  name: ''
+  value: ''
+  id: v2REYERAXK

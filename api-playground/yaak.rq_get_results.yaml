@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_get_results_001
 createdAt: 2026-02-10T14:00:00
-updatedAt: 2026-02-11T00:25:33.388282200
+updatedAt: 2026-02-11T01:18:36.544584800
 workspaceId: wk_fyV8LrMfV8
 folderId: null
 authentication: {}
@@ -23,9 +23,9 @@ url: http://172.206.67.83:5678/webhook/audit-results-webhook/audit/results/:sess
 urlParameters:
 - enabled: true
   name: :sessionId
-  value: c83e34fd-1d4a-4b86-938e-8e33dffe7f7f
+  value: 27ba8ff7-2958-4fc4-b1be-4bd30ab00187
   id: cAEYCf6Nhb
 - enabled: true
   name: ''
   value: ''
-  id: BXTJETJA6E
+  id: E4AdGk8605

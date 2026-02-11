@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_get_status_001
 createdAt: 2026-02-10T14:00:00
-updatedAt: 2026-02-11T00:25:18.322162300
+updatedAt: 2026-02-11T01:19:27.675738500
 workspaceId: wk_fyV8LrMfV8
 folderId: null
 authentication: {}
@@ -23,9 +23,9 @@ url: http://172.206.67.83:5678/webhook/audit-status-webhook/audit/status/:sessio
 urlParameters:
 - enabled: true
   name: :sessionId
-  value: c83e34fd-1d4a-4b86-938e-8e33dffe7f7f
+  value: 27ba8ff7-2958-4fc4-b1be-4bd30ab00187
   id: j4Bi6rIxHq
 - enabled: true
   name: ''
   value: ''
-  id: IedWyvyFFP
+  id: JUhsZCk6qv

@@ -179,6 +179,28 @@
                 ],
                 "combinator": "and"
               }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "excel-check",
+                    "leftValue": "={{ ['xlsx', 'xls', 'xlsm', 'csv'].includes($json.fileExtension) }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
             }
           ]
         },
@@ -264,6 +286,19 @@
     },
     {
       "parameters": {
+        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.{{ $node[\"Set Binary Filename\"].json[\"fileExtension\"] }}\" --outdir /tmp/n8n_processing"
+      },
+      "id": "convert-excel-to-pdf",
+      "name": "Convert Excel to PDF",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        660
+      ]
+    },
+    {
+      "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ { \"error\": \"Unsupported file type: \" + $json.fileExtension, \"status\": 400 } }}"
       },
@@ -273,7 +308,7 @@
       "typeVersion": 3.4,
       "position": [
         1940,
-        780
+        860
       ]
     },
     {
@@ -418,7 +453,7 @@
       "typeVersion": 1,
       "position": [
         2160,
-        780
+        860
       ]
     },
     {
@@ -623,6 +658,13 @@
         ],
         [
           {
+            "node": "Convert Excel to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Error: Unsupported Type",
             "type": "main",
             "index": 0
@@ -668,6 +710,17 @@
         [
           {
             "node": "List Generated Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Excel to PDF": {
+      "main": [
+        [
+          {
+            "node": "Extract Images",
             "type": "main",
             "index": 0
           }

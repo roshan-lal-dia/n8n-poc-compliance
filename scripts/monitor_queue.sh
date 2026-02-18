@@ -18,6 +18,10 @@ REDIS_CONTAINER="compliance-redis"
 DB_CONTAINER="compliance-db"
 N8N_CONTAINER="compliance-n8n"
 
+# Redis queue key (must match workflow-c1-audit-entry.json LPUSH and
+# workflow-c2-audit-worker.json RPOP configuration)
+QUEUE_KEY="audit_job_queue"
+
 # Function: Print header
 print_header() {
     echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
@@ -51,8 +55,8 @@ check_container_health() {
 # Function: Get Redis queue stats
 get_queue_stats() {
     echo -e "\n${BLUE}━━━ Redis Queue Status ━━━${NC}"
-    
-    local pending=$(docker exec "$REDIS_CONTAINER" redis-cli LLEN compliance:jobs:pending 2>/dev/null || echo "ERROR")
+
+    local pending=$(docker exec "$REDIS_CONTAINER" redis-cli LLEN "$QUEUE_KEY" 2>/dev/null || echo "ERROR")
     local processing=$(docker exec "$REDIS_CONTAINER" redis-cli LLEN compliance:jobs:processing 2>/dev/null || echo "0")
     local failed=$(docker exec "$REDIS_CONTAINER" redis-cli LLEN compliance:jobs:failed 2>/dev/null || echo "0")
     
@@ -65,7 +69,7 @@ get_queue_stats() {
         
         # Show first pending job
         echo -e "\n${BLUE}Next Job in Queue:${NC}"
-        docker exec "$REDIS_CONTAINER" redis-cli LRANGE compliance:jobs:pending -1 -1 | jq '.' 2>/dev/null || echo "(parsing failed)"
+        docker exec "$REDIS_CONTAINER" redis-cli LRANGE "$QUEUE_KEY" -1 -1 | jq '.' 2>/dev/null || echo "(parsing failed)"
     fi
     
     if [ "$failed" != "0" ] && [ "$failed" -gt 0 ]; then
@@ -200,12 +204,14 @@ Options:
   --health          Show only health checks
   --cleanup         Remove old temp files (>24h)
   --failed          Show details of failed jobs
+  --raw             Raw Redis inspection (queue lengths, keys, last 5 jobs)
 
 Examples:
   $0                    # Run once, show all stats
   $0 --watch            # Continuous live monitoring
   $0 --queue            # Quick queue check
   $0 --cleanup          # Clean up old files
+  $0 --raw              # Direct Redis key inspection
 EOF
 }
 
@@ -306,6 +312,18 @@ case "${1:-}" in
     --failed)
         print_header
         show_failed_jobs
+        ;;
+    --raw)
+        # Raw Redis inspection of the actual queue key used by workflows
+        echo -e "${BLUE}━━━ Raw Redis Inspection (queue: $QUEUE_KEY) ━━━${NC}"
+        echo -e "\nQueue length:"
+        docker exec "$REDIS_CONTAINER" redis-cli LLEN "$QUEUE_KEY"
+        echo -e "\nLast 5 items (WITHOUT popping):"
+        docker exec "$REDIS_CONTAINER" redis-cli LRANGE "$QUEUE_KEY" -5 -1
+        echo -e "\nAll Redis keys matching 'audit*':"
+        docker exec "$REDIS_CONTAINER" redis-cli KEYS "audit*"
+        echo -e "\nRedis database info:"
+        docker exec "$REDIS_CONTAINER" redis-cli INFO keyspace
         ;;
     "")
         run_monitor

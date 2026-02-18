@@ -136,7 +136,27 @@ docker cp workflows/workflow-c4-results-retrieval.json compliance-n8n:/home/node
 docker restart compliance-n8n
 ```
 
-### Step 5: Verify Workflows are Active
+### Step 5: Initialize Qdrant Collection
+
+Before ingesting any standards, the Qdrant vector collection must be created. This only needs to be done **once**:
+
+```bash
+curl -X PUT http://172.206.67.83:6333/collections/compliance_standards \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "vectors": {
+      "size": 768,
+      "distance": "Cosine"
+    }
+  }'
+# Expected: {"result":true,"status":"ok","time":...}
+```
+
+> **768 dimensions** matches `nomic-embed-text` (Ollama). If you switch embedding models, drop and recreate the collection with the correct size.
+
+---
+
+### Step 6: Verify Workflows are Active
 
 ```bash
 # Check workflow status in n8n UI
@@ -546,7 +566,7 @@ workflows/workflow-c-audit-orchestrator.json (REPLACED by C1-C4)
 **Documentation:**
 - Transparency Guide: `docs/AUDIT-TRANSPARENCY-GUIDE.md`
 - API Guide: `docs/FRONTEND-API-GUIDE.md`
-- Workflow Details: `workflows/WORKFLOW-GUIDE.md`
+- File Map: `FILE-MAP.md`
 
 **Logs:**
 ```bash
@@ -573,6 +593,246 @@ docker exec compliance-db psql -U n8n -d compliance_db -c \
    FROM audit_logs 
    WHERE step_name = 'completed' 
    ORDER BY created_at DESC LIMIT 10;"
+```
+
+---
+
+## Migrating to Another Environment
+
+Use these steps to copy the full system (Postgres, n8n, Qdrant) from the current VM to a new machine.
+
+### Overview
+
+| Component | What to migrate | Method |
+|-----------|----------------|--------|
+| **Postgres** | All tables, seed data, audit history | `pg_dump` → `pg_restore` |
+| **n8n** | Workflows, credentials, execution history | Volume copy + env var replication |
+| **Qdrant** | Embedded compliance standards vectors | Snapshot API |
+| **Redis** | Job queue | Do **not** migrate — restart fresh on new env |
+| **Florence / Ollama** | Model weights | Re-pull on new env (weights are not custom-trained) |
+
+---
+
+### Step 1 — Export from Source VM
+
+#### 1a. Postgres full dump
+```bash
+# On SOURCE VM
+docker exec compliance-db pg_dump \
+  -U n8n \
+  -d compliance_db \
+  --no-owner \
+  --no-acl \
+  -F c \
+  -f /tmp/compliance_db_$(date +%Y%m%d_%H%M).dump
+
+# Copy the dump file out of the container to the host
+docker cp compliance-db:/tmp/compliance_db_*.dump ./backups/
+```
+
+> `-F c` is the custom (binary) format — faster restore and supports selective table restores.
+
+#### 1b. n8n data volume
+```bash
+# On SOURCE VM
+# Create a tar archive of the entire n8n data volume
+docker run --rm \
+  -v n8n_data:/source:ro \
+  -v $(pwd)/backups:/backup \
+  alpine tar czf /backup/n8n_data_$(date +%Y%m%d_%H%M).tar.gz -C /source .
+```
+
+This captures:
+- All imported workflow definitions
+- All credentials (AES-encrypted with `N8N_ENCRYPTION_KEY`)
+- Execution history
+- n8n internal settings
+
+> ⚠️ **Critical:** The `N8N_ENCRYPTION_KEY` in `.env` **must be identical** on the target environment, otherwise all credentials will fail to decrypt.
+
+#### 1c. Qdrant snapshot (compliance standards vectors)
+```bash
+# On SOURCE VM — create a snapshot via Qdrant REST API
+curl -X POST http://localhost:6333/collections/compliance_standards/snapshots
+# Response: { "result": { "name": "compliance_standards-<timestamp>-<id>.snapshot" }, ... }
+
+# List available snapshots to get the exact filename
+curl http://localhost:6333/collections/compliance_standards/snapshots
+
+# Download the snapshot file
+curl -o ./backups/compliance_standards.snapshot \
+  "http://localhost:6333/collections/compliance_standards/snapshots/compliance_standards-<timestamp>-<id>.snapshot"
+```
+
+#### 1d. Environment configuration
+```bash
+# Copy your .env file — review before transferring (contains secrets)
+cp .env ./backups/.env.source_backup
+```
+
+---
+
+### Step 2 — Transfer Files to Target VM
+
+```bash
+# From your local machine / CI, copy backups to the TARGET VM
+scp -r ./backups/ azureuser@<TARGET_VM_IP>:~/n8n-poc-compliance/backups/
+
+# Also transfer the full repo
+git clone https://github.com/roshan-lal-dia/n8n-poc-compliance.git
+# OR
+rsync -avz --exclude '.git' ./ azureuser@<TARGET_VM_IP>:~/n8n-poc-compliance/
+```
+
+---
+
+### Step 3 — Prepare the Target VM
+
+```bash
+# On TARGET VM
+cd ~/n8n-poc-compliance
+
+# Set up .env — use the SAME encryption key as source
+cp .env.example .env
+nano .env
+# - Set EXTERNAL_IP to the new VM's public IP
+# - Set WEBHOOK_URL to http://<NEW_VM_IP>:5678
+# - KEEP N8N_ENCRYPTION_KEY identical to source
+# - DB_PASSWORD, N8N_PASSWORD can be changed (they're independent)
+
+# Start only the infrastructure services (no n8n yet)
+docker compose -f docker-compose.prod.yml up -d postgres qdrant redis
+
+# Wait for Postgres to be healthy
+docker compose -f docker-compose.prod.yml ps
+```
+
+---
+
+### Step 4 — Restore Postgres
+
+```bash
+# On TARGET VM
+
+# Copy the dump into the Postgres container
+docker cp ./backups/compliance_db_<timestamp>.dump compliance-db:/tmp/restore.dump
+
+# Restore (drops and recreates all objects)
+docker exec -it compliance-db pg_restore \
+  -U n8n \
+  -d compliance_db \
+  --no-owner \
+  --no-acl \
+  --clean \
+  --if-exists \
+  /tmp/restore.dump
+
+# Verify row counts match source
+docker exec compliance-db psql -U n8n -d compliance_db -c \
+  "SELECT 'audit_questions' as tbl, COUNT(*) FROM audit_questions
+   UNION ALL SELECT 'kb_standards', COUNT(*) FROM kb_standards
+   UNION ALL SELECT 'audit_sessions', COUNT(*) FROM audit_sessions
+   UNION ALL SELECT 'audit_logs', COUNT(*) FROM audit_logs;"
+```
+
+> If you want a **clean slate** (no historical audit data, only schema + seed questions), run `init-db.sql` instead and skip the restore:
+> ```bash
+> docker exec -i compliance-db psql -U n8n -d compliance_db < init-db.sql
+> docker exec -i compliance-db psql -U n8n -d compliance_db < migrations/001_cleanup_and_enhance.sql
+> ```
+
+---
+
+### Step 5 — Restore n8n Workflows and Credentials
+
+```bash
+# On TARGET VM
+
+# Start n8n first (initialises the data directory)
+docker compose -f docker-compose.prod.yml up -d n8n
+sleep 15  # wait for n8n to initialise
+
+# Stop n8n before restoring
+docker compose -f docker-compose.prod.yml stop n8n
+
+# Restore the volume contents
+docker run --rm \
+  -v n8n_data:/target \
+  -v $(pwd)/backups:/backup \
+  alpine sh -c "cd /target && tar xzf /backup/n8n_data_<timestamp>.tar.gz"
+
+# Restart n8n with restored data
+docker compose -f docker-compose.prod.yml up -d n8n
+
+# Verify workflows loaded
+docker logs compliance-n8n --tail 30 | grep -i "workflow\|error"
+```
+
+> ⚠️ After restore, open the n8n UI and **re-activate all 4 C-workflows** (C1, C2, C3, C4) — activation state may not carry over. Also verify each credential under **Credentials** still decrypts without error.
+
+> ⚠️ **Webhook URLs** inside workflow nodes point to the old VM IP (hardcoded as `http://172.206.67.83:5678`). After migration, update the `WEBHOOK_URL` env var and check any HTTP Request nodes in Workflow B (it calls Workflow A's webhook by URL). Update those to use the new IP or replace with `http://n8n:5678` (internal Docker network — preferred).
+
+---
+
+### Step 6 — Restore Qdrant Vectors
+
+```bash
+# On TARGET VM — Qdrant must be running
+
+# First create the target collection (if it doesn't exist yet)
+curl -X PUT http://localhost:6333/collections/compliance_standards \
+  -H 'Content-Type: application/json' \
+  -d '{"vectors": {"size": 768, "distance": "Cosine"}}'
+
+# Upload the snapshot file
+curl -X POST \
+  'http://localhost:6333/collections/compliance_standards/snapshots/upload?priority=snapshot' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'snapshot=@./backups/compliance_standards.snapshot'
+
+# Verify vector count matches source
+curl http://localhost:6333/collections/compliance_standards
+# Check: result.vectors_count should match the source
+```
+
+> **Alternative — Re-ingest standards from scratch:** If you still have the original standard documents (PDFs), you can skip the snapshot and re-run Workflow B for each document. This is safer if the Qdrant version differs between envs.
+
+---
+
+### Step 7 — Start Remaining Services and Validate
+
+```bash
+# Start Florence and Ollama (model weights re-download on first run)
+docker compose -f docker-compose.prod.yml up -d florence ollama
+
+# Monitor startup (Ollama pulls ~4GB of models on first boot)
+docker logs -f compliance-ollama
+docker logs -f compliance-florence
+
+# Once healthy, run an end-to-end test
+curl -X POST http://<NEW_VM_IP>:5678/webhook/audit/submit \
+  -F 'questions=[{"q_id":"data_arch_q1","files":["test.txt"]}]' \
+  -F 'test.txt=@/dev/stdin' \
+  -F 'domain=Data Architecture' <<< "Sample compliance content for migration test."
+```
+
+---
+
+### Migration Checklist
+
+```
+[ ] .env created on target with SAME N8N_ENCRYPTION_KEY as source
+[ ] EXTERNAL_IP and WEBHOOK_URL updated to new VM IP
+[ ] Postgres restored and row counts verified
+[ ] n8n started, workflows visible in UI
+[ ] All 4 C-workflows activated (green toggle)
+[ ] Credentials decrypted without errors in n8n UI
+[ ] HTTP Request nodes in Workflow B updated to new IP (or docker-internal URL)
+[ ] Qdrant collection restored (or re-ingested from source documents)
+[ ] Florence /health returns 200 (model loaded)
+[ ] Ollama models present: llama3.2 + nomic-embed-text
+[ ] End-to-end test audit completes successfully
+[ ] Old VM decommissioned / DNS/firewall updated
 ```
 
 ---

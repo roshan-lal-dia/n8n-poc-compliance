@@ -77,7 +77,8 @@ services:
       - ollama_data:/root/.ollama
     entrypoint: ["/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull llama3.2; /bin/ollama pull nomic-embed-text; wait"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      # curl is not available in the ollama image — use the bundled CLI instead
+      test: ["CMD", "/bin/ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -98,9 +99,11 @@ services:
       - shared_processing:/tmp/n8n_processing
       - florence_model_cache:/app/hf_cache
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      # curl is not available in the python-slim image — use stdlib urllib instead
+      test: ["CMD", "python3", "-c",
+             "import urllib.request, sys; r = urllib.request.urlopen('http://localhost:5000/health', timeout=5); sys.exit(0 if r.status == 200 else 1)"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 3
       start_period: 120s
 

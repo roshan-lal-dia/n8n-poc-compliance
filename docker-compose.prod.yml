@@ -158,6 +158,7 @@ services:
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
       - N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=false
       - N8N_RESTRICT_FILE_ACCESS_TO=/tmp/n8n_processing
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
 
       # Execution Settings
       - EXECUTIONS_TIMEOUT=3600

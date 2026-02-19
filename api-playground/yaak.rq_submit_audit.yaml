@@ -1,0 +1,46 @@
+type: http_request
+model: http_request
+id: rq_submit_audit_001
+createdAt: 2026-02-10T14:00:00
+updatedAt: 2026-02-19T12:00:00
+workspaceId: wk_fyV8LrMfV8
+folderId: null
+authentication: {}
+authenticationType: null
+bodyType: application/json
+body:
+  text: |
+    {
+      "domain": "Data Quality Management",
+      "questions": [
+        {
+          "q_id": "data_quality_management_q1",
+          "files": ["dummy.pdf"]
+        }
+      ],
+      "blobFiles": {
+        "dummy.pdf": "compliance_assessment/09318e2b-36f1-4382-87ba-a2d43a27584f/bf845137-7f14-4f15-a898-ee7a05f049d0/4b793d57-a04e-4618-a275-082fb5c81792/2f56bd48-c1bb-4e6f-8b60-a3bfc5a0ae6f/dummy.pdf"
+      }
+    }
+description: >-
+  Submit audit — file stays in Azure Blob, only the path is sent.
+  The key in blobFiles MUST match the filename string in questions[].files[].
+  azureContainer defaults to "compliance" if omitted.
+headers:
+- enabled: true
+  name: Accept
+  value: application/json
+  id: header_accept
+- enabled: true
+  name: X-API-Key
+  value: 6e8ead397c8423eb63e96f7ecb421b6e591cdfec6311ab345aacb69a901b7a7f
+  id: header_apikey
+- enabled: true
+  name: ''
+  value: ''
+  id: header_pad
+method: POST
+name: 1. Submit Audit (Blob)
+sortPriority: 2000.0
+url: http://172.206.67.83:5678/webhook/audit/submit
+urlParameters: []

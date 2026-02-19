@@ -5,7 +5,8 @@
       "parameters": {
         "path": "audit/results/:sessionId",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "6c59382f-8ac2-4155-bfd3-3b35e52ad1f9",
       "name": "Webhook: Get Results",
@@ -15,7 +16,13 @@
         0,
         0
       ],
-      "webhookId": "audit-results-webhook"
+      "webhookId": "audit-results-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-api-key",
+          "name": "webhook-api-key"
+        }
+      }
     },
     {
       "parameters": {

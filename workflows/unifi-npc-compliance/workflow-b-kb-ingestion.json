@@ -6,7 +6,8 @@
         "httpMethod": "POST",
         "path": "kb/ingest",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "d378d604-3ee2-4b8f-9e66-df7ded655530",
       "name": "Webhook: Ingest Standard",
@@ -16,7 +17,13 @@
         3376,
         1200
       ],
-      "webhookId": "kb-ingest-webhook"
+      "webhookId": "kb-ingest-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-api-key",
+          "name": "webhook-api-key"
+        }
+      }
     },
     {
       "parameters": {
@@ -107,7 +114,9 @@
             "response": {}
           },
           "timeout": 1800000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "75ec6ee1-2b43-460f-99d8-8c40e1a5b763",
       "name": "Call Universal Extractor",
@@ -116,7 +125,13 @@
       "position": [
         4832,
         1040
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-api-key",
+          "name": "webhook-api-key"
+        }
+      }
     },
     {
       "parameters": {
@@ -164,7 +179,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst embeddings = $input.all();\nconst chunks = $('Chunk Text').all();\n\nconst results = [];\n\n// Iterate over all items to ensure we process every chunk, not just the first one\nfor (let i = 0; i < embeddings.length; i++) {\n  const item = embeddings[i];\n  // Match embedding with its corresponding chunk source\n  // Assumes 1-to-1 mapping, which is standard for HTTP request nodes processing items\n  const chunkData = chunks[i] ? chunks[i].json : {};\n  \n  // Handle cases where Ollama might return error or different structure\n  const vector = item.json.embedding;\n  if (!vector) continue;\n\n  // 🛡️ Proactive Fix: Create a unique key that includes the filename\n  const uniqueKey = `${chunkData.standardName}_${chunkData.metadata.originalFileName || 'doc'}_${chunkData.chunkIndex}`;\n\n  // 🆔 Generate a valid UUID v4-like string from the hash (Deterministic)\n  const hash = crypto.createHash('md5').update(uniqueKey).digest('hex');\n  const uuid = [\n    hash.substring(0, 8),\n    hash.substring(8, 12),\n    hash.substring(12, 16),\n    hash.substring(16, 20),\n    hash.substring(20, 32)\n  ].join('-');\n\n  results.push({\n    json: {\n      id: uuid,\n      vector: vector,\n      payload: {\n        text: chunkData.text,\n        standardName: chunkData.standardName,\n        domain: chunkData.domain,\n        version: chunkData.version,\n        chunkIndex: chunkData.chunkIndex,\n        metadata: chunkData.metadata\n      }\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const crypto = require('crypto');\nconst embeddings = $input.all();\nconst chunks = $('Chunk Text').all();\n\nconst results = [];\n\n// Iterate over all items to ensure we process every chunk, not just the first one\nfor (let i = 0; i < embeddings.length; i++) {\n  const item = embeddings[i];\n  // Match embedding with its corresponding chunk source\n  // Assumes 1-to-1 mapping, which is standard for HTTP request nodes processing items\n  const chunkData = chunks[i] ? chunks[i].json : {};\n  \n  // Handle cases where Ollama might return error or different structure\n  const vector = item.json.embedding;\n  if (!vector) continue;\n\n  // \ud83d\udee1\ufe0f Proactive Fix: Create a unique key that includes the filename\n  const uniqueKey = `${chunkData.standardName}_${chunkData.metadata.originalFileName || 'doc'}_${chunkData.chunkIndex}`;\n\n  // \ud83c\udd94 Generate a valid UUID v4-like string from the hash (Deterministic)\n  const hash = crypto.createHash('md5').update(uniqueKey).digest('hex');\n  const uuid = [\n    hash.substring(0, 8),\n    hash.substring(8, 12),\n    hash.substring(12, 16),\n    hash.substring(16, 20),\n    hash.substring(20, 32)\n  ].join('-');\n\n  results.push({\n    json: {\n      id: uuid,\n      vector: vector,\n      payload: {\n        text: chunkData.text,\n        standardName: chunkData.standardName,\n        domain: chunkData.domain,\n        version: chunkData.version,\n        chunkIndex: chunkData.chunkIndex,\n        metadata: chunkData.metadata\n      }\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "57f0f548-b2b8-4191-a64d-72b2d73d48d9",
       "name": "Format Qdrant Point",
@@ -362,6 +377,32 @@
         4400,
         1024
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\n\n// Parse credentials from connection string (mirrors blobstorage.js approach)\nconst connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || process.env.AZURE_BLOB_CONNECTION_STRING;\nlet accountName, accountKey;\nif (connectionString) {\n  accountName = connectionString.match(/AccountName=([^;]+)/)?.[1];\n  accountKey  = connectionString.match(/AccountKey=([^;]+)/)?.[1];\n}\n// Fallback to individual env vars if connection string not set\nif (!accountName) accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME || 'unificdmpblob';\nif (!accountKey)  accountKey  = process.env.AZURE_STORAGE_ACCOUNT_KEY;\n\nif (!accountKey) {\n  throw new Error(\n    'Azure credentials not found. Set AZURE_STORAGE_CONNECTION_STRING ' +\n    '(e.g. \"DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net\") ' +\n    'in the n8n container environment.'\n  );\n}\n\nfunction httpsGet(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      const chunks = [];\n      res.on('data', chunk => chunks.push(chunk));\n      res.on('end', () => resolve({\n        buffer: Buffer.concat(chunks),\n        statusCode: res.statusCode,\n        contentType: res.headers['content-type'] || 'application/octet-stream'\n      }));\n      res.on('error', reject);\n    }).on('error', reject);\n  });\n}\n\nfunction generateSasUrl(container, blobPath, sr = 'b', permissions = 'r') {\n  const now = new Date();\n  const expiry = new Date(now.getTime() + 3600000); // 1 hour\n  const sv = '2020-12-06';\n  const fmt = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');\n  const st = fmt(now);\n  const se = fmt(expiry);\n  const canonicalizedResource = `/blob/${accountName}/${container}/${blobPath}`;\n  // sv=2020-12-06: 16 fields, 15 \\n, NO trailing newline (signedEncryptionScope added)\n  const stringToSign = [permissions, st, se, canonicalizedResource, '', '', 'https', sv, sr, '', '', '', '', '', '', ''].join('\\n');\n  const key = Buffer.from(accountKey, 'base64');\n  const sig = crypto.createHmac('sha256', key).update(Buffer.from(stringToSign, 'utf8')).digest('base64');\n  const params = new URLSearchParams({ sv, sr: 'b', sp: 'r', st, se, spr: 'https', sig });\n  return `https://${accountName}.blob.core.windows.net/${container}/${blobPath}?${params.toString()}`;\n}\n\nasync function fetchBlob(container, blobPath) {\n  const sasUrl = generateSasUrl(container, blobPath);\n  const { buffer, statusCode, contentType } = await httpsGet(sasUrl);\n  if (statusCode !== 200) {\n    throw new Error(`Azure Blob download failed HTTP ${statusCode} for ${container}/${blobPath}. Body: ${buffer.toString().substring(0, 300)}`);\n  }\n  return { buffer, contentType };\n}\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  // Pass through if binary already present (direct file upload path)\n  if (item.binary && Object.keys(item.binary).length > 0) {\n    result.push(item);\n    continue;\n  }\n\n  const blobPath  = item.json.blobPath;\n  const blobFiles = item.json.blobFiles;\n\n  if (!blobPath && !blobFiles) {\n    result.push(item);\n    continue;\n  }\n\n  if (!item.binary) item.binary = {};\n\n  if (blobPath) {\n    // Single-file mode: { \"blobPath\": \"folder/file.pdf\", \"azureContainer\": \"compliance\" }\n    const container = item.json.azureContainer || 'compliance';\n    const { buffer, contentType } = await fetchBlob(container, blobPath);\n    const fileName = blobPath.split('/').pop();\n    item.binary.data = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    item.json.azureBlobFetched = true;\n    item.json.originalFileName = fileName;\n  }\n\n  if (blobFiles) {\n    // Multi-file mode: { \"file0\": \"path.pdf\" } or { \"file0\": { \"blobPath\": \"...\", \"container\": \"...\" } }\n    for (const [fieldName, blobInfo] of Object.entries(blobFiles)) {\n      const bp = typeof blobInfo === 'string' ? blobInfo : blobInfo.blobPath;\n      const container = (typeof blobInfo === 'object' && blobInfo.container)\n        ? blobInfo.container\n        : (item.json.azureContainer || 'compliance');\n      const { buffer, contentType } = await fetchBlob(container, bp);\n      const fileName = bp.split('/').pop();\n      item.binary[fieldName] = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    }\n    item.json.azureBlobFetched = true;\n  }\n\n  result.push(item);\n}\n\nreturn result;"
+      },
+      "id": "fetch-azure-blob-b",
+      "name": "Fetch Azure Blob",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3488,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\n\n// Parse credentials from connection string (mirrors blobstorage.js approach)\nconst connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || process.env.AZURE_BLOB_CONNECTION_STRING;\nlet accountName, accountKey;\nif (connectionString) {\n  accountName = connectionString.match(/AccountName=([^;]+)/)?.[1];\n  accountKey  = connectionString.match(/AccountKey=([^;]+)/)?.[1];\n}\n// Fallback to individual env vars if connection string not set\nif (!accountName) accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME || 'unificdmpblob';\nif (!accountKey)  accountKey  = process.env.AZURE_STORAGE_ACCOUNT_KEY;\n\nif (!accountKey) {\n  throw new Error(\n    'Azure credentials not found. Set AZURE_STORAGE_CONNECTION_STRING ' +\n    '(e.g. \"DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net\") ' +\n    'in the n8n container environment.'\n  );\n}\n\nfunction httpsGet(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      const chunks = [];\n      res.on('data', chunk => chunks.push(chunk));\n      res.on('end', () => resolve({\n        buffer: Buffer.concat(chunks),\n        statusCode: res.statusCode,\n        contentType: res.headers['content-type'] || 'application/octet-stream'\n      }));\n      res.on('error', reject);\n    }).on('error', reject);\n  });\n}\n\nfunction generateSasUrl(container, blobPath, sr = 'b', permissions = 'r') {\n  const now = new Date();\n  const expiry = new Date(now.getTime() + 3600000); // 1 hour\n  const sv = '2020-12-06';\n  const fmt = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');\n  const st = fmt(now);\n  const se = fmt(expiry);\n  const canonicalizedResource = `/blob/${accountName}/${container}/${blobPath}`;\n  // sv=2020-12-06: 16 fields, 15 \\n, NO trailing newline (signedEncryptionScope added)\n  const stringToSign = [permissions, st, se, canonicalizedResource, '', '', 'https', sv, sr, '', '', '', '', '', '', ''].join('\\n');\n  const key = Buffer.from(accountKey, 'base64');\n  const sig = crypto.createHmac('sha256', key).update(Buffer.from(stringToSign, 'utf8')).digest('base64');\n  const params = new URLSearchParams({ sv, sr: 'b', sp: 'r', st, se, spr: 'https', sig });\n  return `https://${accountName}.blob.core.windows.net/${container}/${blobPath}?${params.toString()}`;\n}\n\nasync function fetchBlob(container, blobPath) {\n  const sasUrl = generateSasUrl(container, blobPath);\n  const { buffer, statusCode, contentType } = await httpsGet(sasUrl);\n  if (statusCode !== 200) {\n    throw new Error(`Azure Blob download failed HTTP ${statusCode} for ${container}/${blobPath}. Body: ${buffer.toString().substring(0, 300)}`);\n  }\n  return { buffer, contentType };\n}\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  // Pass through if binary already present (direct file upload path)\n  if (item.binary && Object.keys(item.binary).length > 0) {\n    result.push(item);\n    continue;\n  }\n\n  const blobPath  = item.json.blobPath;\n  const blobFiles = item.json.blobFiles;\n\n  if (!blobPath && !blobFiles) {\n    result.push(item);\n    continue;\n  }\n\n  if (!item.binary) item.binary = {};\n\n  if (blobPath) {\n    // Single-file mode: { \"blobPath\": \"folder/file.pdf\", \"azureContainer\": \"compliance\" }\n    const container = item.json.azureContainer || 'compliance';\n    const { buffer, contentType } = await fetchBlob(container, blobPath);\n    const fileName = blobPath.split('/').pop();\n    item.binary.data = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    item.json.azureBlobFetched = true;\n    item.json.originalFileName = fileName;\n  }\n\n  if (blobFiles) {\n    // Multi-file mode: { \"file0\": \"path.pdf\" } or { \"file0\": { \"blobPath\": \"...\", \"container\": \"...\" } }\n    for (const [fieldName, blobInfo] of Object.entries(blobFiles)) {\n      const bp = typeof blobInfo === 'string' ? blobInfo : blobInfo.blobPath;\n      const container = (typeof blobInfo === 'object' && blobInfo.container)\n        ? blobInfo.container\n        : (item.json.azureContainer || 'compliance');\n      const { buffer, contentType } = await fetchBlob(container, bp);\n      const fileName = bp.split('/').pop();\n      item.binary[fieldName] = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    }\n    item.json.azureBlobFetched = true;\n  }\n\n  result.push(item);\n}\n\nreturn result;"
+      },
+      "id": "fetch-azure-blob-b",
+      "name": "Fetch Azure Blob",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3488,
+        1200
+      ]
     }
   ],
   "pinData": {},
@@ -370,7 +411,7 @@
       "main": [
         [
           {
-            "node": "Validate Input",
+            "node": "Fetch Azure Blob",
             "type": "main",
             "index": 0
           }
@@ -561,6 +602,17 @@
         [
           {
             "node": "Normalize Binary Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Azure Blob": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
             "type": "main",
             "index": 0
           }

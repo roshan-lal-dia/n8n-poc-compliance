@@ -5,7 +5,8 @@
       "parameters": {
         "path": "audit/status/:sessionId",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "42a58730-42a3-44a5-a674-a209280f522d",
       "name": "Webhook: Get Status",
@@ -15,7 +16,13 @@
         0,
         0
       ],
-      "webhookId": "audit-status-webhook"
+      "webhookId": "audit-status-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-api-key",
+          "name": "webhook-api-key"
+        }
+      }
     },
     {
       "parameters": {

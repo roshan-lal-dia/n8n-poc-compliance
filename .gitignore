@@ -8,3 +8,6 @@ custom_libs/
 api-playground/
 
 internal-files/
+
+# Ignore all .env files
+.env*

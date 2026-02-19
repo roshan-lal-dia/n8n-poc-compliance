@@ -167,6 +167,13 @@ services:
       - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
       - N8N_LOG_LEVEL=info
 
+      # Azure Blob Storage (used by Fetch Azure Blob node)
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - AZURE_BLOB_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+
+      # Webhook API Key (used by internal HTTP Request nodes)
+      - WEBHOOK_API_KEY=${WEBHOOK_API_KEY}
+
       # Service URLs (Internal Docker Network)
       - OLLAMA_HOST=http://ollama:11434
       - QDRANT_HOST=http://qdrant:6333

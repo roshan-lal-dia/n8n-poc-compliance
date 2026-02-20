@@ -175,6 +175,14 @@ services:
       # Webhook API Key (used by internal HTTP Request nodes)
       - WEBHOOK_API_KEY=${WEBHOOK_API_KEY}
 
+      # Compliance App DB (Azure PostgreSQL — read-only, for question/domain sync)
+      - COMPLIANCE_APP_DB_HOST=${COMPLIANCE_APP_DB_HOST:-unifi-cdmp-server-pg.postgres.database.azure.com}
+      - COMPLIANCE_APP_DB_PORT=${COMPLIANCE_APP_DB_PORT:-5432}
+      - COMPLIANCE_APP_DB_NAME=${COMPLIANCE_APP_DB_NAME:-npc_compliance_test}
+      - COMPLIANCE_APP_DB_USER=${COMPLIANCE_APP_DB_USER:-db_admin}
+      - COMPLIANCE_APP_DB_PASSWORD=${COMPLIANCE_APP_DB_PASSWORD}
+      - COMPLIANCE_APP_DB_SSL=${COMPLIANCE_APP_DB_SSL:-true}
+
       # Service URLs (Internal Docker Network)
       - OLLAMA_HOST=http://ollama:11434
       - QDRANT_HOST=http://qdrant:6333

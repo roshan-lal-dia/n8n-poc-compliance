@@ -277,3 +277,120 @@ WHERE em.asmnt_assessment_id = '<assessment_uuid>'
 | `asmnt_question_map` | 25,450 |
 | `asmnt_answers` | 7,194 |
 | `ent_entity` | 7 |
+
+---
+
+## Local Compliance Engine DB (`compliance_db`)
+
+**Host:** `postgres` (Docker container)  
+**DB:** `compliance_db`  
+**User:** `n8n`  
+**Schema version:** 2.0 (migrations 001 + 002)
+
+This is the n8n automation engine's own database. All IDs are UUIDs. No FK constraints are enforced between tables — referential integrity is maintained at the application / workflow level.
+
+### Table Map
+
+| Table | Purpose |
+|---|---|
+| `audit_domains` | 12-domain lookup; UUIDs match `dmn_domains.dmn_domain_id` |
+| `audit_questions` | AI-engine question registry; maps to `dmn_questions` via `question_id` |
+| `audit_evidence` | Extracted text/images from entity uploads per session + question |
+| `kb_standards` | Compliance standard chunks embedded in Qdrant |
+| `audit_logs` | Step-level execution log per session + question |
+| `audit_sessions` | Master audit run record |
+
+### `audit_domains`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | PK — **same UUID as `dmn_domains.dmn_domain_id`** |
+| `name` | varchar(255) | Domain name (unique) |
+| `created_at` | timestamp | |
+
+### `audit_questions`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | PK |
+| `question_id` | uuid | Maps to `dmn_questions.dmn_question_id`; NULL for manual questions |
+| `domain_id` | uuid | References `audit_domains.id` |
+| `question_year` | integer | e.g. 2026 |
+| `question_text` | text | Question shown to the AI |
+| `prompt_instructions` | text | AI evaluation context — populated when `is_document_upload_enabled = TRUE` |
+| `is_document_upload_enabled` | boolean | Whether entity must upload a document for this question |
+| `is_cloud_sync_enabled` | boolean | Whether answer comes from an automated API sync |
+| `cloud_sync_api_url` | text | API endpoint / curl template — populated when `is_cloud_sync_enabled = TRUE` |
+| `cloud_sync_evaluation_instruction` | text | How to interpret the API response — populated when `is_cloud_sync_enabled = TRUE` |
+| `created_at` | timestamp | |
+| `updated_at` | timestamp | Auto-updated by trigger |
+
+### `audit_evidence`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | serial | PK |
+| `session_id` | uuid | Audit run ID |
+| `question_id` | uuid | References `audit_questions.id` |
+| `domain_id` | uuid | References `audit_domains.id` |
+| `filename` | varchar(500) | |
+| `file_hash` | varchar(64) | SHA-256 — dedup key within session |
+| `file_size_bytes` | bigint | |
+| `evidence_order` | integer | Order within multi-file upload for same question |
+| `extracted_data` | jsonb | `{ "full_text": "...", "pages": [...], "images": [...] }` |
+| `created_at` | timestamp | |
+
+Unique constraint: `(session_id, question_id, file_hash)`.
+
+### `kb_standards`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | serial | PK |
+| `domain_id` | uuid | References `audit_domains.id` |
+| `standard_name` | varchar(500) | |
+| `filename` | varchar(500) | |
+| `file_hash` | varchar(64) | UNIQUE |
+| `total_chunks` | integer | Number of Qdrant chunks |
+| `qdrant_collection` | varchar(100) | Default: `compliance_standards` |
+| `uploaded_at` | timestamp | |
+
+### `audit_logs`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | serial | PK |
+| `session_id` | uuid | Audit run ID |
+| `question_id` | uuid | References `audit_questions.id` |
+| `step_name` | varchar(200) | e.g. `extraction_complete`, `ai_analysis_done` |
+| `status` | varchar(50) | `pending` \| `in_progress` \| `completed` \| `failed` |
+| `ai_response` | jsonb | Full AI evaluation result |
+| `message` | text | Human-readable status message |
+| `percentage` | integer | Progress 0–100 |
+| `created_at` | timestamp | |
+
+### `audit_sessions`
+
+| Column | Type | Notes |
+|---|---|---|
+| `session_id` | uuid | PK |
+| `domain_id` | uuid | References `audit_domains.id` |
+| `initiated_by` | varchar(255) | User / API identifier |
+| `status` | varchar(50) | `pending` \| `in_progress` \| `completed` \| `failed` |
+| `job_id` | varchar(100) | Redis queue job ID |
+| `started_at` | timestamp | |
+| `completed_at` | timestamp | |
+| `total_questions` | integer | |
+| `answered_questions` | integer | |
+| `overall_compliance_score` | decimal(5,2) | 0.00 – 100.00 |
+| `metadata` | jsonb | Flexible extension field |
+
+### Domain UUID Cross-reference
+
+The `audit_domains.id` values are intentionally identical to `dmn_domains.dmn_domain_id` in the app DB, so a question coming in with a `domain_id` UUID can be resolved in either system without translation.
+
+```
+audit_domains.id  ==  dmn_domains.dmn_domain_id (app DB)
+audit_questions.question_id  ==  dmn_questions.dmn_question_id (app DB)
+```
+

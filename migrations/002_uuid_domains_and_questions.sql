@@ -60,8 +60,8 @@ DROP TABLE IF EXISTS audit_questions CASCADE;
 CREATE TABLE audit_questions (
     id                              UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
 
-    -- Traceability back to the source app DB question
-    question_id              UUID,
+    -- Traceability back to the source app DB question (dmn_questions.dmn_question_id)
+    question_id                     UUID,
 
     -- Domain reference (matches audit_domains.id / dmn_domains.dmn_domain_id)
     domain_id                       UUID    NOT NULL,
@@ -87,7 +87,7 @@ CREATE TABLE audit_questions (
 );
 
 -- Unique: one local record per source question (nulls excluded)
-CREATE UNIQUE INDEX idx_questions_source_id
+CREATE UNIQUE INDEX idx_questions_question_id
     ON audit_questions (question_id)
     WHERE question_id IS NOT NULL;
 

@@ -58,8 +58,8 @@ ON CONFLICT (id) DO NOTHING;
 CREATE TABLE IF NOT EXISTS audit_questions (
     id                                UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
 
-    -- Traceability to the source application DB
-    question_id                UUID,
+    -- Traceability to the source application DB (dmn_questions.dmn_question_id)
+    question_id                       UUID,
 
     -- Domain (no FK constraint — references audit_domains.id)
     domain_id                         UUID    NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS audit_questions (
 );
 
 -- One local record per source question (NULLs excluded from uniqueness)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_questions_source_id
+CREATE UNIQUE INDEX IF NOT EXISTS idx_questions_question_id
     ON audit_questions (question_id)
     WHERE question_id IS NOT NULL;
 

@@ -275,7 +275,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst items = $input.all();\nreturn items.map(item => {\n  const binaryKey = Object.keys(item.binary)[0];\n  const binaryData = item.binary[binaryKey];\n  // Calculate SHA-256 hash of the binary data\n  const hash = crypto.createHash('sha256').update(Buffer.from(binaryData.data, 'base64')).digest('hex');\n  \n  return {\n    json: {\n      ...item.json,\n      fileHash: hash\n    },\n    binary: item.binary\n  };\n});"
+        "jsCode": "const crypto = require('crypto');\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const binaryKey = Object.keys(item.binary)[0];\n  // Use helper to get the actual buffer \u2014 works for both inline base64\n  // and filesystem-backed binary data (n8n 2.6+)\n  const buffer = await this.helpers.getBinaryDataBuffer(item, binaryKey);\n  const hash = crypto.createHash('sha256').update(buffer).digest('hex');\n\n  results.push({\n    json: {\n      ...item.json,\n      fileHash: hash\n    },\n    binary: item.binary\n  });\n}\n\nreturn results;"
       },
       "id": "c21cf090-2f53-4aad-bad3-b9739215ff35",
       "name": "Calculate File Hash",

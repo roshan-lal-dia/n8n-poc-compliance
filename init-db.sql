@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS audit_domains (
 );
 
 INSERT INTO audit_domains (id, name) VALUES
+    ('f57f298c-50a6-4dc2-aeab-50d9220ad968', 'Overall-General'),
     ('a14d13d9-81eb-46da-ab4f-8476c6469dd3', 'Data Architecture and Modeling'),
     ('f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd', 'Data Catalog and Metadata Management'),
     ('98b03b0e-3a90-4ffb-a332-25a2de2191b5', 'Data Culture and Literacy'),

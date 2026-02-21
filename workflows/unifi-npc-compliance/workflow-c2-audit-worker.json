@@ -343,7 +343,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepare embedding request for question + instructions\n// Get question data from Load Question node (not from Update Log which is UPDATE)\nconst question = $('Load Question').first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId: question.id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    questionDomain: question.domain,\n    queryText: queryText\n  }\n}];"
+        "jsCode": "const question = $('Load Question').first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId:   question.id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    domainId:     question.domain_id,\n    queryText:    queryText\n  }\n}];"
       },
       "id": "1be65fb2-d7b3-4d42-9070-1ce15a161ede",
       "name": "Prepare Question for Embedding",
@@ -376,7 +376,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract embedding from Ollama response\nconst ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').first().json;\n\n// Safety check\nif (!ollamaResponse || !ollamaResponse.embedding) {\n  throw new Error('Ollama did not return embedding. Response: ' + JSON.stringify(ollamaResponse));\n}\n\nreturn [{\n  json: {\n    questionId: questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    questionDomain: questionData.questionDomain,\n    embedding: ollamaResponse.embedding\n  }\n}];"
+        "jsCode": "const ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').first().json;\n\nif (!ollamaResponse || !ollamaResponse.embedding) {\n  throw new Error('Ollama did not return embedding. Response: ' + JSON.stringify(ollamaResponse));\n}\n\nreturn [{\n  json: {\n    questionId:   questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    domainId:     questionData.domainId,\n    embedding:    ollamaResponse.embedding\n  }\n}];"
       },
       "id": "811e2199-2a15-4b9e-b32e-c3dbcbe915e0",
       "name": "Extract Embedding",
@@ -389,7 +389,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepare Qdrant search payload\nconst questionData = $input.first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\n\nconst searchPayload = {\n  vector: questionData.embedding,\n  limit: 5,\n  with_payload: true\n};\n\n// Add domain filter if specified\nif (evidenceData.domain && evidenceData.domain !== 'General') {\n  searchPayload.filter = {\n    must: [\n      {\n        key: 'domain',\n        match: { value: evidenceData.domain }\n      }\n    ]\n  };\n}\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    searchPayload: searchPayload,\n    questionData: questionData,\n    evidenceData: evidenceData\n  }\n}];"
+        "jsCode": "// Prepare Qdrant search payload\n// Always fetch chunks from the question's domain AND Overall-General\nconst questionData = $input.first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\n\nconst searchPayload = {\n  vector: questionData.embedding,\n  limit: 8,\n  with_payload: true,\n  filter: {\n    should: [\n      { key: 'domain_id', match: { value: questionData.domainId } },\n      { key: 'domain_id', match: { value: 'f57f298c-50a6-4dc2-aeab-50d9220ad968' } }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    sessionId:     evidenceData.sessionId,\n    qId:           evidenceData.qId,\n    domainId:      questionData.domainId,\n    searchPayload: searchPayload,\n    questionData:  questionData,\n    evidenceData:  evidenceData\n  }\n}];"
       },
       "id": "be509ae5-83d5-4f43-9bbc-ce5177760d58",
       "name": "Prepare RAG Search",

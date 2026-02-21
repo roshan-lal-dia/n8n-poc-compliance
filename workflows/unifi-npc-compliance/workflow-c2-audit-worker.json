@@ -100,7 +100,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Split into one execution per question\n// Get job data from Parse Job node (not from Log: Start Processing which is INSERT)\nconst job = $('Parse Job (Exit if Empty)').first().json;\n\nreturn job.questions.map((q, index) => ({\n  json: {\n    sessionId: job.sessionId,\n    domain: job.domain,\n    qId: q.q_id,\n    evidenceFiles: q.evidence_files,\n    fileMap: job.fileMap,  // Contains file paths\n    sessionDir: job.sessionDir,\n    questionIndex: index,\n    totalQuestions: job.questions.length\n  }\n}));"
+        "jsCode": "// Split into one execution per question\n// Get job data from Parse Job node (not from Log: Start Processing which is INSERT)\nconst job = $('Parse Job (Exit if Empty)').first().json;\n\nreturn job.questions.map((q, index) => ({\n  json: {\n    sessionId: job.sessionId,\n    domain: job.domain,\n    qId: q.question_id,\n    evidenceFiles: q.evidence_files,\n    fileMap: job.fileMap,  // Contains file paths\n    sessionDir: job.sessionDir,\n    questionIndex: index,\n    totalQuestions: job.questions.length\n  }\n}));"
       },
       "id": "83259b51-5ed1-4c48-83aa-ca2fc2b22523",
       "name": "Split by Question",
@@ -114,7 +114,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  'extracting',\n  'in_progress',\n  '{{ \"Processing question \" + ($json.questionIndex + 1) + \" of \" + $json.totalQuestions }}',\n  {{ 10 + Math.floor(($json.questionIndex / $json.totalQuestions) * 80) }}\n);",
+        "query": "INSERT INTO audit_logs (session_id, question_id, step_name, status, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}'::uuid,\n  'extracting',\n  'in_progress',\n  '{{ \"Processing question \" + ($json.questionIndex + 1) + \" of \" + $json.totalQuestions }}',\n  {{ 10 + Math.floor(($json.questionIndex / $json.totalQuestions) * 80) }}\n);",
         "options": {}
       },
       "id": "ffbd4b8f-5a5e-4a4f-9bdb-e514ab959f5f",
@@ -135,7 +135,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  file_hash,\n  extracted_data,\n  filename,\n  file_size_bytes\nFROM audit_evidence\nWHERE session_id = '{{ $('Split by Question').first().json.sessionId }}'::uuid \n  AND q_id = '{{ $('Split by Question').first().json.qId }}'\n  AND file_hash = ANY(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[])\nUNION ALL\nSELECT \n  'nocache' as file_hash,\n  NULL as extracted_data,\n  NULL as filename,\n  NULL as file_size_bytes\nWHERE NOT EXISTS (\n  SELECT 1 FROM audit_evidence\n  WHERE session_id = '{{ $('Split by Question').first().json.sessionId }}'::uuid \n    AND q_id = '{{ $('Split by Question').first().json.qId }}'\n    AND file_hash = ANY(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[])\n);",
+        "query": "SELECT \n  file_hash,\n  extracted_data,\n  filename,\n  file_size_bytes\nFROM audit_evidence\nWHERE session_id = '{{ $('Split by Question').first().json.sessionId }}'::uuid \n  AND question_id = '{{ $('Split by Question').first().json.qId }}'\n  AND file_hash = ANY(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[])\nUNION ALL\nSELECT \n  'nocache' as file_hash,\n  NULL as extracted_data,\n  NULL as filename,\n  NULL as file_size_bytes\nWHERE NOT EXISTS (\n  SELECT 1 FROM audit_evidence\n  WHERE session_id = '{{ $('Split by Question').first().json.sessionId }}'::uuid \n    AND question_id = '{{ $('Split by Question').first().json.qId }}'\n    AND file_hash = ANY(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[])\n);",
         "options": {}
       },
       "id": "bc1f06cb-1cca-4846-bf0a-3db37e446454",
@@ -268,7 +268,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_evidence (session_id, q_id, domain, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  '{{ $json.domain }}',\n  '{{ $json.filename.replace(/'/g, \"''\") }}',\n  '{{ $json.fileHash }}',\n  {{ $json.fileSize }},\n  '{{ $json.extractedData.replace(/'/g, \"''\") }}'::jsonb,\n  {{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, q_id, file_hash) DO NOTHING;",
+        "query": "INSERT INTO audit_evidence (session_id, question_id, domain_id, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}'::uuid,\n  '{{ $json.domain_id }}'::uuid,\n  '{{ $json.filename.replace(/'/g, \"''\") }}',\n  '{{ $json.fileHash }}',\n  {{ $json.fileSize }},\n  '{{ $json.extractedData.replace(/'/g, \"''\") }}'::jsonb,\n  {{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, question_id, file_hash) DO NOTHING;",
         "options": {}
       },
       "id": "73a9f217-7202-41fa-acd2-52f9646df9f4",
@@ -302,7 +302,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT q_id, question_text, prompt_instructions, domain\nFROM audit_questions\nWHERE q_id = '{{ $('Consolidate Evidence Text').first().json.qId }}';",
+        "query": "SELECT id, question_text, prompt_instructions, domain_id\nFROM audit_questions\nWHERE id = '{{ $('Consolidate Evidence Text').first().json.qId }}'::uuid;",
         "options": {}
       },
       "id": "8f727600-5c9b-46f8-bffc-301da19fbf5d",
@@ -323,7 +323,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_logs SET step_name = 'searching', percentage = {{ 30 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 50) }}\nWHERE session_id = '{{ $('Consolidate Evidence Text').first().json.sessionId }}'::uuid AND q_id = '{{ $('Consolidate Evidence Text').first().json.qId }}' AND step_name = 'extracting';",
+        "query": "UPDATE audit_logs SET step_name = 'searching', percentage = {{ 30 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 50) }}\nWHERE session_id = '{{ $('Consolidate Evidence Text').first().json.sessionId }}'::uuid AND question_id = '{{ $('Consolidate Evidence Text').first().json.qId }}' AND step_name = 'extracting';",
         "options": {}
       },
       "id": "dd450847-c225-4807-ab85-64469917d8f5",
@@ -343,7 +343,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepare embedding request for question + instructions\n// Get question data from Load Question node (not from Update Log which is UPDATE)\nconst question = $('Load Question').first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId: question.q_id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    questionDomain: question.domain,\n    queryText: queryText\n  }\n}];"
+        "jsCode": "// Prepare embedding request for question + instructions\n// Get question data from Load Question node (not from Update Log which is UPDATE)\nconst question = $('Load Question').first().json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId: question.id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    questionDomain: question.domain,\n    queryText: queryText\n  }\n}];"
       },
       "id": "1be65fb2-d7b3-4d42-9070-1ce15a161ede",
       "name": "Prepare Question for Embedding",
@@ -449,7 +449,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = {{ 85 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 10) }}\nWHERE session_id = '{{ $('Build AI Prompt').first().json.sessionId }}'::uuid AND q_id = '{{ $('Build AI Prompt').first().json.qId }}' AND step_name = 'searching';",
+        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = {{ 85 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 10) }}\nWHERE session_id = '{{ $('Build AI Prompt').first().json.sessionId }}'::uuid AND question_id = '{{ $('Build AI Prompt').first().json.qId }}' AND step_name = 'searching';",
         "options": {}
       },
       "id": "9f589243-032f-49be-b108-b23978ceec7b",
@@ -503,7 +503,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, q_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}',\n  'completed',\n  'success',\n  '{{ JSON.stringify($json.evaluation).replace(/'/g, \"''\") }}'::jsonb,\n  '{{ (\"Question evaluated successfully (Score: \" + $json.evaluation.score + \")\").replace(/'/g, \"''\") }}',\n  {{ 95 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 5) }}\n);",
+        "query": "INSERT INTO audit_logs (session_id, question_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}'::uuid,\n  'completed',\n  'success',\n  '{{ JSON.stringify($json.evaluation).replace(/'/g, \"''\") }}'::jsonb,\n  '{{ (\"Question evaluated successfully (Score: \" + $json.evaluation.score + \")\").replace(/'/g, \"''\") }}',\n  {{ 95 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 5) }}\n);",
         "options": {}
       },
       "id": "0a2b895f-7b51-4727-8b34-b48852cb4dc3",

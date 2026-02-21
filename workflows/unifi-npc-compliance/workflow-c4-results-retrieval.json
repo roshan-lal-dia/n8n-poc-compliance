@@ -40,7 +40,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT session_id, domain, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND status = 'completed';",
+        "query": "SELECT session_id, domain_id, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND status = 'completed';",
         "options": {}
       },
       "id": "76a357a1-c6a5-4312-894f-1af794d024de",
@@ -61,7 +61,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT l.q_id, q.question_text, q.domain as question_domain, l.ai_response, l.created_at\nFROM audit_logs l\nJOIN audit_questions q ON l.q_id = q.q_id\nWHERE l.session_id = '{{ $('Extract Session ID').first().json.sessionId }}'::uuid \n  AND l.step_name = 'completed' \n  AND l.status = 'success'\nORDER BY l.created_at;",
+        "query": "SELECT l.question_id, q.question_text, q.domain_id, l.ai_response, l.created_at\nFROM audit_logs l\nJOIN audit_questions q ON l.question_id = q.question_id\nWHERE l.session_id = '{{ $('Extract Session ID').first().json.sessionId }}'::uuid \n  AND l.step_name = 'completed' \n  AND l.status = 'success'\nORDER BY l.created_at;",
         "options": {}
       },
       "id": "407c89e3-01f4-4a14-8768-51838278aa95",
@@ -81,7 +81,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const session = $('Query Completed Session').first().json;\nconst evaluations = $input.all().map(item => item.json);\n\n// Build comprehensive results response\nconst results = evaluations.map(eval => ({\n  qId: eval.q_id,\n  question: eval.question_text,\n  questionDomain: eval.question_domain,\n  evaluation: eval.ai_response,\n  evaluatedAt: eval.created_at\n}));\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    domain: session.domain,\n    status: session.status,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    overallScore: session.overall_compliance_score,\n    results: results,\n    summary: {\n      compliantCount: results.filter(r => r.evaluation?.compliant === true).length,\n      nonCompliantCount: results.filter(r => r.evaluation?.compliant === false).length,\n      averageConfidence: results.length > 0 \n        ? Math.round(results.reduce((sum, r) => sum + (r.evaluation?.confidence || 0), 0) / results.length)\n        : 0\n    }\n  }\n}];"
+        "jsCode": "const session = $('Query Completed Session').first().json;\nconst evaluations = $input.all().map(item => item.json);\n\n// Build comprehensive results response\nconst results = evaluations.map(eval => ({\n  questionId: eval.question_id,\n  question: eval.question_text,\n  questionDomain: eval.domain_id,\n  evaluation: eval.ai_response,\n  evaluatedAt: eval.created_at\n}));\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    domainId: session.domain_id,\n    status: session.status,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    overallScore: session.overall_compliance_score,\n    results: results,\n    summary: {\n      compliantCount: results.filter(r => r.evaluation?.compliant === true).length,\n      nonCompliantCount: results.filter(r => r.evaluation?.compliant === false).length,\n      averageConfidence: results.length > 0 \n        ? Math.round(results.reduce((sum, r) => sum + (r.evaluation?.confidence || 0), 0) / results.length)\n        : 0\n    }\n  }\n}];"
       },
       "id": "ac113aa4-e341-4a8d-8dba-5d0a375280f9",
       "name": "Build Results Response",

@@ -22,6 +22,9 @@ N8N_CONTAINER="compliance-n8n"
 # workflow-c2-audit-worker.json RPOP configuration)
 QUEUE_KEY="audit_job_queue"
 
+# Shared processing volume — host-side path of the 'shared_processing' Docker named volume
+PROCESSING_DIR="/var/lib/docker/volumes/n8n-poc-compliance_shared_processing/_data"
+
 # Function: Print header
 print_header() {
     echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
@@ -145,28 +148,35 @@ get_worker_status() {
 }
 
 # Function: Get disk space usage
+# Reads the shared processing volume directly from the host path.
 get_disk_usage() {
     echo -e "\n${BLUE}━━━ Disk Usage ━━━${NC}"
     
-    # Check temp directory
-    if [ -d "/tmp/n8n_processing/sessions" ]; then
-        local session_count=$(find /tmp/n8n_processing/sessions -maxdepth 1 -type d | wc -l)
-        local total_size=$(du -sh /tmp/n8n_processing/sessions 2>/dev/null | cut -f1 || echo "N/A")
+    if sudo test -d "$PROCESSING_DIR" 2>/dev/null; then
+        local session_dirs=$(sudo find "$PROCESSING_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
+        local total_size=$(sudo du -sh "$PROCESSING_DIR" 2>/dev/null | cut -f1 || echo "N/A")
         
-        echo " Active Sessions: $((session_count - 1))"
-        echo " Temp Files Size: $total_size"
+        echo " Session Directories: $session_dirs"
+        echo " Temp Files Size:     $total_size"
+        echo " Volume Path:         $PROCESSING_DIR"
         
-        if [ "$session_count" -gt 50 ]; then
-            echo -e " ${YELLOW}⚠ Warning: Many session directories (possible cleanup needed)${NC}"
+        if [ "$session_dirs" -gt 50 ] 2>/dev/null; then
+            echo -e " ${YELLOW}⚠ Warning: Many session directories — run --cleanup${NC}"
+        fi
+        
+        # Show oldest 3 session dirs if any exist
+        if [ "$session_dirs" -gt 0 ]; then
+            echo -e "\n Oldest session directories:"
+            sudo find "$PROCESSING_DIR" -maxdepth 1 -mindepth 1 -type d -printf '%T+ %f\n' 2>/dev/null | sort | head -3 || true
         fi
     else
-        echo " No session directories found"
+        echo -e " ${YELLOW}⚠ Processing volume not found: $PROCESSING_DIR${NC}"
     fi
     
-    # Check Docker volumes
+    # Check Docker volumes (uses a lightweight alpine container for sizing)
     echo -e "\n Docker Volume Sizes:"
-    docker volume ls | grep compliance | while read -r driver name; do
-        local size=$(docker run --rm -v ${name}:/data alpine du -sh /data 2>/dev/null | cut -f1 || echo "N/A")
+    docker volume ls --filter name=compliance --format '{{.Name}}' 2>/dev/null | while read -r name; do
+        local size=$(docker run --rm -v "${name}:/data" alpine du -sh /data 2>/dev/null | cut -f1 || echo "N/A")
         echo "  - $name: $size"
     done
 }
@@ -191,7 +201,7 @@ get_performance_metrics() {
 
 # Function: Show help
 show_help() {
-    cat << EOF
+    cat <<EOF
 Usage: $0 [OPTION]
 
 Monitor the Compliance Audit System job queue and health.
@@ -202,34 +212,51 @@ Options:
   --queue           Show only queue statistics
   --sessions        Show only session statistics
   --health          Show only health checks
-  --cleanup         Remove old temp files (>24h)
+  --cleanup         Remove old temp files (>24h) — runs inside n8n container
   --failed          Show details of failed jobs
   --raw             Raw Redis inspection (queue lengths, keys, last 5 jobs)
+  --logs            Tail last 50 lines from n8n and Florence containers
 
 Examples:
   $0                    # Run once, show all stats
   $0 --watch            # Continuous live monitoring
   $0 --queue            # Quick queue check
-  $0 --cleanup          # Clean up old files
-  $0 --raw              # Direct Redis key inspection
+  $0 --cleanup          # Clean up old temp files inside n8n container
+  $0 --raw              # Direct Redis inspection
+  $0 --logs             # Tail n8n + Florence logs
 EOF
 }
 
-# Function: Cleanup old temp files
-cleanup_temp_files() {
-    echo -e "${YELLOW}Cleaning up temp files older than 24 hours...${NC}"
+# Function: Tail recent logs from n8n and Florence containers
+show_logs() {
+    echo -e "${BLUE}━━━ n8n Logs (last 50 lines) ━━━${NC}"
+    docker logs "$N8N_CONTAINER" --tail 50 2>&1 || echo "Could not fetch n8n logs"
     
-    if [ -d "/tmp/n8n_processing/sessions" ]; then
-        local count_before=$(find /tmp/n8n_processing/sessions -maxdepth 1 -type d | wc -l)
-        
-        find /tmp/n8n_processing/sessions -maxdepth 1 -type d -mtime +1 -exec rm -rf {} + 2>/dev/null || true
-        
-        local count_after=$(find /tmp/n8n_processing/sessions -maxdepth 1 -type d | wc -l)
-        local removed=$((count_before - count_after))
-        
-        echo -e "${GREEN}✓ Removed $removed old session directories${NC}"
+    echo -e "\n${BLUE}━━━ Florence Logs (last 50 lines) ━━━${NC}"
+    docker logs compliance-florence --tail 50 2>&1 || echo "Could not fetch Florence logs"
+    
+    echo -e "\n${BLUE}━━━ Ollama Logs (last 20 lines) ━━━${NC}"
+    docker logs compliance-ollama --tail 20 2>&1 || echo "Could not fetch Ollama logs"
+}
+
+# Function: Cleanup temp files
+# Wipes everything inside the shared processing volume.
+# Equivalent to: sudo sh -c 'rm -rf /var/lib/docker/volumes/.../shared_processing/_data/*'
+cleanup_temp_files() {
+    echo -e "${YELLOW}Cleaning up all temp files in processing volume...${NC}"
+    echo " Volume: $PROCESSING_DIR"
+    
+    # Get size before (requires sudo — volume is owned by root)
+    local size_before=$(sudo du -sh "$PROCESSING_DIR" 2>/dev/null | cut -f1 || echo "N/A")
+    echo " Size before: $size_before"
+    
+    # Wipe everything inside _data/ (same as the working manual command)
+    sudo sh -c "rm -rf ${PROCESSING_DIR}/*" 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ Processing volume cleared.${NC}"
     else
-        echo "No temp directory found"
+        echo -e "${RED}✗ Cleanup failed — try: sudo sh -c 'rm -rf ${PROCESSING_DIR}/*'${NC}"
     fi
 }
 
@@ -312,6 +339,10 @@ case "${1:-}" in
     --failed)
         print_header
         show_failed_jobs
+        ;;
+    --logs)
+        print_header
+        show_logs
         ;;
     --raw)
         # Raw Redis inspection of the actual queue key used by workflows

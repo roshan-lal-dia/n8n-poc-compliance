@@ -155,9 +155,80 @@ All models are being replaced with or upgraded to Microsoft's official model col
 
 ---
 
-## 7. Network Access Requirements
+## 7. Exact Model & Image Download URLs
 
-### 7.1 Inbound Firewall Rules (to VM)
+All commands and URLs needed for provisioning. Every URL here must be reachable from the VM.
+
+### 7.1 Ollama Models (LLM)
+
+| Model | Pull Command | Ollama Registry URL | Size on Disk | Notes |
+|---|---|---|---|---|
+| Mistral Nemo 12B (Q4_K_M) | `ollama pull mistral-nemo:12b` | `https://registry.ollama.ai/library/mistral-nemo:12b` | ~7.5 GB | Recommended default |
+| Mistral Nemo 12B (FP16) | `ollama pull mistral-nemo:12b-instruct-2407-fp16` | `https://registry.ollama.ai/library/mistral-nemo:12b-instruct-2407-fp16` | ~24 GB | Higher quality option |
+| _(remove)_ nomic-embed-text | `ollama rm nomic-embed-text` | — | freed ~0.3 GB | Replaced by embedding-service |
+| _(remove)_ llama3.2 | `ollama rm llama3.2` | — | freed ~2 GB | Replaced by Mistral Nemo |
+
+### 7.2 Hugging Face Models (auto-downloaded at container start)
+
+| Model | HF Model ID | Direct URL | Download Size | Downloaded by |
+|---|---|---|---|---|
+| Florence-2-large-ft | `microsoft/Florence-2-large-ft` | `https://huggingface.co/microsoft/Florence-2-large-ft` | ~3.1 GB | `florence-service` on start |
+| LayoutLMv3-base | `microsoft/layoutlmv3-base` | `https://huggingface.co/microsoft/layoutlmv3-base` | ~0.5 GB | `florence-service` on start |
+| Table Transformer Detection | `microsoft/table-transformer-detection` | `https://huggingface.co/microsoft/table-transformer-detection` | ~115 MB | `florence-service` on start |
+| Table Transformer Structure v1.1 | `microsoft/table-transformer-structure-recognition-v1.1-all` | `https://huggingface.co/microsoft/table-transformer-structure-recognition-v1.1-all` | ~115 MB | `florence-service` on start |
+| multilingual-e5-large | `intfloat/multilingual-e5-large` | `https://huggingface.co/intfloat/multilingual-e5-large` | ~2.2 GB | `embedding-service` on start |
+
+> All HF downloads go through `https://cdn-lfs.huggingface.co` for large files (safetensors blobs). Both `huggingface.co` and `cdn-lfs.huggingface.co` must be whitelisted.
+
+### 7.3 Docker Images
+
+| Service | Image | Full Pull URL | Compressed Size |
+|---|---|---|---|
+| n8n (custom) | `n8nio/n8n:2.6.3` | `https://registry-1.docker.io/n8nio/n8n:2.6.3` | ~350 MB |
+| Ollama | `ollama/ollama:latest` | `https://registry-1.docker.io/ollama/ollama:latest` | ~1.5 GB |
+| Qdrant | `qdrant/qdrant:latest` | `https://registry-1.docker.io/qdrant/qdrant:latest` | ~120 MB |
+| PostgreSQL | `postgres:16-alpine` | `https://registry-1.docker.io/library/postgres:16-alpine` | ~90 MB |
+| Redis | `redis:7-alpine` | `https://registry-1.docker.io/library/redis:7-alpine` | ~15 MB |
+| Florence base | `python:3.10-slim` | `https://registry-1.docker.io/library/python:3.10-slim` | ~45 MB |
+| NVIDIA CUDA verify | `nvidia/cuda:12.1.0-base-ubuntu22.04` | `https://registry-1.docker.io/nvidia/cuda:12.1.0-base-ubuntu22.04` | ~60 MB |
+
+### 7.4 PyTorch CUDA Wheel (installed inside florence-service and embedding-service Dockerfiles)
+
+| Package | Exact Install Command | Index URL |
+|---|---|---|
+| PyTorch + torchvision (CUDA 12.1) | `pip install torch torchvision torchaudio` | `https://download.pytorch.org/whl/cu121` |
+
+Full pip command:
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+### 7.5 NVIDIA Container Toolkit (host-level, one-time)
+
+| Resource | URL |
+|---|---|
+| GPG key | `https://nvidia.github.io/libnvidia-container/gpgkey` |
+| APT sources list | `https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list` |
+| Package download (resolved via APT) | `https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/` |
+
+### 7.6 Total Estimated Disk Usage (first boot)
+
+| Category | Estimated Size |
+|---|---|
+| Docker images (all services) | ~2.5 GB |
+| Ollama model (Mistral Nemo Q4_K_M) | ~7.5 GB |
+| HF model cache (all 5 models) | ~6.1 GB |
+| PyTorch CUDA wheel | ~2.5 GB |
+| OS + misc overhead | ~5 GB |
+| **Total** | **~24 GB** |
+
+> Minimum recommended data disk: **128 GB** (comfortable). **256 GB** if FP16 Mistral Nemo is also cached (~24 GB extra).
+
+---
+
+## 8. Network Access Requirements
+
+### 8.1 Inbound Firewall Rules (to VM)
 
 | Port | Protocol | Direction | Source | Purpose |
 |---|---|---|---|---|
@@ -168,17 +239,17 @@ All models are being replaced with or upgraded to Microsoft's official model col
 
 ---
 
-### 7.2 Outbound Firewall Rules (from VM)
+### 8.2 Outbound Firewall Rules (from VM)
 
 | Port | Protocol | Destination | Purpose |
 |---|---|---|---|
-| `443` | HTTPS | See Section 7.3 whitelist | All model downloads, package installs, Docker pulls |
+| `443` | HTTPS | See Section 8.3 whitelist | All model downloads, package installs, Docker pulls |
 | `5432` | TCP | `unifi-cdmp-server-pg.postgres.database.azure.com` | Azure PostgreSQL (read-only compliance app database) |
 | `80` | HTTP | Package mirrors | APT / Alpine package manager (can be blocked post-setup) |
 
 ---
 
-### 7.3 URL Whitelist (Outbound HTTPS :443)
+### 8.3 URL Whitelist (Outbound HTTPS :443)
 
 Please whitelist the following domains on the VM's outbound firewall. These are required for initial provisioning and model download. After the first successful `docker compose up`, model files are cached on disk and most of these can be optionally blocked.
 
@@ -262,7 +333,7 @@ login.microsoftonline.com
 
 ---
 
-### 7.4 Internal Docker Port Map (for reference only — no firewall rules needed)
+### 8.4 Internal Docker Port Map (for reference only — no firewall rules needed)
 
 | Port | Service | Purpose |
 |---|---|---|
@@ -271,13 +342,13 @@ login.microsoftonline.com
 | `6333` | Qdrant (HTTP) | Vector search (RAG) |
 | `6334` | Qdrant (gRPC) | Vector search internal only |
 | `6379` | Redis | Async job queue |
-| `11434` | Ollama | LLM inference (Phi-3.5-mini) |
+| `11434` | Ollama | LLM inference (Mistral Nemo 12B) |
 | `5000` | florence-service | Vision / OCR / layout inference |
 | `8080` | embedding-service | Text embedding (multilingual-e5-large) |
 
 ---
 
-## 8. Host-Level Setup Required (Day 0)
+## 9. Host-Level Setup Required (Day 0)
 
 The following commands must be run on the VM **before** `docker compose up`. Either the Azure team runs them during provisioning, or we need sudo access to run them ourselves at first login.
 
@@ -323,7 +394,7 @@ Minimum required: **50 GB free** for Docker images and model caches (`~7 GB HF m
 
 ---
 
-## 9. Code Changes Required (Engineering Team)
+## 10. Code Changes Required (Engineering Team)
 
 The following files in the repository need to be updated before deploying on the new VM. This section is for internal tracking.
 
@@ -340,7 +411,7 @@ The following files in the repository need to be updated before deploying on the
 
 ---
 
-## 10. Qdrant Data Migration Note
+## 11. Qdrant Data Migration Note
 
 The change from `nomic-embed-text` (768-dim) to `multilingual-e5-large` (1024-dim) means the existing Qdrant vector collection is incompatible. The migration steps are:
 
@@ -353,9 +424,9 @@ This is a one-time operation and takes approximately 20–30 minutes depending o
 
 ---
 
-## 11. Acceptance Checklist
+## 12. Acceptance Checklist
 
-Once the VM is provisioned and Steps 1–4 in Section 8 are complete, we will verify the following before sign-off:
+Once the VM is provisioned and Steps 1–4 in Section 9 are complete, we will verify the following before sign-off:
 
 - [ ] `nvidia-smi` shows Tesla M60 on the host
 - [ ] GPU passthrough to Docker containers confirmed
@@ -365,11 +436,11 @@ Once the VM is provisioned and Steps 1–4 in Section 8 are complete, we will ve
 - [ ] `ollama list` shows `mistral-nemo:12b` loaded
 - [ ] Workflow A processes a test PDF in < 5 seconds end-to-end
 - [ ] Workflow B ingests a test document; Qdrant shows 1024-dim vectors
-- [ ] Workflow C2 returns a compliance audit result using Phi-3.5-mini-instruct
+- [ ] Workflow C2 returns a compliance audit result using Mistral Nemo 12B
 
 ---
 
-## 12. Contact & Escalation
+## 13. Contact & Escalation
 
 | Item | Contact |
 |---|---|

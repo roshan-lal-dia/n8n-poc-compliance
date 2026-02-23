@@ -35,7 +35,7 @@ RUN apk update && apk add --no-cache \
     gcc \
     musl-dev \
     linux-headers \
-    && pip3 install --no-cache-dir pdfplumber --break-system-packages \
+    && pip3 install --no-cache-dir pdfplumber openpyxl pandas --break-system-packages \
     && apk del .build-deps
 
 # Ensure the shared directory has correct permissions

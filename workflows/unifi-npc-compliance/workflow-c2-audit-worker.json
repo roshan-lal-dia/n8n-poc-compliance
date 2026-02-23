@@ -302,7 +302,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, question_text, prompt_instructions, domain_id\nFROM audit_questions\nWHERE id = '{{ $('Consolidate Evidence Text').first().json.qId }}'::uuid;",
+        "query": "SELECT id, question_text, prompt_instructions, domain_id\nFROM audit_questions\nWHERE question_id = '{{ $('Consolidate Evidence Text').first().json.qId }}'::uuid;",
         "options": {}
       },
       "id": "8f727600-5c9b-46f8-bffc-301da19fbf5d",

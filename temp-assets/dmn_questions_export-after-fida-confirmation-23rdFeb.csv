@@ -1,0 +1,1161 @@
+dmn_domain_name,dmn_question_id,dmn_question_year,dmn_question_text,dmn_is_document_upload_enabled,dmn_domain_id,dmn_is_cloud_sync_enabled,dmn_cloud_sync_api_curl,dmn_question_version,promp_instructions,accepted_evidence,specification_number
+Data Architecture and Modeling,df03a321-ad21-4e28-9e3a-9d3d2436f71b,2026,"Has the Entity established a centralized repository to store all data and technical architecture project documentation, reference materials, and data model designs?",true,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall establish and maintain a centralized repository to store all data and technical architecture project documentation, reference materials, and data model designs. This repository shall, at a minimum:
+
+Include comprehensive documentation of data architecture and modeling activities, such as structural diagrams (UML, IE, IDEF1X, Class Diagrams, Entity Relationship Diagrams, Component Diagrams, Deployment Diagrams, Dimensional Diagrams)
+Implement version control to track changes and updates to documentation and models, ensuring accuracy and traceability
+Indicate master/ slave or federated relationships between datasets, showing how data is managed across systems (e.g., master, slave, federated)
+Include documentation to support data lineage and integration, ensuring consistency and reducing redundancy
+Include data modeling artifacts such as Entity Relationship Diagrams and Data Flow Diagrams. These artifacts shall:
+Form part of the Entity’s mandatory system design and architecture documentation
+Be produced for both structured and unstructured data to support comprehensive data management",Data Architecture & Modeling Repository Documentation,DAM.3.2.1
+Data Architecture and Modeling,836843c7-daf8-429c-a99d-9db4a1ca4bbc,2026,"Has the Entity established and implemented a structured change management process for reviewing, approving, and implementing changes to both the current and target state data architectures?",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall establish and implement a structured change management process for reviewing, approving, and implementing changes to both the current and target state data architectures, to ensure that all modifications are systematically evaluated and aligned with the Entity’s strategic objectives. This process shall include, at a minimum, the following components:
+
+Handling requests for new data architecture and data modeling projects
+Managing changes to the Statement of Architecture Work documents for ongoing initiatives",Data architecture and modeling change requests process,DAM.3.1.3
+Data Architecture and Modeling,2189520f-6004-4433-9307-8cff247c4697,2026,Has the Entity developed a data architecture roadmap to address the identified gaps and support implementation of both long-term initiatives and quick wins to enhance the Entity’s data architecture and modeling capabilities?,false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"Based on the results of the gap analysis, the Entity shall develop a detailed roadmap for guiding the Entity in transitioning from the baseline data architecture to the target data architecture. The roadmap shall, at a minimum:
+
+Include timelines for implementation, budgetary estimates, and required capabilities.
+Specify the priority and sequence for changing, upgrading, replacing, or retiring components and systems, while maintaining flexibility to adapt to business priorities.
+Undergo periodic review by the Data Committee to ensure alignment with both the baseline and target data architectures, and include an evaluation and justification of changes in priority or exceptions to the roadmap as reviewed by the Data Committee (if applicable).","Initiatives Cards
+Data Architecture Plan Document",DAM.1.1.6
+Data Architecture and Modeling,58319e8c-882c-41c0-805b-0bbd4c14bc5a,2026,"Has the Entity developed a target data architecture in alignment with the Entity’s data strategy, key business processes, gaps identified through the data architecture gap analysis, and NPC’s reference architecture?",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall define and develop a comprehensive target data architecture which shall be reviewed and approved at the appropriate governance checkpoints to ensure alignment with the Entity’s overall data strategy and business objectives. The target Data Architecture shall include, at a minimum:
+
+Data Model: The Entity's target Enterprise Data Model at Conceptual, Logical, and Physical levels. Each data model level shall include, at minimum:
+Conceptual Model: Identification of key business entities and their relationships, organized into business subject areas
+Logical Model: Extension of the conceptual model with attributes for business entities and the inclusion of less significant entities and relationships
+Physical Model: Physical representation of logical data models within key system components, including physical table names, attribute names, data types, and primary and foreign keys
+Key Processes: Identification of essential target processes involved in ongoing business operations and decision-making
+Key System Components: Identification of essential target applications, data storage solutions, data processing platforms, and data analytics solutions involved in key processes
+Data Flows and Lineage: Visualization of target data movement across key processes and system components, ensuring a clear understanding of data flow and lineage","Architecture Components Documentation
+Integration Points Documentation",DAM.1.1.4
+Data Architecture and Modeling,4ded6b84-9bb9-4ca5-814a-74a0df30f2f5,2026,"Has the Entity documented the current state of its data architecture and data models, in alignment with all the data architecture and modeling templates as provided in the National Data Architecture & Modeling Guidelines?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall establish its current baseline Data Architecture. The current state Data and Technical architecture should include, at a minimum:
+
+Data Model: The Entity's existing Enterprise Data Model, detailed at the Conceptual, Logical, and Physical levels. Each level should cover, at a minimum:
+Conceptual Model: Identification of key business entities and their relationships, organized into business subject areas.
+Logical Model: An extension of the conceptual model, incorporating attributes for business entities and adding less significant entities and relationships.
+Physical Model: A physical representation of the logical data models within key system components, including physical table names, attribute names, data types, and primary and foreign keys.
+Key Processes: The crucial current processes involved in the Entity's ongoing business operations and decision-making.
+Key System Components: The essential current applications, data storage solutions, data processing platforms, and data analytics solutions involved in key processes.
+Data Flows and Lineage: A visualization of the current data movement across key processes and system components.","Current Data & Analytics Landscape Document
+Integration Points Documentation
+Current Baseline Data Architecture Diagram
+Fact & Dimension Tables Inventory (for current)
+Data Lineage Documentation
+Current Baseline Analytical Data Model Diagram",DAM.1.1.3
+Data Architecture and Modeling,d93664f1-402a-48e1-a584-5e05f3931fd3,2026,"Has the Entity developed data modeling guidelines and methodologies to ensure a consistent and standardized approach to data modeling across the organization, in alignment with the 'NPC Data Modeling Guidelines' as provided in the National Data Architecture & Modeling Guidelines?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall develop and document comprehensive data modeling guidelines and methodologies to ensure a consistent and standardized approach to data modeling across the organization. These guidelines and methodologies shall include, at a minimum:
+
+Establish and document principles and best practices for developing conceptual, logical, and physical data models
+Define standards for creating and maintaining data models, including naming conventions, data types, and relationships
+Provide guidelines on various modeling techniques, such as entity-relationship diagrams and other tools to represent data structures
+Ensure that data models are integrated with the overall data architecture to support business objectives
+Establish procedures for version control and detailed documentation of data models
+Integrate data modeling guidelines with data governance and quality management processes to ensure accuracy and consistency
+Implement a regular review and update process to keep the guidelines and methodologies current and relevant
+Reference international standards and best practices for data modeling to ensure global alignment",Data Modeling Guidelines Documents,DAM.1.1.2
+Data Architecture and Modeling,ee7db032-6507-4776-b3cb-acd676e1b73f,2026,"Has the Entity conducted data architecture and analytical data model gap analysis in alignment with the Entity's data strategy and data architecture & modeling guidelines?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall conduct a thorough gap analysis between the baseline and target data architectures. This analysis shall, at a minimum:
+
+Identify business data requirements that are currently not being fulfilled
+Highlight technical data components that are absent between the baseline and target architectures
+Assess gaps in roles, skills, tools, and training required to support the target data architecture","Data Architecture Gap Analysis Document
+Analytical Data Model Gap Assessment",DAM.1.1.5
+Data Architecture and Modeling,50b62276-6bd1-4538-868c-dd4f32e6a23e,2026,"Has the Entity aligned its high-level architecture objectives with business and regulatory priorities, defined scope and architectural domains, identified key stakeholders and responsibilities, and organized a structured kick-off meeting?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall establish and adopt a comprehensive enterprise-level system and data architecture process within a recognized Enterprise Architecture Framework, such as the Open Group Architecture Framework (TOGAF). The high-level data architecture development process shall consider and include, at a minimum:
+
+SS1.Current System Data Architectures: Documenting the architecture of existing information systems containing data
+SS2.Current Enterprise Data Architecture: Integrating inputs from key system architectures to outline the current state at the enterprise level
+SS3.Target Enterprise Data Architecture: Outlining the desired future state of analytical enterprise data architecture across the Entity
+SS4.Target System Data Architectures: Designing system architectures influenced by the roadmap to bridge identified gaps. The Entity should plan to update and maintain these architectures throughout the software development lifecycle and validate them during governance checkpoints","Documentation of high-level objectives, identified stakeholders and proof of kick-off meeting",DAM.1.1.1
+Data Architecture and Modeling,006871d2-0422-4b66-8477-816cebef040f,2026,"Has the Entity established monitoring and reporting mechanisms for Data Architecture & Modeling based on the defined KPIs?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall monitor and report on the established data architecture and modeling KPIs. This shall include, at a minimum:
+
+Implementing continuous monitoring mechanisms to track KPIs. The frequency of monitoring shall, at a minimum, be on a quarterly basis
+Defining clear escalation protocols for performance deviations and non-compliance. The Data Committee shall be responsible for overseeing and managing the escalation process to address issues promptly",Data Architecture & Modeling dashboards and reports,DAM.3.1.2
+Data Architecture and Modeling,f60e7c9d-0752-4b19-8f76-c9ec862f4567,2026,Has the Entity established key performance indicators (KPIs) to measure the state and effectiveness of its Data Architecture and Modeling capabilities?,false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall establish key performance indicators (KPIs) to measure the state and effectiveness of its Data Architecture and Modeling capabilities. These KPIs shall include, at a minimum:
+
+Metrics to track progress in transforming current state data architecture towards a target state data architecture
+Data Architecture Compliance (i.e.: percentage of compliant target state data architecture layers)
+Data model completeness (i.e.: number and percentage of completed data models)
+Adherence to Data Modeling Standards (i.e.: number and percentage of compliant data models)",List of defined and documented  Data Architecture & Modeling KPIs,DAM.3.1.1
+Data Architecture and Modeling,c012b416-3587-46e1-a310-b67dcbb9db1e,2026,"Has the Entity selected a data architecture and modeling tool in alignment with the 'Tool Selection Criteria Template' as provided in the National Data Quality Management Guidelines, and implemented the tool by developing the bronze, silver, and gold layers of the data architecture?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall select and implement a suite of technologies to facilitate data architecture and modeling activities. The selected toolset shall include, at a minimum, the following functionalities:
+
+Data Architecture:
+Tools for visually representing data and system components
+Creating data flow diagrams to illustrate the movement of data within and between systems
+Data Modeling:
+Creating and modifying data and system objects, attributes, and relationships
+Support to reverse engineering of existing data models to integrate and update legacy systems
+Ability to create IE or IDEF1X-compliant models
+Support for modeling both structured and unstructured datasets
+Capability to link conceptual, logical, and physical data models
+Use of the Common Warehouse Metamodel (CWM) for modeling data warehouse systems
+Associating metadata with models to facilitate and promote reuse
+Model versioning and traceability features
+Data Lineage:
+Capturing and maintaining data flows between systems
+Performing impact analysis to understand the effects of data changes across systems",Evidences of deployed data Architecture & modeling tools (e.g.: through documentation extracted from tools),DAM.2.2.1
+Data Architecture and Modeling,417ee598-5ea5-4cb2-8227-d3d444235f19,2026,"Has the Entity defined and maintained comprehensive metadata for all data models to ensure proper management, traceability, and version control?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall define and maintain comprehensive metadata for all data models to ensure proper management, traceability, and version control. The Entity shall, at a minimum:
+
+    
+Ensure that each data model has a unique identifier in the format: [Entity Initials]-[Reference Number]-[Version]. For example, NPC-123-V1.0 represents Version 1.0 of model 123 for NPC.
+    
+Clearly define roles using the RACI matrix (Responsible, Accountable, Consulted, Informed)
+    
+Indicate whether the model is in Draft or Published status
+    
+Document the history of changes, including dates, authors, and descriptions of changes made
+    
+Store data models in a repository with robust version control capabilities. The recommended options for repositories, in order of preference, include:         
+            
+Integrated version control within data modeling tools
+            
+External version control repositories or document management systems supporting version control
+   
+Version control through organized file system structures (as an interim or last resort solution)","Data Model Metadata Document (conceptual, logical, physical data model inventory)
+Fact & Dimension Tables Inventory (for target)",DAM.2.1.2
+Data Architecture and Modeling,640d4e9f-6d2e-44af-a18e-a357c2dab179,2026,"Has the Entity developed a  Analytical Data Model across the three layers (conceptual, logical, physical) and documented the target data lineage to ensure consistency, integration, and reusability of data assets?
+",false,a14d13d9-81eb-46da-ab4f-8476c6469dd3,false,,0.1,"The Entity shall define, develop, and maintain a comprehensive Enterprise Data Model (EDM) that provides a structured representation of the organization's data assets, supporting consistency, integration, and effective data management across all systems and processes. The Entity shall, at a minimum:
+
+Ensure that the Enterprise Data Model aligns with the Entity’s data model design guidelines, EDM frameworks, and national data modeling standards
+Ensure that its data models are updated to reflect any changes, ensuring consistency with the EDM guidelines and assets
+Align conceptual, logical, and physical data models with the Entity’s master data profiles and the common profiles in the national government data catalog
+Publish data models for reference and re-use within the Entity. Data Architect roles shall be responsible for evaluating other pre-existing data models and for aligning or re-using data models for new information systems where possible. Where this is not possible, justification shall be given in the system design and approved by the Data Committee.
+Adopt the ""Data by Design"" principle in developing its Enterprise Data Model. This involves proactively identifying and documenting potential data attributes and objects not currently collected or available within the Entity","Target Conceptual Data Model Diagram
+Target Logical Data Model Diagram
+Target Physical Data Model Diagram
+Target Data Lineage Documentation",DAM.2.1.1
+Data Catalog and Metadata Management,80de161b-eb62-453b-ac5f-45b2c1ab7c26,2026,Has the Entity enhanced its Metadata & Data Catalog monitoring and reporting capabilities?,false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com /active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DG4"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall enhance its metadata management monitoring and reporting capabilities as follows:
+
+SS1.Align metadata quality monitoring and reporting to all the data quality monitoring and reporting advanced sub-specifications as outlined in DQM.3.2.2
+SS2.Set up automated notifications within the Data Catalog tool to track changes to the Entity’s metadata, ensuring that users of the Entity’s data catalog are promptly informed of any updates
+SS3.Implement a tracking feature in the Data Catalog automated tool to oversee user activities. This includes recording user logins and the operations they perform within the tool",Implementation proof of automated notifications within the Data Catalog tool to track changes to the Entity’s metadata and a tracking feature in the Data Catalog automated tool to oversee user activities,DCMM.3.1.4
+Data Catalog and Metadata Management,b1ece4d1-9da7-432f-bc4f-c476dc164eff,2026,Has the Entity defined and documented Data Catalog KPIs to measure on adoption & usage?,false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DG1-1"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall establish key performance indicators (KPIs) to measure and report on the Entity's Data Catalog Adoption & Usage. KPIs shall include, at minimum:
+
+SS1.Number of registered Data Catalog users
+SS2.Number of active Data Catalog users
+SS3.Number of logins to Data Catalog
+SS4.Number of performed metadata queries
+SS5.Number of annotations (tags, comments) added to data assets
+SS6.Number of ratings added to data assets
+SS7.Number of assigned trust certificates to metadata",List of defined and documented Data Catalog KPIs,DCMM.3.1.1
+Data Catalog and Metadata Management,0bbd390e-aa9f-48de-beec-fca5661e1480,2026,"Has the Entity reviewed, approved, and published the Data Catalog & Metadata Management Policy following the defined process in the National Data Catalog & Metadata Management Guidelines?",false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Plan-DG1"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall publish its Data Catalog & Metadata Management policy following the below guidelines:
+
+SS1. Review the draft policy with the Entity’s Data Committee or equivalent body
+SS2. Incorporate Data Committee or equivalent body’s feedback
+SS3.  Review draft policy for auditability
+SS4.Incorporate internal audit feedback
+SS5. Seek policy review and guidance from National Data Governance Office and incorporate the provided feedback
+SS6. Publish the policy on Entity’s digital channels (e.g. The entity website)
+SS7. Socialize the policy within the Entity to drive adoption and change management",Formal Policy dissemination communication material,DCMM.1.1.2
+Data Catalog and Metadata Management,346c91b1-fb59-4b86-9701-593be333fa98,2026,Has the Entity designed an Entity-wide Meta Model aligned to the national data architecture & modeling standards and with organizational goals?,false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Implement-DG1\   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall design an Entity-wide Meta Model, ensuring the metamodel adheres to the existing data architecture standards and aligns with organizational goals. The design process shall include, at a minimum:
+
+SS1. Conduct stakeholder interviews to develop initial knowledge about the range of data held and metadata required and gather requirements for business, technical, and other identified types of metadata
+SS2. Integrate the metamodel within the broader context of the Entity’s data model
+SS3. Design multiple levels of metamodels (i.e.: high-level conceptual model, middle-level logical model, low-level physical model) - refer to Data SS1: SS1: Architecture & Modeling Domain
+SS4. Define and document the Meta-Entities and their Meta-Attributes to standardize the structure of data models (i.e.: tables, columns, data types, constraints)
+SS5.Include control activities (i.e.: job scheduling and monitoring, load statistical analysis, backup/ recovery/ archive/ pugging, query and report generation, etc.)
+SS6.Evaluate existing metadata sources and repositories, and integrate the metamodel with current metadata management tools, systems, and repositories
+SS7.Document the relationships and hierarchies within the metadata (i.e.: data flows mapping, parent-child relationships documentation, hierarchical structure establishment)
+SS8.Establish procedures for ongoing maintenance and updates (i.e.: updates schedule setup, maintenance workflows definition, reviews processes establishment)",Meta Model Design Documents,DCMM.2.1.1
+Data Catalog and Metadata Management,1bcedc93-d328-440f-988f-0b249f913e2f,2026,"Has the Entity identified and prioritized the datasets that are required to be populated in the Entity’s Data Catalog, in alignment wih the 'Dataset Inventory Template' provided in the National Data Catalog & Metadata Management Guidelines?",false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Implement-DG3"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"SS1.The Entity shall identify and prioritize the datasets that are required to be populated in the Entity’s Data Catalog. Particular consideration shall be given to the sequence in which metadata is captured; typically, business-level metadata followed by technical metadata
+SS2.The Entity’s Data & Analytics Director (or equivalent) shall develop a roadmap for populating the Data Catalog, which shall be submitted to the Data Committee for approval",Data Catalog Document (i.e.: with Dataset Inventory filled),DCMM.2.2.2
+Data Catalog and Metadata Management,f69ed6dc-e25e-4e8a-94da-ef8af8c43deb,2026,Has the Entity defined and implemented formal processes for  that are required to the Entity’s metadata lifecycle management?,false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \  ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Implement-DG4"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall define and implement the processes that are required to the Entity's metadata lifecycle management. The identified steps of the processes shall include, at a minimum:
+
+SS1.Metadata structure (i.e.: data types, metadata schemas, hierarchical relationships)
+SS2.Metadata Ownership & Stewardship Coverage (i.e.: assigning stewards for identified metadata types, clarifying responsibilities for metadata management, outlining accountability for metadata quality, establishing ownership for specific metadata elements)
+SS3.Metadata population (i.e.: business terms, technical specifications, data sources description)
+SS4.Metadata ingestion (i.e.: metadata extraction automation from different databases, metadata integration from third-party tools)
+SS5.Metadata update (i.e.: periodic metadata refreshes schedule, business terms definition update as they evolve, outdated metadata documentation updates)
+SS6.Metadata lineage (i.e.: documentation of data flow from source to destination, tracking of changes in data transformations, mapping of data dependencies)
+SS7.Metadata quality (i.e.: metadata validation checks, metadata quality rules) – refer to DQM domain
+SS8.Metadata annotation (i.e.: annotation of business terms with usage examples, addition of context notes to technical metadata, linkage of metadata entries)
+SS9.Metadata certification (i.e.: certification of metadata through thorough data stewardship reviews, data governance committee approval)
+SS10.Metadata audit trial (i.e.: logging of metadata modification timestamps, recording of user changes, tracking of version history)
+SS11.Versioning & Control (i.e.: maintenance of version history of metadata updates, implementation of access controls for metadata edits, management of metadata rollback procedures)",Metadata Management Processes Documents,DCMM.2.2.3
+Data Catalog and Metadata Management,aae8457b-1917-4381-91e5-45bb71fd63e2,2026,Has the Entity implemented Metadata & Data Catalog Monitoring & Reporting mechanisms to track the entity's metadata quality and data catalog performance in alignment with the Metadata & Data Catalog scorecards and dashboard templates as provided in the National Data Catalog & Metadata Management Guidelines?,true,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,false,,0.1,"The Entity shall monitor and report on the Entity's metadata data management efforts based on the defined KPIs. This shall include, at a minimum:
+
+SS1.Align metadata quality monitoring and reporting to all the data quality monitoring and reporting foundational sub-specifications as outlined in DQM.3.2.2",Metadata & Data Catalog scorecards and dashboards,DCMM.3.1.3
+Data Catalog and Metadata Management,4b5ea480-7f5a-4359-a821-4c53fefa00f9,2026,Has the Entity defined and documented Metadata Quality KPIs to measure the metadata quality levels and trends?,true,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,false,,0.1,"The Entity shall establish Key Performance Indicators (KPIs) to measure the effectiveness of Metadata Management efforts and guide continuous improvement initiatives. KPIs shall include, at a minimum:
+
+    
+SS1.Defining measurements for the quality of metadata according to the Data Quality Management standards",List of defined and documented Metadata Quality KPIs,DCMM.3.1.2
+Data Catalog and Metadata Management,861f35e4-181a-49b8-8be0-da24d574ae06,2026,"Has the Entity developed a Data Catalog & Metadata Management Plan that will be used and monitored to implement and activate data catalog & metadata management initiatives across the Entity, in alignment with the 'Data Catalog & Metadata Management Plan Process and Template' as provided in the National Data Catalog & Metadata Management Guidelines?",true,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,false,,0.1,"In alignment with the Entity’s data strategy, the Entity shall develop a data catalog & metadata management plan, that will be used and monitored to implement and activate data catalog and metadata management initiatives across the Entity. The plan shall include, at a minimum:
+
+SS1. List of activities and milestones. The plan should account for quick wins and longer-term strategic changes
+SS2. Owners and stakeholders
+SS3. Interdependencies, assumptions, and risks
+SS4. Implementation timeline and cost",Data Catalog & Metadata Management Plan document,DCMM.1.2.1
+Data Catalog and Metadata Management,3b85128f-d97e-4401-bce6-2366488d8367,2026,Has the Entity selected and implemented a data catalog tool in alignment with the 'Tool Selection Criteria Template' as provided in the National Data Catalog & Metadata Management Guidelines?,false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/p_implement_DG5"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall implement a data catalog tool that is required to act as an inventory of the Entity's data assets metadata. The tool shall include, at a minimum:
+
+SS1.Data Catalog automation (i.e.: metadata extraction from databases, metadata updates, metadata refreshes)
+SS2.Data Catalog notifications (i.e.: email notifications for metadata updates, alerts for quality issues, reminders for metadata reviews)
+SS3.Data Catalog audit trial (i.e.: metadata logging modifications, user actions recording, version history tracking)
+SS4.Data Catalog tool versioning (i.e.: version control for tool updates, legacy version maintenance for updates, previous versions rollback if needed)",Extracts of data catalog reports generated by the implemented tool,DCMM.2.3.1
+Data Catalog and Metadata Management,f422bd2d-5c10-4c17-9a65-2a6628763253,2026,Has the Entity developed Data Catalog & Metadata Management Policy in alignment with 'Data Catalog & Metadata Management Policy Template' provided in National Data Catalog & Metadata Management Guidelines?,false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,false,,0.1,"The Entity shall create a Data Catalog & Metadata Management policy that governs the creation, operation, maintenance, and dissemination of metadata across the Entity. The policy shall cover, at a minimum:
+
+SS1. Overview, purpose, scope, and objectives of the policy
+SS2. Policy applicability, validity, and review
+SS3. Policy guidelines in alignment to the National Data Management Policy and Standards
+SS4.  Detailed policy statements covering, at a minimum, the following:
+• Metadata quality dimensions – refer to DQM.1.1.1.SS1
+• Critical metadata attributes (CMAs) identification
+• Developing Metadata Guidelines and Standards
+• Metadata Profiling and Quality Assessment
+• Metadata Quality Escalations and Issue Management
+• Metadata Quality Remediation Process
+• Metadata governance framework and stewardship
+• Metadata Integration and Interoperability
+• Metadata Cataloging and Classification
+• Metadata Versioning and Change Management
+• Metadata Security and Privacy
+• Performance management and monitoring
+• Periodic policy review and updates
+• Key policy performance indicators
+SS5. Roles and Responsibilities
+SS6. References",Data Catalog & Metadata Management Policy document,DCMM.1.1.1
+Data Catalog and Metadata Management,aa6130bc-9f83-4a7e-b1ba-d0ebadf96aac,2026,Has the Entity established Metadata Terms Standardization in alignment with the Entity's metamodel design and the 'Data Catalog Template' provided in the National Data Catalog & Metadata Management Guidelines?,false,f1b48d90-4f9a-46b4-b6f7-a1fb2b8d68fd,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Implement-DG2\   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"Aligning with the Entity’s metamodel design, the Entity shall develop a Metadata Terms Standardization across the Entity. The standardization shall include, at a minimum:
+
+SS1.Generation and standardization of data elements (i.e.: common elements, data element creation protocols, uniformity in data element usage)
+SS2.Identification of basic attributes of data elements (i.e.: data type, length, format, relationships, usage guidelines)
+SS3.Rules and guidelines for the formulation of data definitions (i.e.: standards terminology, business processes and requirements)
+SS4.Naming and identification principles for data elements (i.e.: standardization of naming conventions, descriptive and meaningful of names, prevention of naming conflicts)
+SS5.Registration of data elements (i.e.: metadata registry, attributes documentation, easy access and searchability)
+SS6.Development of ontologies (i.e.: semantic models, business domain knowledge, data integration and interoperability)
+SS7.Creation of taxonomy (i.e.: data elements hierarchical classifications, data discovery and retrieval support, business and operational contexts alignment)","Data Catalog Document (i.e.: with standardized naming conventions for data attributes, updated metadata registry)",DCMM.2.2.1
+Data Culture and Literacy,6c70e8b9-08a0-4f94-a923-0ecc54e8a981,2026,Has the Entity implemented mechanisms for monitoring and reporting on its Data Culture & Literacy Program?,false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall monitor and report on the Entity's data culture and literacy program at a pre-defined frequency based on the defined KPIs. This shall include, at a minimum:
+
+SS1.Reports detailing performance against the established KPIs and tracking any issues",Data Culture & Literacy Program KPI Scorecard/ Report,DCL.3.1.3
+Data Culture and Literacy,bdc5e2e6-2672-48a3-a563-593b930ca29b,2026,"Has the Entity established a data culture & literacy framework that specifies the list of defined personas, the training modes of delivery, and the structured certification schemes to recognize employees?",true,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall establish a data culture & literacy framework. The framework shall, at a minimum, include:
+
+SS1.List of defined personas (the Entity can refer to the data operating model templates published by NPC for guidelines), outlining specific data roles and responsibilities tailored to varying functional areas within the Entity
+SS2.Training modes of delivery (e.g.: Online, In Person, Hybrid) to cater to different learning preferences and logistical needs
+SS3.Structured certification schemes designed to validate and recognize the data competencies acquired by employees",Data Culture & Literacy Framework Document,DCL.2.1.1
+Data Culture and Literacy,be1fda26-0806-42e6-86c1-3aa51fa3a159,2026,"Has the Entity defined and implemented structured learning paths for enhancing data culture & literacy, tailored to the defined personas?",true,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall define and implement structured learning paths for enhancing data culture & literacy, tailored to the defined personas. The Entity shall, at a minimum:
+
+SS1.Identify learning path durations and stages for each persona
+SS2.Develop a detailed curriculum for each learning path, ensuring alignment with the persona’s specific roles and responsibilities within the data management lifecycle
+SS3Cover all training modes of delivery identified in the program framework
+SS4.List relevant certifications (if any) to be awarded after completing a learning path",Learning Paths and Curriculums Documentation,DCL.2.1.2
+Data Culture and Literacy,0a355892-1994-4b10-b562-d9e8d5e71399,2026,Has the Entity conducted a current state assessment of data literacy skills across all organizational domains?,false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall conduct a current state assessment of data literacy skills across all organizational domains. The current state assessment exercise shall, at a minimum:
+
+SS1.Conduct a data literacy assessment survey across all the data roles in the different organizational archetypes recommended for entities. The skills assessment shall be aligned to the SFIA skills assessment framework
+SS2.Document a list of all existing educational tools within the Entity used for data literacy training including online courses, workshops, and in-house training materials
+SS3.Identify and document gaps in data literacy and prioritize areas that require enhancement based on the results of the data literacy skills assessment and existing educational tools","Data Literacy Skills Assessment Survey
+Educational Tools Inventory
+Data Culture & Literacy Gap Analysis",DCL.1.1.1
+Data Culture and Literacy,0721c982-3d20-423d-b2c0-bab8d21fe813,2026,"Has the Entity developed a data culture & literacy program roadmap, in alignment to the Entity’s data strategy and the data literacy survey assessment findings, that will be used to implement and activate data culture initiatives across the Entity?",false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall develop a data culture & literacy program roadmap, in alignment to the Entity’s data strategy and the data literacy survey assessment findings, that will be used to implement and activate data culture initiatives across the Entity. The roadmap shall include, at a minimum:
+
+SS1.List of initiatives and programs to be implemented to rectify the identified gaps from DCL.1.1.1
+SS2.Prioritization and sequencing of initiatives based on their impact, feasibility, and alignment with business priorities and sequence them to ensure a logical progression towards the goals
+SS3.Resource allocation outlining the budget, personnel, and technology resources required for each initiative","Initiatives Cards
+Data Culture & Literacy Plan",DCL.1.1.2
+Data Culture and Literacy,b21b2406-30e9-4b8a-9783-fad7e518f955,2026,"Has the Entity activated the data culture & literacy program based on the established roadmap, program framework, and learning paths?",false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall activate the data culture & literacy program based on the established roadmap, program framework, and learning paths, leveraging the data literacy assets provided by the State of Qatar. The Entity shall, at a minimum:
+
+SS1.Deploy the program in accordance with the personas, modes of delivery and certification schemes identified in the framework, and the initiatives detailed in the roadmap
+SS2.Coordinate and document training schedules and certification processes to match the identified learning paths
+SS3.Specify and allocate the necessary human and physical resources to support the effective execution of the program across the Entity",Proof of program deployment in accordance the identified personas (e.g.: documented training schedules and allocation of the necessary resources to support the effective execution of the program),DCL.2.2.1
+Data Culture and Literacy,070be3f5-db8e-47f4-bae9-97b22b18077b,2026,Has the Entity developed a plan to integrate data culture and literacy upskilling into Human Resources processes to enhance organizational capabilities and incentivize employees to attend online and in-person training courses?,false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall develop a plan to integrate data culture and literacy upskilling into Human Resources processes to enhance organizational capabilities. The Entity shall, at a minimum, do the following:
+
+SS1.Develop an integration plan that aligns data literacy achievements with HR processes, including promotions, annual performance reviews, and capability assessments
+SS2.Establish a list of incentives for employees to engage in data literacy upskilling, linking successful completion of training and certification to advancement opportunities or other rewards as deemed appropriate",Organizational Capability Integration Plan,DCL.2.2.2
+Data Culture and Literacy,aea4bc3f-b188-4962-9413-61ee09ec0924,2026,Has the Entity designed and implemented a communication and awareness plan to promote the benefits of the data culture and literacy program?,false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall design and implement a communication and awareness plan to promote the benefits of the data culture and literacy program. The Entity shall, at a minimum:
+
+SS1.Design and execute the communication plan to raise awareness about the data literacy program across the organization. The plan shall, at a minimum, cover the following:
+•Objectives of the plan
+•Target audience within the Entity in alignment to the defined personas
+•Key messages tailored to the target audience to be delivered
+•Timeline and implementation of plan
+SS2.Utilize multiple communication channels, including internal newsletters, intranet, pilot workshops, and other channels, to disseminate information about the program’s goals, benefits, and opportunities for employee participation
+SS3.Publish regular updates on the progress and success stories of the data literacy initiatives to maintain engagement and demonstrate the impact of ongoing educational efforts","Timeline and Implementation Plan for Communication & Awareness Activities
+Proof of regularly published updates on the program’s progress and success stories",DCL.3.1.1
+Data Culture and Literacy,4cc9acb7-8d73-4895-a84c-ae94c92867f6,2026,"Has the Entity established key performance indicators (KPIs) to measure and report on the performance of the Data Culture & Literacy Program, in alignment with the 'Data Management KPIs Register Template' provided in the National Data Culture & Literacy Guidelines?",false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall establish key performance indicators (KPIs) to measure and report on the Data Culture & Literacy Program. KPIs shall include, at a minimum, the following:
+
+SS1.Percentage satisfaction with the program among participants
+SS2.Percentage improvement of data culture & literacy within the Entity, guided by the periodic skills assessment
+SS3.Percentage of participants who fully complete their respective learning path",Data Culture & Literacy KPIs Register,DCL.3.1.2
+Data Culture and Literacy,4dced37a-4f6f-4ee9-a91a-65d50e99e37b,2026,Has the Entity implemented mechanism to regularly review and continuously improve on the designed learning paths?,false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"The Entity shall review and continuously improve on the designed learning paths. The Entity shall, at a minimum:
+
+SS1.Establish a review schedule for evaluating the effectiveness and relevance of current learning paths to organizational goals and evolving business needs
+SS2.Implement a structured feedback system to gather input from participants and trainers on the quality and applicability of training materials and instruction methods
+SS3.Define procedures for timely updates to learning content and methods based on feedback and technological advancements","Proof of updates applied to learning paths, incorporating feedback from course attendees as applicable",DCL.3.1.4
+Data Culture and Literacy,bc2a3921-1873-4075-89a1-62180f56f18b,2026,"Has the Entity created a centralized online portal where all training materials, recordings, and additional resources are available on demand?",false,98b03b0e-3a90-4ffb-a332-25a2de2191b5,false,,0.1,"SS1.Create a centralized online portal where all training materials, recordings, and additional resources are available on demand",Proof of implementation of centralized learning portal,DCL.3.1.5
+Data Culture and Literacy,5571410a-0d26-4736-84d4-31aca384466f,2026,"Has the Entity incorporated interactive elements and gamification into the training programs, such as quizzes and scenario-based learning?",true,98b03b0e-3a90-4ffb-a332-25a2de2191b5,true,,0.1,"SS1.Incorporate interactive elements and gamification into the training programs, such as quizzes and scenario-based learning",Proof of integration of interactive elements and gamification into the training programs,DCL.3.1.6
+Data Management Strategy and Governance,be225d5a-7451-4ad4-8876-24d7fd9399e6,2026,"Has the Entity implemented a Data Strategy Monitoring & Reporting mechanism, including dashboards and periodic reports on key achievements, challenges, financials, and risks?",false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,true," curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_DMS4"" -H ""Content-Type: application/json""-H ""Accept: application/json"" -d '{""in_username"":"""",""in_password"":""""}'",0.1,"The Entity shall monitor and report on the data strategy at a predefined frequency and based on the defined KPIs. This shall include, at a minimum:
+
+Dashboards to track, analyze, and display data in an aggregated format to gain deeper insight on the overall performance and trends across the operational data strategy KPIs
+Reports detailing, at a minimum:
+Executive summaries highlighting key achievements and challenges across the data strategy
+Detailed analysis of strategic and operational KPIs and performance metrics
+Progress against the data strategy roadmap
+Financial analysis including budget adherence
+Identified risks and mitigations","Operational dashboards and periodic reports covering KPI performance, achievements, challenges, financial analysis, and risk mitigation measures.",DMSG.3.1.3
+Data Management Strategy and Governance,e36f7f6a-afe4-472a-b588-3eb650411650,2026,Has the Entity developed a Data Governance Policy  in alignment with 'Data Governance Policy Template' provided in National Data Strategy & Governance Guideliness?,true,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall establish a data governance policy to ensure that data will be managed and governed across the Entity effectively, securely, and efficiently through the data lifecycle.
+
+The policy shall cover, at a minimum:
+Overview, purpose, scope, and objectives of the policy
+Policy applicability, validity, and review
+Policy guidelines in alignment to the National Data Management Policy and Standards
+Detailed policy statements covering, at a minimum, the following:
+Data management and organizational structure
+Change management and organizational awareness
+Performance management and monitoring
+Escalation and issue management
+Periodic policy review and updates
+Key policy performance indicators
+Roles and Responsibilities
+References",Data Governance Policy Document,DMSG.2.1.1
+Data Management Strategy and Governance,1196b1a8-c7d7-4584-a3bf-8fa25fe511f0,2026,Has the Entity activated the Data Operating model by appointing/ fulfilling the roles determined in the designed operating model?,false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P-DMS2"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": ""Unifi_Melfin2"",         ""in_password"": ""Welcome2@1234567""       }'",0.1,"The Entity shall activate the data organization and operating model by appointing / fulfilling all roles and positions determined in the designed operating model. The Entity shall, at a minimum:
+
+Detail job descriptions and qualifications for each of the roles outlined in the data organization capacity plan
+Map all selected data organization job families and positions outlined in the data organization capacity plan to the entity’s HR jobs structures
+Assess existing data & analytics talents within the Entity (to be appointed in the defined roles) against the capacity plan and develop a recruitment plan for acquiring missing data management talent, this shall include target onboarding dates, hiring managers, etc.
+Detail hiring processes for data management and analytics talents
+Ensure onboarding the new hires to the data management program",List of appointed individuals that fullfilled the roles defined in the designed data operating model,DMSG.2.2.1
+Data Management Strategy and Governance,678a927e-3dd8-46d4-a7e9-f8f36aab97d9,2026,"Has the Entity reviewed, approved, and published the Data Governance Policy following the defined process in the National Data Strategy & Governance Management Guidelines?",false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P-DMS1"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" -d ""{\""in_username\"": \""\"", \""in_password\"": \""\""}""",0.1,"The Entity shall publish the data governance policy following the below guidelines:
+
+Review the draft policy with the Entity’s Data Committee or equivalent body
+Incorporate Data Committee or equivalent body’s feedback
+Review draft policy for auditability
+Incorporate internal audit feedback
+Seek policy review and guidance from the National Data Governance Office, and incorporate the received feedback
+Publish the policy on Entity’s digital channels such as entity’s website
+Socialize the policy within the Entity to drive adoption and change management",Formal Policy dissemination communication material,DMSG.2.1.2
+Data Management Strategy and Governance,ceb9f58a-404c-4e87-a2ff-c35bc34ba78c,2026,"Has the entity identified and documented its business objectives and requirements, including a comprehensive use case library and prioritized use case charters, in alignment with national business objectives and requirement templates?",false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall review and align with its business objectives and perform, at a minimum:
+
+SS1. Identify the stakeholder map needed to establish the data strategy, including both business and technical stakeholders, and engage with them to document their requirements and priorities
+SS2. Document internal operational data management and analytics business requirements. The analytics use cases shall include different types as Descriptive, Diagnostic, Predictive & Prescriptive.
+SS3. Design a use case prioritization framework based on business impact, and ease of implementation of the use cases, and share prioritized list of use cases with stakeholders to confirm
+SS4. Develop use case cards for all prioritized use cases. These cards shall include, at a minimum:
+• Title
+• Description
+• Impact (High/Medium/Low)
+• Priority level
+• Analytics Type (Descriptive/Diagnostic/Predictive)
+• Complexity
+• Stakeholders
+• Current Challenges
+• Expected Benefits
+• Required datasets & source systems
+SS5. Validate the prepared use cases and update business requirements document with the finalized use cases to be activated through data strategy","Business Objectives document
+Analytics Use Cases Library document
+Analytics Use Cases Charters",DMSG.1.1.1
+Data Management Strategy and Governance,c404ea6e-b00d-45d9-8321-dcc5d7bc4d1e,2026,Has the Entity conducted formal strategy socialization through executive meetings and internal communication to ensure awareness and alignment?,true,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall ensure stakeholders are aware of the data strategy and roadmap and of their specific responsibilities within the data strategy. The Entity shall, at a minimum:
+
+Conduct an executive meeting with business, technical, and other key stakeholders to share and socialize the data strategy
+Formally communicate the strategy across the Entity",Formal Data Strategy dissimination communication material,DMSG.3.1.1
+Data Management Strategy and Governance,7ba54e9f-a5d2-4103-a0f5-849eb4be7494,2026,"Has the Entity developed Data Strategy Roadmap that includes prioritized initiatives, initiative charters, consolidated timelines, and budgetary estimates?",true,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"In alignment with the defined strategic objectives, the Entity shall consolidate the documented operational and analytics business requirements into a comprehensive list of initiatives. These initiatives shall then be prioritized for implementation to ensure the successful achievement of the strategic objectives. To develop the data strategy roadmap, the Entity shall at a minimum:
+
+Develop a prioritization framework to prioritize the identified initiatives based on business impacts and ease of implementation and identify the immediate priority, mid-term, and long-term initiatives
+Develop initiative charters for the identified initiatives including at a minimum:
+Overview
+Owner
+Stakeholders
+Budget
+Key Activities
+Indicative Timeline
+Expected outcomes
+Develop a data strategy roadmap by listing all the initiatives and develop a consolidated timeline for all initiatives and key activities, considering their priority and dependencies
+Develop the overall data strategy budgetary estimates for the initiatives collectively, and develop detailed budgetary estimate per each initiative and related milestone",Data Management Strategy Roadmap document,DMSG.1.2.3
+Data Management Strategy and Governance,f2610705-0d81-4d4c-b3e9-2d80ba33eb42,2026,Has the Entity defined and documented Strategic and Operational Data Strategy KPIs to measure impact and performance?,false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_DMS3"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" -""{\""in_username\"": \""\"", \""in_password\"": \""\""}""",0.1,"The Entity shall establish key performance indicators (KPIs) to measure and report on the Entity's data strategy. KPIs shall include, at a minimum:
+
+Strategic key performance indicators (KPIs) to enable executive stakeholders to measure and monitor the impact of the data strategy
+Operational key performance indicators (KPIs) to monitor and report the performance of data strategy operational activities",Data Management Strategy Strategic and Operational KPIs document,DMSG.3.1.2
+Data Management Strategy and Governance,dd18a3a7-8187-454a-94b6-1c54327d01be,2026,Has the Entity assessed and documented the readiness of source systems and critical datasets required to meet business objectives?,true,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"Document necessary datasets and critical data elements and their readiness criteria that must be met to consider data fit for use
+Develop the source system analysis template and prepare source system analysis report after performing the analysis. The template shall cover the following
+Schemas
+Key entities/objects
+Key attributes per entity
+Data Owner & Data Stewards
+Data Domain
+Reference & master objects/entities
+Data volumes
+Attributes count
+Records count
+Environments
+Basic data quality checks
+Generate data profiling report that includes quality insights about critical data elements to indicate data readiness",Source system analysis report,DMSG.1.1.4
+Data Management Strategy and Governance,fd5cd98f-c49e-41f3-9f1e-e2178a28b389,2026,Has the entity established and documented a process for reviewing and updating the data management strategy and governance policy?,false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall establish a process for refreshing the data management strategy and governance policy, which shall include, at a minimum:
+
+Scheduled reviews of the data management strategy and governance policy on an annual basis (at a minimum) to determine the need for any changes or updates to the existing version
+Unscheduled reviews if significant changes in the external environment take place
+Stakeholder engagement through meetings and workshops to gather diverse perspectives and insights based on any identified gaps, opportunities, or changes in the external environment
+Add approved data strategy changes to a backlog to track changes and approvals
+Add approved data governance policy changes to a backlog to track changes and approvals
+Refine and update the data strategy based on the changes and associated priorities in the backlog
+Update the data governance policy based on the changes and associated priorities in the backlog",Data management strategy and governance policy refresh process document,DMSG.3.2.1
+Data Management Strategy and Governance,88f80dea-7670-4554-a0df-6f8cb4927ec0,2026,"Has the Entity formally established and operationalized the Data Committee and Working Groups by appointing members, conducting a kickoff meeting, and scheduling regular meetings?",false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall activate the data committee and working groups defined in the data operating model by accomplishing at a minimum:
+
+Determine the individuals who will play the determined roles identified in the data committee and working groups charters
+Conduct a kickoff meeting led by the chairperson of each working group and data committee
+Schedule data committee and working groups meetings as per meeting frequency outlined in the charters","List of appointed members who will play the determined roles identified in the data committee, in addition to the data committee meeting schedule",DMSG.2.2.2
+Data Management Strategy and Governance,1d88dee7-5b4b-4906-b655-6cc711636885,2026,Has the Entity conducted Current State Capabilities Maturity Assessment in alignment with  Data Managament Maturity Model and Current Maturity Assessment Framework templates provided in the national data management strategy and governance guideline?,false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall self-assess the current capabilities across all data management domains, and technology landscape. The entity shall, at a minimum:
+
+SS1: Assess the maturity across all Data management domains to provide maturity rating and areas of improvements of each data management capability
+SS2: Document list of all existing technologies and tools within the Entity used for data management including data storage, processing, integration, analytics, and security
+SS3: Document list of existing data platforms within the Entity such as data warehouse and data lake
+SS4: Document list of key operational and analytical dashboards and reports
+SS5: Develop Data management current state maturity report to identify data management domains gaps and prioritize domains that require uplifting
+SS6: Create a benchmark study for analytics use cases and when needed other specific and emerging technologies with best practices already delivered at similar entities in other countries",Current State Capabilities Maturity Assessment Report,DMSG.1.1.2
+Data Management Strategy and Governance,7765b883-301a-4444-9ebc-f3391e6c7d80,2026,Has the Entity developed a High-Level Target Data Platform Architecture Design Document and an Enterprise Analytical Data Model Design Documents?,true,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall design the high-level target data & platform architecture including enterprise analytical data model aligned to the data architecture and modeling standards and supporting the prioritized use cases. The Entity shall at a minimum, develop the following:
+
+High-level target data & platform architecture design document (Referring to the standards in the Domain)
+Enterprise Analytical Data Model Design Document",,DMSG.1.2.2
+Data Management Strategy and Governance,8c4b77cb-81cc-4bbc-a5e7-d3eb718356e7,2026,"Has the Entity developed and documented a Data Operating Model that includes target data organization structure ,governance charters, capacity planning, sourcing frameworks, and interaction processes?",true,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall design the data operating model needed to activate and drive the data strategy including, at a minimum:
+
+Data committee charter and required working groups charters (including the mandate, members, key activities, key outcomes, meeting frequency) based on the data management requirements
+Target org. structure design in alignment with National organizational structure guidelines
+Design interim-state and target-state data capacity plan for data roles and responsibilities in alignment with the national data operating model based on the entity’s requirements and size
+Manpower sourcing framework and criteria in alignment with national guidelines and templates to identify the jobs / roles that could be outsourced for the Entity
+Processes needed to manage the interaction between various departments inside the Entity and other external partners or entities",Data Operating Model document,DMSG.1.2.4
+Data Management Strategy and Governance,7650ab6d-c3d7-4a7e-b7bc-ff43b3fd3db5,2026,Has the Entity implemented automation tool for data management capabilities maturity assessment?,false,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"SS1: The Entity shall automate the Data management maturity assessment framework using accelerators or tools to facilitate periodic self-assessment in the future, to save time and cost",Implementation proof of an automation tool or accelerator for self-assessment.,DMSG.1.1.3
+Data Management Strategy and Governance,e5d0fe8d-f785-4779-83d2-7fe67b13388d,2026,Has the Entity developed and documented a Data Strategy aligns with its business objectives and includes key strategic data management themes?,true,9dbe7809-ce9c-471f-84c1-61e02d39b7c7,false,,0.1,"The Entity shall align with the key relevant business stakeholders and with its strategic objectives to do the following:
+
+Develop a vision statement that outlines the long-term goals and aspirations of the data strategy, and a mission statement that defines the core purpose and operational approach of the data strategy
+Adopt, at a minimum, the following themes to drive the strategic objectives of the data strategy and guiding principles:
+Data Management Capability Building & Data Culture: focuses on building the required data management capabilities (process, organization & technology) and driving the organization data culture forward.
+Strong Data Foundation: focuses on building a strong data foundation in terms of reference & master data, quality of data, metadata & data cataloging
+Data Value Realization: focuses on driving value from data through the entire data value chain
+Regulatory Compliance: focuses on compliance with different regulatory requirements",Data Management Strategy Document,DMSG.1.2.1
+Data Monetization,ac2a646a-c872-4b54-a8a1-b2e3d82cfad5,2026,Has the Entity defined and implemented processes for ongoing monitoring of its deployed data products to ensure continuous improvement to the data products and that the products remain aligned with user needs and market demands?,true,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall establish and implement processes for ongoing monitoring of its deployed data products. These processes shall act as a feedback loop to ensure continuous improvement to the data products and that the products remains aligned with user needs and market demands. These processes shall include, at a minimum:
+
+SS1.Measuring and monitoring the value realization metrics for each data product against projected values in the Data Product Charters (refer to DM.1.1.3.SS3)
+SS2.Implementing tools to gather feedback from feedback from end-users and monitoring adoption for the deployed data products, such as surveys or in-platform feedback forms
+SS3.Monitoring the data quality score established for each data product (refer to DM.2.2.2), ensuring that data quality thresholds are adhered to for the deployed data products (refer to the national data quality management standards for more information on data quality thresholds and data quality issue management and remediation)
+SS4.Tracking compliance to the established data product SLAs (refer to DM.2.2.2) through dashboards or reports
+SS5.Creating change request documents to address change requirements based on the feedback received from end-users",Documented monitoring & maintenance processes of data products,DM.3.1.1
+Data Monetization,6f14b01b-4ca6-4ed1-a9f0-d9ab8d50c8d6,2026,"Has the Entity  designed a data product architecture including high-level and low-level design documents, in alignment with the national data architecture and modeling standards?",false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall design the data product architecture with a focus on scalability, security, and integration, and ensuring alignment with the national data architecture and modeling standards. This exercise shall include, at a minimum:
+
+SS1.Developing a high-level design document that includes the following indicative list of contents:
+•Brief description of the data product
+•Business and technical requirements
+•High-level architecture diagram across the different layers (e.g.: integration layer, ingestion and storage layer, data processing layer, and presentation layer)
+•Associated business processes
+•User stories/ journeys
+•Data flow diagrams
+SS2.Developing a low-level design document that includes the following indicative list of contents:
+•Detailed design diagrams covering class diagrams, sequence diagrams, state diagrams, detailed module descriptions, database schema design
+•Algorithm design (e.g.: pseudocode, flowcharts)
+•User interface design (e.g.: screen layouts, user flows, navigation maps)
+•Security specifications (e.g.: security controls, encryption techniques)","High-level Design Document
+Low-level Design Document",DM.2.1.2
+Data Monetization,cde22fdf-d7ac-4a47-bf28-c83983d1a58d,2026,"Has the Entity  developed and tested a proof-of-concept (POC) for each data product on a sandbox/ non-production environment, prior to initiating full-scale development and deployment?",false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"Aligned to the plan outlined in the Data Monetization Roadmap (refer to DM.1.1.7), the Entity shall develop and test a proof-of-concept (POC) for each data product on a sandbox/ non-production environment, prior to initiating full-scale development and deployment of the data product",Proof of POC implementation and test results,DM.2.1.1
+Data Monetization,2bf951cd-43a7-48ff-a598-22ae5e6f5fe8,2026,"Has the Entity  developed a data monetization roadmap, in alignment with the Entity’s data strategy, to activate data monetization initiatives across the Entity?",false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall develop a data monetization roadmap, in alignment with the Entity’s data strategy, that will be used and monitored to implement and activate data monetization initiatives across the Entity. The roadmap shall include, at a minimum:
+
+SS1.List of initiatives required to:
+Rectify identified gaps based on the data monetization capability assessment conducted in DM.1.1.2 (e.g.: this could include data quality improvement, technology investments, etc.)
+Develop, test and deploy the data products identified and prioritized in DM.1.1.3
+SS2.Sequencing of data monetization initiatives based on their impact, feasibility, and alignment with business priorities and sequence them to ensure a logical progression towards the goals
+SS3.Resource allocation outlining the budget, personnel, and technology resources required for each initiative",Data Monetization Roadmap Document,DM.1.1.7
+Data Monetization,eb1de7dd-c02b-48d3-85e4-69e69cb46b66,2026,Has the Entity developed a go-to-market strategy to support the effective launch and promotion of its data products to the market?,false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall develop a go-to-market strategy to support the effective launch and promotion of its data products to the market. The strategy shall include, at a minimum:
+
+SS1.A list of identified target industries/ audience that can benefit the most from the Entity’s data products
+SS2.A defined value proposition that may highlight how the Entity’s data products can solve specific problems or add value to businesses
+SS3.A plan outlining the marketing and sales activities and the channels the Entity will use to reach its target audience effectively. This may include content marketing, social media campaigns, email marketing, webinars, or channel partnerships",Go-to-Market Strategy Document,DM.1.1.6
+Data Monetization,8df3fc17-e25b-4a0a-a895-d11b751d207c,2026,"Has the Entity conducted a full-scale development of its data products, in alignment to the plan outlined in its Data Monetization Roadmap?",true,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"Based on the results of the proof of concepts and aligned to the plan outlined in the Data Monetization Roadmap (refer to DM.1.1.7), the Entity shall conduct a full-scale development of the data products. The Entity shall, at a minimum:
+
+SS1.Ensure the developed data products are deployed on a production environment, ensuring alignment with the delivery and pricing models defined in DM.1.1.4 and DM.1.1.5 respectively
+SS2.Measure and publish the data quality score for each of the Entity’s deployed data products across all the data quality dimensions outlined in DQM.1.1.1. An overall data quality score shall also be assigned for each data product by averaging the data quality scores for each data quality dimension
+SS3.Define and publish SLAs for the deployed data products (e.g.: service uptime/ availability, response time and resolution time in incidents where the data source is unavailable or degraded, etc.)
+SS4.Define and publish metadata information for each of the deployed data products covering, for example, temporal granularity, update frequency, etc.
+SS5.Implement versioning for each of the deployed data products, highlighting the version number and a description of the changes",Proof of deployed data products on Entity's data marketplace,DM.2.2.2
+Data Monetization,f21072e1-6f84-433b-9f1d-6feb8a927543,2026,Has the Entity defined and documented the pricing model that it will adopt to charge customers on accessing its data products?,false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"SS1.The Entity shall define and document the pricing model that it will adopt to charge customers on accessing its data products including, but not limited to:
+•One Time Flat Fee (i.e.: fixed price charged once for accessing the data product)
+•Pay As You Go (i.e.: usage based depending on the amount of data consumed by the customer)
+•Subscription Based (i.e.: recurring fee for accessing the data product)
+•Freemium Model (i.e.: basic services are offered for free, while advanced features or higher usage limits are available in paid versions)
+•Hybrid (i.e.: a combination of two or more pricing strategies)",Documentation of Adopted Pricing Model(s),DM.1.1.5
+Data Monetization,9ed93f9c-902d-446e-a05b-fd3fc2c6f116,2026,"Has the Entity identified, prioritized, and detailed the data products that are required to realize the Entity’s data monetization vision and strategy?",false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall identify and prioritize the data products that are required to realize the Entity’s data monetization vision and strategy. For the identified data products, the Entity shall develop detailed charters for the identified data products. The charters shall outline, at a minimum:
+
+SS1. Data product description and development rationale
+SS2.High-level data product development cost estimate
+SS3.Expected benefits and business value aimed to be derived (ROI)
+SS4.Expected timeline for development and deployment of the data product
+SS5.Data sources that would feed the data product and the required data fields
+SS6.Priority level assigned to the data product. The Entity may follow the product effort-value matrix to prioritize its products as outlined in SA.1.1.1.SS2
+SS7.Stakeholders involved in the implementation of the data product, the owner that would lead the data product, and the target consumers that would benefit from the insights generated by the data product
+SS8.Dependencies that need to be overcome to initiate development of the data product (e.g.: technologies, resources, and capabilities required to implement the use cases)
+SS9.Indication if ethical, security and privacy components exist may exist and how they shall be addressed",Data Product Charters,DM.1.1.3
+Data Monetization,3e1143b4-4ea8-44ed-a3f1-406641ed5988,2026,Has the Entity conducted a capability assessment to evaluate the Entity's ability to monetize its data and identifying the gaps that need to be addressed to achieve effective data monetization?,false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall conduct a capability assessment to evaluate the Entity’s ability to monetize its data and identify the gaps that need to be addressed to achieve effective data monetization. The capability assessment exercise shall cover, at a minimum:
+
+SS1. Data management maturity report covering all the domains in the national data management framework
+SS2. Current state assessment report of existing technology and infrastructure",Capability Assessment Report,DM.1.1.2
+Data Monetization,1bd65348-833a-4f99-a7bd-a6035f06bdb7,2026,Has the Entity defined a data monetization vision to provide direction for data monetization initiatives and guide decision-making across the Entity?,false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"SS1. The Entity shall establish a data monetization vision to acts a guiding principle, shaping all related initiatives and decisions, ensuring alignment with the overarching goal of achieving tangible economic benefits from data and with the broader business goals and objectives.",Articulated and documented Data Monetization Vision,DM.1.1.1
+Data Monetization,669913a7-90f0-4495-9216-0c0d013bb143,2026,Has the Entity activated the data monetization function to support data monetization efforts and initiatives effectively?,true,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall activate the data monetization function to support data monetization efforts and initiatives effectively. The Entity shall, at a minimum:
+
+SS1.Implement the enabling systems/ technology to support data monetization operations (e.g.: CRM, billing, payment, finance, etc.)
+SS2.Build the relevant capabilities through hiring or upskilling the resources required to develop and deploy the identified data products (as outlined in DM.1.1.3.SS7)
+SS3.Implement marketing and sales activities as per the defined plan in DM.1.1.6.SS3","Proof of implementation of the enabling systems/ technology to support data monetization operations (e.g.: CRM, billing,
+payment, finance, etc.)
+Proof of provisioning of the relevant capabilities through hiring or upskilling the resources required to develop and deploy the identified data products
+Proof of implementation of marketing and sales activities as per the defined plan",DM.2.2.1
+Data Monetization,52d2e577-72e2-4486-b4a0-62bd7728f14a,2026,Has the Entity defined and documented the delivery model that it will adopt including in order to provide access to its data products?,false,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"SS1. The Entity shall define and document the delivery model that it will adopt including in order to provide access to its data products including, but not limited to:
+•Raw Data (i.e.: involves selling data in its unprocessed form, usually as bulk downloads or physical media transfers)
+•Data-as-a-Service (DaaS)/ API-based (i.e.: involves providing data through an API or online service, allowing customers to access up-to-date or real-time data directly through web services)
+•Data Platform (i.e.: a comprehensive platform that not only provides data but also tools and functionalities to analyze and visualize that data)
+•Data Marketplace (i.e.: an online platform where data providers can list and sell their data to interested buyers, and can include both raw data and APIs)",Documentation of Adopted Delivery Model(s),DM.1.1.4
+Data Monetization,af3e6565-e688-470b-9b5c-c8d02bfeaedd,2026,Has the Entity developed data contracts to for each data product provided/ exchanged?,true,86b0e9f6-aef3-4c93-84c0-b26afbe184cb,false,,0.1,"The Entity shall ensure that each data product provided or exchanged has an associated data contract/ data sharing agreement. The data contract shall be developed in alignment with the data sharing, integration & interoperability standards and shall outline, at a minimum:
+
+SS1.Parties Involved (i.e.: identification of all parties involved in the data exchange)
+SS2.Data Description (i.e.: detailed description of the data, including data type, format, and volume)
+SS3.Terms of Use (i.e.: specifications of the terms under which the data is provided or exchanged)
+SS4.Security and Privacy Requirements (i.e.: outline of security and privacy measures in compliance with applicable laws)
+SS5.Terms of Access (i.e.: details on access conditions, including duration, exclusivity, and renewal conditions)
+SS6.Customer Obligations (i.e.: mechanisms for ensuring customer adherence to the terms of the agreement)
+SS7.Termination Conditions (i.e.: specifications on how and when the contract can be terminated)
+SS8.Data Retention and Deletion (i.e.: obligations concerning the retention and deletion of data post-contract termination)",Data Contracts Documents,DM.2.1.3
+Data Quality Management,82f0b927-b6c1-4284-b462-c0ab568b6a8d,2026,"Has the Entity identified, documented, and actively remediated data quality issues in alignment with the 'Data Quality Issues Management Register Template' and 'Data Quality Remediation Plan Template' as provided in the National Data Quality Management Guidelines?",false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DQ1"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" -d ""{\""in_username\"": \""\"", \""in_password\"": \""\""}""",0.1,"The Entity shall design and implement a process for on-going data quality issue management and remediation. The process shall include, at a minimum:
+
+SS1: Prioritization of data quality issues based on their impact on business processes
+SS2: Conducting root cause analysis of data quality issues (e.g.: by examining symptoms, tracing data lineage, and pinpointing root causes)
+SS3: Formulating remediation options based on the root cause analysis (e.g.: by addressing non-technical root causes such as training, leadership support, accountability, modifying systems to eliminate technical root causes, developing preventive controls, and directly correcting flawed data)
+SS4: Resolving data quality issues once the remediation options are identified","Data Quality Issues Management Register
+Data Quality Remediation Plan",DQM.3.1.1
+Data Quality Management,881a5eb6-2e51-47aa-908e-0ddb4885a968,2026,Has the Entity enhanced its data quality monitoring and reporting capabilities?,false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DQ4"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" -d ""{\""in_username\"": \""\"", \""in_password\"": \""\""}""",0.1,"The Entity shall enhance its data quality monitoring and reporting capabilities as follows:
+
+SS1: Generating process control reports, primarily for use by data engineers. The reports will include custom reports (e.g.: for monitoring quality checks during data processing, based on operational metadata) or quality gate reports (e.g.: for capturing key business KPIs and ensuring data consistency across various data layers in the data warehouse or data lake)
+SS2: Generating automated Alerts and Notifications by implementing a system/ dashboard that automatically alerts data stewards and owners when data quality issues are detected or when certain thresholds are breached","Implementation proof of process control reports, quality gate reports, and automated alerts for data quality issues",DQM.3.2.3
+Data Quality Management,3323cca2-cdc2-4970-b16e-ec18f4ca2d59,2026,Has the Entity developed and documented data quality rules and thresholds for Critical Data Elements (CDEs) in alignment with the 'Data Quality Rules Template' as provided in the National Data Quality Management Guidelines?,false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Implement-DQ1"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" -d ""{\""in_username\"": \""\"", \""in_password\"": \""\""}""",0.1,"The Entity shall define and document a set of data quality rules and acceptable thresholds for the CDEs in alignment with business and technical stakeholders. The definition of data quality rules shall include, at minimum:
+
+SS1: Rule description (detailed explanation of the rule)
+SS2: Rule type, specifying whether the rule is a business rule or a technical rule
+SS3: List of data fields the rule applies to
+SS4: Rule condition and business logic
+SS5: Relevant data quality dimension (as outlined in DQM.1.1.1) to which a rule is being assigned to
+SS6: Data quality thresholds
+SS7: Recommended remediation action (e.g.: rejection, correction, notification)
+SS8: Rule owner (e.g.: business user, business analyst, subject matter expert)
+SS9: Data steward (e.g.: IT professional, data architect, data engineer, DBA)",Data Quality Rules document/ register,DQM.2.1.1
+Data Quality Management,2fb62ceb-52c3-44ce-b72f-9554fcff21ab,2026,Has the Entity implemented Data Quality Monitoring & Reporting mechanisms to track the entity's data quality performance in alignment with the Data Quality scorecards and dashboard templates as provided in the National Data Quality Management Guidelines?,false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DQ3"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall monitor and report on the Entity's data quality based on the defined Data Quality rules and KPIs. This shall include, at a minimum:
+
+SS1: Data quality dashboards to track, analyze, and display data in an aggregated format to gain deeper insight on the overall performance and trends across data quality KPIs
+SS2: Data quality scorecard report providing a high-level view comparison of data quality rules with the thresholds, highlighting areas which do not meet the thresholds (e.g.: with red-yellow-green colors)",Data quality scorecards and dashboards,DQM.3.2.2
+Data Quality Management,7b7c2ebb-96e0-44fc-9141-830f730b6b45,2026,Has the Entity implemented an automated system to monitor SLA compliance and trigger notifications when SLAs are breached?,true,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST \
+  ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DQ6"" \
+  -H ""Content-Type: application/json"" \
+  -H ""Accept: application/json"" \
+  -d '{
+        ""in_username"": """",
+        ""in_password"": """"
+      }'
+",0.1,SS1: Automated Monitoring of SLAs: Implementing systems that automatically monitor compliance with SLAs. This ensures that issues are identified and addressed promptly without requiring manual checks,Implementation proof of an automated SLA monitoring system,DCM.3.1.6
+Data Quality Management,5b1c6ec2-14ef-4e60-8f4a-071070b3f78d,2026,"Has the Entity selected a data quality tool in alignment with the 'Tool Selection Criteria Template', implemented the tool, and conducted data quality assessments in alignment with the 'Data Quality Assessment Template' as provided in the National Data Quality Management Guidelines?",false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Implement-DQ2"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """",         ""dynamic_body"": ""{\""from\"":0,\""size\"":100}""       }'",0.1,"The Entity shall implement a data quality tool aligned with the Entity’s architecture. The tool shall, at a minimum, support the implementation of the following:
+
+SS1: Automated data profiling (i.e.: support continuous analysis of data to understand and detect anomalies)
+SS2: Creating the data quality rules (as defined in DQM.2.1.1)
+SS3: Conducting data quality assessment by executing the defined data quality rules
+SS4: Generate data quality assessment reports containing the list of data quality issues identified",Data Quality Assessment Reports generated by the implemented tool,DQM.2.1.2
+Data Quality Management,41b81cfe-6975-43f5-bdda-1ab3aa0f737c,2026,Has the Entity established and documented Data Quality SLAs in alignment with the 'Data Quality SLAs template' as provided in the National Data Quality Management Guidelines?,false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DQ5"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"The Entity shall establish and implement service-level agreements (SLAs) for business-critical data quality issues. The SLAs shall include, at a minimum:
+
+SS1: Data elements covered by the agreement
+SS2: Business impacts associated with data flaws
+SS3: Data Quality dimensions and business rules associated with each data element
+SS4: Methods for measuring against those expectations
+SS5: Acceptability threshold for each measurement
+SS6: Steward(s) to be notified in case the acceptability threshold is not met
+SS7: Timelines and deadlines for expected resolution or remediation of the issue
+SS8: Escalation process when the SLA is not met",Data Quality SLA document,DQM.3.2.4
+Data Quality Management,8a9f9a83-0ab5-46fe-9283-eeeed40ca449,2026,Has the Entity developed Data Quality Policy  in alignment with 'Data Quality Policy Template' provided in National Data Quality Management Guidelines?,false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,false,,0.1,"The Entity shall create a data quality policy in alignment with National Quality Assurance Framework (NQAF) published by the NPC to ensure data is qualified for statistics and analytics purposes and elevating data quality across systems and sources within the Entity.
+
+SS1: The policy shall cover, at a minimum:
+• Overview, purpose, scope, and objectives of the policy
+• Policy applicability, validity, and review
+• Policy guidelines in alignment to the National Data Management Policy and Standards
+• Detailed policy statements covering, at a minimum, the following:
+◦ Data quality dimensions including, at a minimum: uniqueness, completeness, validity, accuracy, consistency, timeliness
+◦ Critical data elements (CDEs) identification
+◦ Developing Data Quality Rules and Thresholds
+◦ Data Profiling and Quality Assessment
+◦ Data Quality Escalations and Issue Management
+◦ Data Quality Remediation Process
+◦ Performance management and monitoring
+◦ Periodic policy review and updates
+◦ Key policy performance indicators
+• Roles and Responsibilities
+• References",Data Quality Policy document,DQM.1.1.1
+Data Quality Management,6d179ac7-80dc-4c1d-beb7-4e0194fbe19c,2026,"Has the Entity reviewed, approved, and published the Data Quality Policy following the defined process in the National Data Quality Management Guidelines?",false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,false,,0.1,"The Entity shall publish its data quality policy following the below guidelines:
+
+SS1: Review the draft policy with the Entity’s Data Committee or equivalent body
+SS2: Incorporate Data Committee or equivalent body’s feedback
+SS3: Review draft policy for auditability
+SS4: Incorporate internal audit feedback
+SS5: Seek policy review and guidance from National Data Governance Office and incorporate the provided feedback
+SS6: Publish the policy on Entity’s digital channels (e.g. The entity’s website)
+SS7: Socialize the policy within the Entity to drive adoption and change management",Formal Policy dissemination communication material,DQM.1.1.2
+Data Quality Management,f9072e75-909e-445e-9532-9e63f96fc7bf,2026,Has the Entity implemented AI-powered data quality management features such as AI/ML-driven rule generation?,false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,false,,0.1,"The Entity shall further enhance its data quality tooling capabilities to support the following:
+
+SS1: AI Powered Data Quality Management (i.e.: providing an AI/ML approach to data quality management such as AI-powered rules for automatically generating common data quality rules)",Insights generated by AI/ML features,DQM.2.1.4
+Data Quality Management,ca4c3c00-6670-4e4e-8f68-234b4c20ced4,2026,Has the Entity defined and documented Data Quality KPIs to measure data quality levels and trends?,false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Operate-DQ2"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" -d ""{\""in_username\"": \""\"", \""in_password\"": \""\""}""",0.1,"The Entity shall establish key performance indicators (KPIs) to measure and report on the Entity's Data Quality trends and guide continuous improvement initiatives. KPIs shall include, at minimum:
+
+SS1: Data quality levels across the established data quality dimensions
+SS2: Number of data quality rules
+SS3: Data quality rule compliance
+SS4: Number and percentage of data quality issues reported
+SS5: Number and percentage of data quality issues resolved
+SS6: Average age of open data quality issues (in days)
+SS7: Number and percentage of escalated data quality issues",List of defined and documented Data Quality KPIs,DQM.3.2.1
+Data Quality Management,64f91145-55ca-4621-82ca-d33996ae1264,2026,"Has the Entity developed a Data Quality Plan that will be used and monitored to implement and activate data quality initiatives across the Entity, in alignment with the 'Data Quality Plan Process and Template' as provided in the National Data Quality Management Guidelines?",false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Plan-DQ2"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" -d ""{\""in_username\"": \""\"", \""in_password\"": \""\""}""",0.1,"Based on the initial data profiling results, the Entity shall develop a data quality plan, in alignment with the Entity’s data strategy, that will be used and monitored to implement and activate data quality initiatives across the Entity. The plan shall include, at a minimum:
+
+SS1: List of activities and milestones. The plan should account for quick wins and longer-term strategic changes
+SS2: Owners and stakeholders
+SS3: Interdependencies, assumptions, and risks
+SS4: Implementation timeline and cost",Data Quality Plan document,DQM.1.2.2
+Data Quality Management,4c9773de-d404-4a26-9d23-0d44620cbb81,2026,"Has the Entity enhanced its data quality tooling capabilities to support automated data cleansing, API integrations, issue logging, and collaboration among data stewards?",false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,false,,0.1,"The Entity shall enhance its data quality tooling capabilities to support the following:
+
+SS1: Automated data cleansing and standardization (i.e.: rules for cleansing and standardizing data to remove duplicates, correct the format of a data field, etc.)
+SS2: API integration support (i.e.: facilitate integration with external systems through APIs)
+SS3: Data quality issue logging (i.e.: to record data quality issues and track workflow)
+SS4: Collaboration Features (i.e.: support collaboration and communication among data stewards and stakeholders)","Tool version upgrade logs
+Feature release notes",DQM.2.1.3
+Data Quality Management,24516c7e-7d5d-41d3-b5e4-3a8f0ed324fa,2026,"Has the Entity identified Critical Data Elements (CDEs) using the 'CDE Prioritization Framework Template', and conducted data profiling for identified CDEs using the 'Data Profiling Report Template' as provided in the National Data Quality Management Guidelines?",false,ad4bdcc2-182a-4d06-bc03-8fca91056c81,true,"curl -X POST \
+  ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_Plan-DQ1"" \
+  -H ""Content-Type: application/json"" \
+  -H ""Accept: application/json"" \
+  -d '{
+        ""in_username"": """",
+        ""in_password"": """"
+      }'",0.1,"The Entity shall identify CDEs and perform initial data profiling for the identified CDEs. The data profiling exercise shall include, at minimum:
+
+SS1: Identification and documentation of the main business domains to be covered as part of the data quality scope
+SS2: Documentation of the source systems, datasets, and CDEs required to be elevated as per the prioritized business domains and their business impact, in addition to those already identified previously in the Entity’s data strategy
+SS3: Conduct data profiling and publish the results in data profiling reports or dashboards using the Entity’s established data quality dimensions","CDE Prioritization Framework
+Data Profiling Report or Dashboard",DQM.1.2.1
+"Data Security, Privacy and Other Regulations",1a702d98-6f85-4c4b-a871-6769cd36479b,2026,"Has the Entity classified its data and applied required labeling, metadata registration, and handling practices in alignment with the National Data Classification Policy?",false,75e2eabb-6b69-465e-a6cb-f6bb1b0ed697,true,"curl -X POST \    ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_DSPOR1"" \    -H ""Content-Type: application/json"" \    -H ""Accept: application/json"" \    -d '{          ""in_username"": """",          ""in_password"": """"        }' ",0.1,"To operationalize the National Data Classification Policy, the Entity shall, at a minimum, do the following:
+
+SS1. Include in its documentation templates fields for information classification on the cover sheet and header/footer to support the application of classification labels
+SS2. Automatically apply a watermark indicating the relevant classification for documentation not generated from the Entity’s templates
+SS3. Use standard color coding for classified documents to visually reinforce the classification and handling expectations:
+• Dark Red for “C4” (Top Secret) Data
+• Red for ""C3 (Secret) Data
+• Orange for ""C2” (Restricted) Data
+• Blue for ""C1” (Internal) Data
+• Green for ""C0” (Public) Data
+SS4. Publish the classification levels assigned to its datasets and artifacts as metadata attributes registered within the Data Catalog. The metadata population should follow the process defined in the Data Catalog and Metadata Management Domain.
+SS5. Appoint a third party to review and audit data classification activities.
+SS6. Develop an escalation and resolution process for issues and complaints related to data classification, and the misuse of collected data that does not comply with relevant national and international regulations. This process must be approved by the Data Committee and key relevant stakeholders, and it should be published and communicated to all key stakeholders involved. The process should include, at a minimum, the following:
+• Channel for identifying and cataloging potential issues
+• Workflow for investigation, analysis, and resolution that can be tracked, monitored, and historically logged (In the event of compromised private data, the Entity's data controller or data processor must notify the Data Committee and the National Data Governance Office within 72 hours)","- Data Catalog with metadata registration of classification levels
+- Documentation of classification audits
+- Documentation of escalation process for classification issues",DSPO.2.4.1
+"Data Sharing, Integration & Interoperability",31d4471e-f971-4338-a4f7-6974e4f853c3,2026,"Has the Entity established monitoring and reporting mechanisms for Data Sharing, Integration and Interoperability?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall monitor and report on the Entity's Data Sharing, Integration & Interoperability efforts based on the defined KPIs. This shall include, at a minimum:
+
+SS1. Tracking the defined KPIs in DSII.3.1.1 through dashboards and reports",Dashboards and reports tracking the defined KPIs,DSII.3.1.2
+"Data Sharing, Integration & Interoperability",17bc7df6-0874-4cd0-a516-78198aabc505,2026,Has the Entity established Key Performance Indicators (KPIs) to measure and report on the progress and effectiveness of data integration solutions and data sharing activities?,false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall establish Key Performance Indicators (KPIs) to measure the progress and effectiveness of data integration solutions and data sharing activities and guide continuous improvement initiatives. KPIs shall include, at minimum:
+
+SS1. Data transfer rate between systems/ applications
+SS2. The latency between data sources and data targets
+SS3. The number of Data Sharing requests received
+SS4. The number of Data Sharing requests accepted/ denied
+SS5. The number of Data Sharing requests sent
+SS6. The number of ongoing Data Sharing agreements
+SS7. The average duration of the Data Sharing requests evaluation process (to be expressed in days)","List of defined and documented  Data Sharing, Integration & Interoperability KPIs",DSII.3.1.1
+"Data Sharing, Integration & Interoperability",48f7040e-612f-493d-ac34-0cb18f9845f1,2026,"Has the Entity identified and documented metadata for each open dataset identified and ensured that they are made available in an open format that is platform-independent and machine-processable (e.g., CSV)?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall
+
+SS1. Identify and document the metadata necessary within the Open Dataset to easily identify, describe and search for it once published
+SS2. Standardized formats when publishing its datasets that are, at minimum, in machine-readable form. Common formats that meet this standard include, but may not be limited to, the following:
+• CSV - Comma Separated Values
+• JSON - JavaScript Object Notation
+• XML - Extensible Markup Language
+• RDF - Resource Description Framework
+SS3. Accompany datasets with documentation containing instructions on how to use them in relation to its published format",Open Data Metadata,DSII.2.2.2
+"Data Sharing, Integration & Interoperability",595cc78a-faac-4aad-bb7d-de7a5c6e90e8,2026,"Has the Entity developed and documented processes required across the lifecycle of open data? (i.e.: identification of open data, publication of open data, maintenance of open data)",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall develop, and document processes required across the lifecycle of Open Data, including, at minimum, the following:
+
+SS1. Processes to identify public datasets to be published the Entity, the process shall include at minimum the followings:
+• Identify and document all data classified as 'public' and prioritize each dataset identified as Open Data
+• Perform a valuation of the identified dataset to drive decision making on whether it should be published as open data or not
+• Assess whether some combination of any publicly available data and the data intended to be published could allow for the unauthorized disclosure of personal information or create any other security or privacy risk or threat
+SS2. Processes to publish and maintain the Open Datasets on Qatar’s open data platform with the appropriate format, timeliness, and overall high quality and ensure the exclusion of any restricted data.
+SS3. Processes for gathering feedback, analyzing performance at the Entity level, and improving the overall Open Data national impact
+SS4. Processes to perform continuous review of the published Open Datasets to ensure they meet defined regulatory requirements
+SS5. Processes to regularly update and document changes to the published Open Datasets and associated metadata whenever changes occur",Open Data Processes Document,DSII.2.2.1
+"Data Sharing, Integration & Interoperability",82164909-0c15-4826-a9c2-857c50938505,2026,"Has the Entity developed a data exchange directory to register all its existing internal and external data sharing and exchange requests, and designed an integration layer architecture based on the integration requirements to facilitate connecting internal and external information systems and enable the exchange of data?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall, at a minimum:
+
+SS1. Develop and maintain a data exchange directory to register all its existing data sharing and exchange internally and externally, including information on which sources are being requested, by whom, how often and for what purpose.
+SS2. Design and implement an integration layer architecture based on the Integration requirements to facilitate connecting internal and external information systems and enable the exchange of data. The integration layer architecture shall give consideration to the followings:
+• Internal data migration into and out of internal systems.
+• Includes at minimum the following data integration methods:
+◦ File-based data Integration
+◦ Message-based data Integration
+◦ Database to database data Integration
+• Data Orchestration: The flow of data from start to finish in the data integration architecture
+• Source-To-Target Mapping: Set of data transformation rules that determine how to convert the structure and content of data in the source system to the structure and content needed in the target system.
+SS3. Include the integration layer in the Entity’s target enterprise data architecture.","Data Exchange Directory Register
+Integration Architecture Document",DSII.2.1.3
+"Data Sharing, Integration & Interoperability",253d421b-342d-4a09-8b05-2b4e96130f8f,2026,"Has the Entity developed a  Data Sharing, Integration & Interoperability Policy in alignment with 'Data Sharing, Integration & Interoperability Policy Template' provided in National  Data Sharing, Integration & Interoperability Guidelines?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"SS1. The Entity shall create a data sharing, integration & Interoperability policy in alignment with the national data standards to ensure a focused approach for the ability of consistently share high-quality data both within the Entity and between Government Entities. The policy shall cover at minimum, the following:
+• Overview, purpose, scope, and objectives of the policy
+• Policy applicability, validity, and review
+• Policy guidelines in alignment to the National Data Management Policy and Standards
+• Detailed policy statements covering, at a minimum, the following:
+◦ Data Sharing Process
+◦ Data Sharing Agreements
+◦ Current and Target Data Integration & Interoperability Architecture
+◦ Integration & Interoperability Solution Development Lifecycle
+◦ Integration & Interoperability Platform and Tools
+◦ Performance management and monitoring
+◦ Periodic policy review and updates
+◦ Key policy performance indicators","Data Sharing, Integration & Interoperability Policy document",DSII.1.1.1
+"Data Sharing, Integration & Interoperability",44fd6687-ee0e-4e15-84b2-c2434ab25189,2026,"Has the Entity reviewed, approved, and published the  Data Sharing, Integration & Interoperability Policy following the defined process in the National Data Sharing, Integration & Interoperability Guidelines?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall publish its data sharing, Integration and interoperability policy following the below guidelines
+
+SS1. Review the draft policy with the Entity’s Data Committee or equivalent body
+SS2. Incorporate Data Committee or equivalent body’s feedback
+SS3. Review draft policy for auditability
+SS4. Incorporate internal audit feedback
+SS5. Seek policy review and guidance from National Data Governance Office and incorporate the provided feedback
+SS6. Publish the policy on Entity’s digital channels (e.g. The entity website)
+SS7. Socialize the policy within the Entity to drive adoption and change management",Formal Policy dissemination communication material,DSII.1.1.2
+"Data Sharing, Integration & Interoperability",0069f7b9-f965-4017-a7bb-e079db9ab947,2026,"Has the Entity documented the requirements related to data sharing, integration and interoperability  perform an Initial and performed an initial assessment to identify data movement and the integration points across the Entity?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall document the requirements related to data sharing, integration and interoperability; and perform an Initial assessment to identify pain points and inefficiencies in the data movement and the integration across the Entity. The Entity shall perform, at minimum, the following:
+
+SS1. Document the business and technical requirements from the relevant stakeholders related to data sharing, data integration and systems interoperability
+SS2. Create an inventory of all existing data sources, systems, applications and data stores.
+SS3. Document a high-level Data Lineage including the rules according to which data is changed, and the frequency of changes
+SS4.  Document data models used by the Entity's source systems
+SS5. Document the list of identified data movement and integration gaps and pain points","DSII Requirements Document (Business & Technical)
+Inventory of existing systems existing data sources, systems, applications and data stores
+Data Lineage Document
+Integration Points Document",DSII.1.2.1
+"Data Sharing, Integration & Interoperability",1daa7d40-a975-4026-b6a9-818b34c2f3c0,2026,Has the Entity developed a data Sharing and integration plan to guide the implementation of data sharing and integration initiatives across the Entity?,false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"In Alignment with Entity’s data strategy and based on the documented requirements and the conducted open data assessment, the Entity shall develop a Data Integration Plan to identify and orchestrate the implementation of the data sharing and integration initiatives taking into account the efforts required to migrate all internal and external data exchange and peer-to-peer applications data sharing to internal middleware platform. The plan shall include, at a minimum:
+
+SS1. List of activities and milestones. The plan should account for quick wins and longer-term strategic changes
+SS2. Roadmap with the activities and key milestones for the implementation of Data sharing and integration initiatives
+SS3. Owners and stakeholders
+SS4. Interdependencies, assumptions, budget, and risks","Initiatives Cards
+Data Sharing & Integration Plan",DSII.1.2.2
+"Data Sharing, Integration & Interoperability",cebeb4bd-a127-4dc8-a482-ecea54530d50,2026,"Has the Entity document requirements for open data publication, accessibility, and usage and performed an initial assessment to map the open data lifecycle?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall document the requirements related to open data and perform an initial assessment to identify pain points and inefficiencies in the open data lifecycle across the Entity. The Entity shall perform, at minimum, the following:
+
+SS1. Document the business and technical requirements from the relevant stakeholders related to the publication, accessibility, and use of open data
+SS2. Create an inventory of all datasets eligible for open data publication, including details about their sources, formats, and current usage
+SS3. Conduct a data quality assessment for the datasets intended for open data publication, documenting any issues and gaps that need to be addressed
+SS4. In alignment with current National Open Data Policy, assess and document the legal, ethical, and privacy considerations for the datasets to ensure compliance with relevant laws and regulations before publication
+SS5.Document the data models used by the Entity's systems for datasets that will be published as open data","Open Data Requirements Document (Business & Technical)
+Open Dataset Inventory
+Open Dataset Data Quality Assessment Document",DSII.1.3.1
+"Data Sharing, Integration & Interoperability",f8dd0a31-3a79-4a9c-aacf-056b72191cf7,2026,Has the Entity developed an open data plan to guide the implementation of open data initiatives across the Entity?,false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"In Alignment with Entity’s data strategy and based on the documented requirements and the conducted open data assessment, the Entity shall develop an open data plan to identify and coordinate the publishing of its Open Datasets. The plan shall include, at minimum, the following:
+
+SS1. List of activities and milestones. The plan should account for quick wins and longer-term strategic changes
+SS2. Roadmap with the activities and key milestones for the implementation of Open Data initiatives.
+SS3. Owners and stakeholders
+SS4. Interdependencies, assumptions, budget, and risks","Initiatives Cards
+Open Data Plan",DSII.1.3.2
+"Data Sharing, Integration & Interoperability",e2c5e22f-99d2-4baf-b5c0-d4f5e72ea3f7,2026,Has the Entity established data sharing principles and processes that will guide the data sharing process within the Entity and with other Entities?,false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall, at a minimum:
+SS1. Develop and adopt the data sharing principles that will control the data sharing process within the Entity and with other Entities. Data Sharing principles shall include the following:
+• Data Sharing Culture: The Entity shall share the master data that it produces for the purpose of achieving data sharing and integration with other entities. The Entity shall adopt the “Single Source of Truth (SSOT)” principle to share / obtain the data from its proper sources and to avoid data duplication, inconsistency, and multiple sources.
+• Legitimate Purpose: The Entity shall share the data for legitimate purposes based on a legal ground or a justified practical need that aims to deliver a public interest without inflicting any harm on national interests, entity activities, privacy of individuals or environmental safety.
+• Authorized Access: The Entity shall have the appropriate authority to access, obtain and use the data shared by other entities
+• Transparency: The Entity shall avail all the data that is necessary for a successful data sharing process.
+• Accountability: The Entity shall hold the accountability for the shared data from other parties ensuring the security controls as defined and prescribed by National Law, policy, and regulations
+• Ethical Data Use: The Entity shall apply ethical practices on the data shared by other entities to ensure fairness, integrity, trust, and respect in data use
+SS2. Develop and adopt the data sharing process that will govern the data sharing practice within the Entity and with other entities to standardize data sharing practice and ensure that all necessary principles and requirements are met. Data Sharing process shall include the following:
+• Data Sharing Request Reception: The Entity shall submit a data sharing request from its data offices to the data office of the other entity requested to share the data
+• Roles assignment: The Entity’s data office shall forward the received data sharing request to the relevant business data steward to address and evaluate the request
+• Data Classification level check: The Business data steward shall check the classification level of the requested data
+• Data Sharing Principles Assessment: the business data steward shall assess the data request against the data sharing principles
+• Data Sharing Decision and Feedback: The Entity shall proceed with the data sharing only if all data sharing principles are fully satisfied, otherwise the Entity shall not proceed with the data sharing until all data sharing principles are satisfied
+• Business Data Executive Approval: The Business data steward shall obtain the business data executive approval to proceed with the data sharing process once all data sharing principles are satisfied
+• Design and implementation of Data Sharing controls: The Entity’s business data steward shall set the required controls (such as, Legal basis, Authorization, Data Type, Data sharing means, data usage and protection, data sharing duration and frequency and termination) with the requestor Entity to ensure compliance with the data sharing principles
+• Data Sharing agreement signing: The Entity’s business data steward shall provide clear details thereof in the data sharing agreement; all parties involved in the sharing process shall sign the data sharing agreement.
+• Sharing Data with the requestor: The Entity’s data office Shall share the requested data with the requestor once the data sharing agreement is signed",Data Sharing Principles & Process Document,DSII.2.1.1
+"Data Sharing, Integration & Interoperability",4928b2ff-2b0a-4dad-863f-d2783a429788,2026,Has the Entity developed internal and external data sharing agreements and contracts that shall be used when sharing data and data products between information systems within the Entity and other external Entities?,false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall, at a minimum:
+
+SS1. Develop and follow an internal and external data sharing agreement template that shall be used when data shared between information systems within the Entity and other external Entities. The data sharing agreement template shall include, at minimum, the following:
+• Parties to the Agreement
+• Authorized signatories
+• Purpose of Data Sharing
+• Duration of the Agreement
+• Methods of Data Access
+• Data Access Rights and Privileges
+• Lawful basis for sharing
+• Liability Provisions
+SS2. Implement data contract template to be utilized during data products sharing within the Entity or with other external Entities. The data contract template shall include, at minimum, the following:
+• Data Contract Title and description
+• Data Contract Owner
+• Data Contract link
+• Data Contract terms (Usage, Limitations, Validity Period)
+• Data Definitions
+• Data Types
+• Data Format
+• Data Structure
+• Data Constraints
+• Data Classification","Data Sharing Agreements
+Data Contracts",DSII.2.1.2
+"Data Sharing, Integration & Interoperability",efe36bb7-e728-4f5d-a54d-4ac7522a5dda,2026,"Has the Entity enhanced its Data Sharing, Integration & Interoperability monitoring and reporting capabilities?",false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"The Entity shall enhance its Data Sharing, Integration & Interoperability monitoring and reporting capabilities as follows:
+
+SS1. Configure an alert system supporting troubleshooting of issues in the pipelines, to ensure that the pipeline runs smoothly","Implementation proof of alert system supporting troubleshooting of
+issues in the pipelines, to ensure that the pipeline runs smoothly",DSII.3.1.3
+"Data Sharing, Integration & Interoperability",fb58aa75-df98-40a6-9b29-1142c2c86385,2026,Has the Entity maintain a copy of the approved Open Data Assessment checklist (as per Open Data Policy of 2014) for any future reference or audits?,false,6ec7535e-6134-4010-9817-8c0849e8f59b,false,,0.1,"SS1. In alignment with the Open Data Policy (2014), The Entity shall maintain copy of the approved Open Data Assessment checklist for any future reference or audits. The Open Data Assessment shall be completed by Entities to ensure that there are no legal, policy, or contractual restrictions to making the Data publicly available as Open Data.",Open Data Assessment Checklist,DSII.3.1.4
+Data Storage and Operations,8a14365a-f664-41b7-a661-fca76d06c9f5,2026,Has the Entity developed Data Storage & Retention Policy in alignment with 'Data Storage & Retention Policy Template' provided in National Data Storage & Operations Guidelines?,false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall establish a data storage & retention policy that governs the secure and efficient storage of different types of data such as real-time data, near real-time data and offline data, ensuring compliance with legal laws and regulations.
+
+SS1.The policy shall cover, at a minimum, the following:
+•Overview, purpose, scope, and objectives of the policy
+•Policy applicability, validity, and review
+•Policy guidelines in alignment to the National Data Management Policy and Standards
+•Detailed policy statements covering, at a minimum, the following:
+◦Data storage and retention principles
+◦Information systems prioritization based on their business criticality and potential risks (e.g.: financial) as a result of emergency or disaster
+◦Database access rules (e.g.: role-based access control)
+◦Data backup and recovery
+◦Storage conditions based on approved regulations
+◦Retention periods of data based on its type, classification, business requirements, and relevant contractual, regulatory, and legal requirements
+◦Secure disposal and deletion of data based on the data type and classification
+◦Required actions in the event of an accidental permanent loss of data
+SS2.Roles and Responsibilities
+SS3.References",Data Storage & Retention Policy document,DSO.1.1.1
+Data Storage and Operations,962b403c-a85a-4d01-bdc9-11d37705175e,2026,Has the Entity implemented an automated system to monitor SLA compliance and trigger notifications when SLAs are breached?,true,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,SS1: Automated Monitoring of SLAs: Implementing systems that automatically monitor compliance with SLAs. This ensures that issues are identified and addressed promptly without requiring manual checks,Implementation proof of an automated SLA monitoring system,DCM.3.1.6
+Data Storage and Operations,26013b16-4922-4fa9-900e-a8ba56699417,2026,"Has the Entity established and documented Data Storage SLAs which ensure that databases, storage systems, and related IT infrastructure meet performance, availability, and recovery expectations?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall establish and implement data storage service-level agreements (SLAs) governed through formal agreements between IT data management services organizations and data owners, and that specify system performance, data availability, recovery expectations, and backup frequency. The SLAs shall include, at a minimum:
+
+SS1.Timeframes during which databases are expected to be available for use
+SS2.Maximum allowable execution time for application transactions
+SS3.Backup frequency of the databases
+SS4.Escalation process when the SLA is not met",Data Storage SLA document,DSO.3.1.1
+Data Storage and Operations,9af80c77-c840-4ea3-bbb1-df21d1df3167,2026,"Has the Entity reviewed, approved, and published the Data Storage & Retention Policy following the defined process in the National Data Storage & Operations Guidelines?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall publish its data storage & retention policy following the below guidelines:
+
+SS1.Review the draft policy with the Entity’s Data Committee or equivalent body
+SS2.Incorporate Data Committee or equivalent body’s feedback
+SS3.Review draft policy for auditability
+SS4.Incorporate internal audit feedback
+SS5.Seek policy review and guidance from National Data Office and incorporate the provided feedback
+SS6.Publish the policy on Entity’s digital channels
+SS7.Socialize the policy within the Entity to drive adoption and change management",Formal Policy dissemination communication material,DSO.1.1.2
+Data Storage and Operations,e30708c9-3065-4282-b588-92adbf61843e,2026,"Has the Entity assessed and documented the baseline data storage architecture of datasets, information systems and services under its control in alignment with the 'Baseline Storage Assessment Report Template' provided in the National Data Storage & Operations Guidelines?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall assess and document the baseline data storage architecture of datasets, information systems and services under its control. The Entity shall, at a minimum:
+
+SS1.Conduct a comprehensive audit of data storage inventory (within both physical and virtual locations including Data Centers, Cloud, or any other site or location)
+SS2.Conduct infrastructure utilization audits on all of its information systems and servers to determine the actual loads across the usage scenarios. An indicative list of measures (both peak and baseline measures) that the audits can record include CPU loads, memory loads, disk IO loads, network IO load, server availability, etc.
+SS3.Categorize of all its information systems into at least one of the following portability categories: Legacy, Virtualize-able, and Cloud-able. This classification will aid in assessing the compatibility of an application or system with a selected target architecture and will facilitate the evaluation of its migration suitability",Baseline Storage Assessment Report,DSO.1.2.1
+Data Storage and Operations,465fb352-2c33-4bc8-8b53-67951498f782,2026,Has the Entity conduct forecasts of the storage capacity required to support future business requirements in alignment with the 'Storage Forecasting Report Template ' provided in the National Data Storage & Operations Guidelines?,false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall conduct periodic forecasts of the storage capacity required to support future business requirements. Capacity and growth should be estimated not only for the space the data itself holds, but also for indexes, logs, and any redundant images such as mirrors.
+
+SS1.Initial storage capacity estimate for the first year of operations
+SS2.Storage capacity growth projection for the following 3-5 years
+SS3.Estimation of the budget for future storage acquisitions",Storage Forecasting Report,DSO.1.2.2
+Data Storage and Operations,02a3ab62-ab75-461b-9cfe-b7cb9900bc77,2026,"Has the Entity designed a target data storage infrastructure architecture that aligns with business needs, technological advancements, and the Cloud First Policy?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"Guided by the Baseline Data Storage Capability Assessment (DSO.1.2.1) and Data Storage and Usage Requirements Forecasting (DSO.1.2.2), the Entity shall design a target data storage infrastructure architecture to support business requirements and technological advancements. This shall include, at a minimum:
+
+SS1.Engaging an infrastructure architecture team to determine a suitable target architecture for the storage of all data and records it holds, which shall be reviewed and approved by the Entity’s Data Committee during governance checkpoints, and NPC when necessary
+SS2.Ensuring that its target architecture reflects the latest flexible infrastructure capabilities (e.g., Private Cloud, Virtualization, Storage Virtualization, Infrastructure-as-a-Service, Platform-as-a-Service, Software-as-a-Service, etc.) and is in alignment with the Cloud First Policy",Target Data Storage Architecture Report,DSO.1.2.3
+Data Storage and Operations,e1bd48ee-5211-49a6-a09b-fae1f35cddd8,2026,"Has the Entity developed a structured and actionable plan to transition from the current to the target data storage infrastructure, in alignment with the 'Data Storage & Operations Roadmap Template' provided in the National Data Storage & Operations Guidelines?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall develop a data storage & operations roadmap, in alignment with the Entity’s data strategy, that will be used and monitored to implement and activate the data storage & operations initiatives across the Entity. The roadmap shall include, at a minimum:
+
+SS1.Key initiatives, milestones, and timelines needed to transition from the current to the target data storage infrastructure architecture
+SS2.The tools that need to be implemented to support data storage & operations such as data modeling tools, database monitoring tools, database management tools, and developer support tools
+SS3.Resource allocation outlining the budget, personnel, and technology resources required for each initiative",Data Storage & Operations Roadmap,DSO.1.2.4
+Data Storage and Operations,2f61641b-821e-49e1-98e6-790eab3dc976,2026,Has the Entity defined and implemented processes and mechanisms required to manage and secure access to databases within an organization?,false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"SS1.The Entity shall establish and implement a process to grant its employees access to databases, utilizing Role-Based Access Control (RBAC) which involves defining specific roles within the organization, assigning appropriate permissions to these roles (e.g.: based on job functions), and enforcing access control to ensure compliance with privacy regulations and prevent unauthorized access",Access Request and Approval Processes Documents,DSO.2.1.1
+Data Storage and Operations,7249bd5c-a422-4e6b-af76-4ad296281de5,2026,Has the Entity defined and implemented processes for data backup and recovery?,false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall establish and implement a process for data backup and recovery including, at a minimum:
+
+SS1.Defining backup frequency for each information system, as specified in the Data Storage SLAs (DSO.3.1.1)
+SS2.Defining the backup scope for each information system, which shall include all critical data and database transaction logs to ensure comprehensive data recovery capability
+SS3.Storing backups on physically separate storage media from the operational data. The primary backup location shall be on a RAID-configured Storage Area Network (SAN), with additional off-site storage to ensure data integrity in case of a local disaster.
+SS4Performing periodic validations of backup integrity by restoring data from backup files to a non-production system. This ensures that the backup is complete, and the data is recoverable in its entirety.",Data Backup & Recovery Processes Documents,DSO.2.1.2
+Data Storage and Operations,b7d23c75-40f7-4fb1-b5d3-f7d89bf08572,2026,Has the Entity established and implemented a process to ensure business continuity in the event of disaster or adverse events that impact the Entity’s systems and its ability to use its data?,false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall establish, implement, and rehearse a process to ensure business continuity in the event of disaster or adverse events that impact the Entity’s systems and its ability to use its data. The Entity shall also refer to Qatar’s Cloud First Policy and the ISO 22301:2021 standard while defining the Disaster Recovery & Business Continuity process. The process shall include, at a minimum:
+
+SS1.Prioritized list of information systems defining an order of the information systems recovery
+SS2.Assignment of roles responsible for addressing an incident response, including contact details of all stakeholders to be involved during an incident
+SS3.Details of actions to be taken to activate a response to the incident
+SS4.Details of actions to be taken to reduce the damage and mitigate the consequences of an incident on Entity's critical operations
+SS5.Details of Recovery Point Objectives (a maximum targeted period within which data might be lost without causing damage to business) for each information system covered
+SS6.Details of Recovery Time Objectives (a maximum targeted duration of time within which database can be down without causing damage to business) for each information system
+SS7.Details of recovery activities",Disaster Recovery  & Business Continuity Processes Documents,DSO.2.1.3
+Data Storage and Operations,37205428-02eb-42dd-887b-e09fff014e44,2026,Has the Entity activated its defined the Data Storage & Operations Roadmap?,false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall activate the Data Storage & Operations Roadmap defined in DSO.1.2.4. The Entity shall, at a minimum:
+
+SS1.Demonstrate progress by adhering to the predefined milestones and timelines specified in the roadmap, to clearly reflect the transition stages from the current to the target data storage infrastructure
+SS2.Document deviations from the planned milestones and timelines, if any, and submit to the Data Committee for approval",Progress reports that clearly reflect the achievement of milestones,DSO.2.1.4
+Data Storage and Operations,3d554645-3473-4191-8f26-d1b5ac3581e3,2026,"Has the Entity conducted database performance monitoring to that storage systems, database transactions, and resource utilization remain optimized for operational efficiency, in alignment (as applicable) with the 'Database Performance Scorecard & Dashboard' templates provided in the National Data Storage & Operations Guidelines?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall continuously monitor data storage systems to ensure optimal performance, making necessary adjustments to accommodate increasing data volumes or evolving organizational needs, and resolve any issues promptly. This shall include, at a minimum:
+
+SS1.Establishing reports and/ or dashboards to monitor and report on database performance on an on-going basis, covering metrics such as:
+•Capacity metrics (e.g.: amount of storage used, number of storage containers, etc.)
+•Performance metrics (e.g.: transaction frequency and quantity, query execution time, storage system uptime, etc.)
+SS2.Identifying and documenting any negative trends by running activity and performance reports against both the DBMS and the server during periods of heavy activity, and comparing these reports to previous reports to facilitate ongoing analysis of issues",Database Performance Scorecards & Dashboards,DSO.3.1.3
+Data Storage and Operations,aff3ac73-893d-4fe5-84ac-fdea2404857f,2026,"Has the Entity defined and implemented configuration management processes to record modification to the database configuration, structures, constraints, permissions, thresholds, etc., in alignment with the 'Database Configuration Template' provided in the National Data Storage & Operations Guidelines?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall establish and implement configuration management processes to record modification to the database configuration, structures, constraints, permissions, thresholds, etc. The process shall include, at a minimum, the following steps:
+
+SS1.Configuration identification (i.e.: identification and documentation of the attributes defining the database system configuration)
+SS2.Configuration change control (i.e.: implementation of changes in the defined database configuration)
+SS3.Configuration status accounting (i.e.: tracking of implemented changes in the configuration)
+SS4.Configuration audits (i.e.: ensuring that the installed database configuration is consistent with the documented configuration)",Database Configuration Processes Documents,DSO.3.1.4
+Data Storage and Operations,ecd4beee-fba9-4e3f-8a2f-89a0ae01d4f5,2026,"Has the Entity conducted database maintenances and updates to ensure integrity, security, and operational efficiency of its database systems?",false,4d3a47dd-df31-435e-a8da-b5e758ca3668,false,,0.1,"The Entity shall conduct database maintenances and updates to ensure integrity, security, and operational efficiency of its database systems. The Entity shall, at a minimum:
+
+SS1.Implement maintenance patches provided by the database system vendor across all environments (e.g.: from development to production) following recommendations and prioritization by DBA specialists, security experts, and management
+SS2.Ensure that its database systems and tools are updated to the latest published Vendor release. If the latest release is not applicable to the Entity, the Entity shall document the justification and submit to the Data Committee for approval
+SS3.Ensure that it complies with all licensing agreements and regulatory requirements by conducting information asset tracking covering aspects such as software license costs, annual support costs, and server lease agreements costs",Proof of maintenance and updates applied to database systems,DSO.3.1.5
+Document and Content Management,6590cd6e-7ccd-42ef-926e-bfb67b9abc1e,2026,"Has the Entity reviewed, approved, and published the  Document & Content Management Policy following the defined process in the National Document & Content Management Guidelines?",false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall publish the created policy guided by the following steps:
+
+SS1: Review the policy draft with key stakeholders
+SS2: Incorporate key stakeholder’s feedback
+SS3: Review the policy draft for auditability
+SS4: Incorporate internal audit feedback
+SS5: Publish the document and content management policy on Entity’s digital channels
+SS6: Socialize the policy within the Entity to drive adoption",Formal Policy dissemination communication material,DCM.1.1.2
+Document and Content Management,4ce7a97a-61bd-40bd-a314-95cc0c592a80,2026,Has the Entity published metadata for documents and content housed within the Entity’s Document Management Systems (DMS) using the Entity’s data catalog tool?,false,4b793d57-a04e-4618-a275-082fb5c81792,true,"curl -X POST ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P_DSPOR2"" -H ""Content-Type: application/json"" -H ""Accept: application/json"" \-d '{""in_username"": "" "",""in_password"": """" }'",0.1,"The Entity shall publish metadata for documents and content housed within the Entity's Document Management Systems (DMS) using the Entity's data catalog tool. At a minimum, the Entity shall:
+
+SS1: Populate the metadata in accordance with the procedures established in the metadata and data catalog management domain.
+SS2: Incorporate metadata enrichment and integration tools that expand the metadata attributes to include, at a minimum, the following:
+• Content sensitivity level
+• User access history
+• Inter-document relationships",Updated Data Catalog with metadata for documents and content,DCM.2.2.9
+Document and Content Management,505f2337-2650-4799-b89b-0d36c481fcd2,2026,Has the Entity established and implemented Service-Level Agreements (SLAs) for business-critical document and content management services?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.2,"The Entity shall establish and implement Service-Level Agreements (SLAs) for business-critical document and content management services. These SLAs shall include, at a minimum, the following:
+
+SS1: The types of documents and content covered by the SLA
+SS2: The potential business impacts associated with the mismanagement or poor handling of documents and content
+SS3: The standards for content quality, including accuracy, accessibility, completeness, and security, and the outline of business rules for managing each type of document
+SS4:Methods for measuring compliance with the SLA, such as frequency of content updates, accuracy of content categorization, and response times for document retrieval
+SS5: Acceptable performance thresholds for each metric, detailing minimum performance levels required
+SS6: Notification protocol for Identifying the steward(s) or responsible parties if performance falls below the acceptability threshold
+SS7:Clear timelines and deadlines for the resolution or remediation of identified issues
+SS8: Escalation procedures for addressing SLA breaches, including steps to mitigate ongoing risks and the involvement of higher management
+SS9: Potential rewards for consistent compliance with the SLA and penalties for failures",Document & Content Management SLAs Document,DCM.3.1.5
+Document and Content Management,b8ec04f4-d937-4b54-8b6f-885a2aceef4d,2026,Has the Entity enhanced its document & content management monitoring and reporting capabilities?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"SS1: Automated Reporting Tools: Implement automated reporting tools that generate real-time analytics on DMS performance. These tools shall provide dashboard views that are accessible to key stakeholders, offering insights into system usage patterns, bottleneck identification, and efficiency improvements","Implementation proof of process control reports, quality gate reports, and automated alerts for data quality issues",DCM.3.1.4
+Document and Content Management,8558ccf4-45e8-4ff9-a7fd-9c75d6178a4c,2026,Has the Entity enhanced its DCM KPIs by expanding them to include more advanced analytical KPIs?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,SS1: Advanced Analytical KPIs: Introduce more sophisticated KPIs that measure not only basic metrics but also user engagement and efficiency of document retrieval and processing,Updated list of defined and documented DCM KPIs,DCM.3.1.2
+Document and Content Management,e1c88b35-5fce-4eb2-8e9d-02ae42e1ba69,2026,Has the Entity established a content publishing and delivery process?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall establish a content publishing and delivery process to do the following:
+
+SS1:Define the publishing channels and ensure dissemination of information across them
+SS2: Define the formatting, approval, and distribution processes, and implement them to enhance the accessibility and reliability of published content
+SS3: Incorporate the use of metadata and keyword tagging to classify content within an appropriate information architecture, allowing search engines to return content based on keywords",Content Publishing & Delivery process document,DCM.2.2.10
+Document and Content Management,7d882029-3de9-421a-9760-679ae9df5f61,2026,Has the Entity established a retention and disposal process that is aligned to the retention periods that have been defined in the document and content management policy?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall establish a retention and disposal process that is aligned to the retention periods that have been defined in the document and content management policy. The Entity shall, at a minimum, do the following:
+
+SS1:Review and confirm the necessity of records before disposal. This entails documentation of the confirmation process, including timestamps, user IDs, and reasons for disposal
+SS2: Adopt suitable retirement and disposal techniques. Suitable techniques can be any of the following:
+• Physical destruction of media, such as overwriting and secure deletion
+• Extended retention within the Entity in an offline or nearline repository
+• Transfer to an appropriate archival facility or body
+• Delegation of responsibility to another Entity engaged in ongoing management",Retention & Disposal process document,DCM.2.2.8
+Document and Content Management,8337e4a7-641d-4c01-b53f-c2ae276cc8c9,2026,Has the Entity enhanced its DMS backup and recovery capabilities to incorporate differential and incremental backup activities?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,SS1: Differential and Incremental Backup activities: Implement differential and incremental backup activities to reduce the volume of data transferred and stored during each backup operation,Proof of enhanced backup and recovery processes,DCM.2.2.7
+Document and Content Management,33896314-34ef-4463-a637-0eaa47e413ca,2026,Has the Entity  incorporated the document management system (DMS) into its overarching backup and recovery plan?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"SS1: The Entity shall incorporate the document management systems into the overarching backup and recovery plan, and the plan should include at minimum:
+• Definition of the criteria for determining critical records
+• Identification of critical records
+• Plans for the protection and recovery of critical records",DCM Backup & Recovery Procedures Document,DCM.2.2.6
+Document and Content Management,4f44aa3b-f161-4a8b-867b-9f01671520bd,2026,Has the Entity enhanced its versioning and control capabilities to include features such as automated change notifications and historical version comparison?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"SS1: Automated Change Notifications: Implement notifications that automatically alert relevant stakeholders when changes are made to critical documents
+SS2: Versions Comparison: Integrate tools within the DMS that allow users to easily compare different versions of a document. This feature shall highlight changes between versions, making it easier for users to review and understand modifications without having to manually inspect each version",Proof of enhanced versioning and control processes,DCM.2.2.5
+Document and Content Management,be26569d-8744-4a5a-ba71-77a6c0541515,2026,Has the Entity establish and enforce a versioning and control process within the its Document Management System (DMS)?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall establish and enforce a versioning and control process within the entity’s Document Management System (DMS). The process shall, at a minimum, have the following features:
+
+SS1: Systematic tracking of all changes made to documents
+SS2: Recovery of previous versions when necessary
+SS3: Complete history of all document modifications
+SS4: Real-time collaborative editing capabilities where document changes by multiple users are tracked and merged",Versioning and control process document,DCM.2.2.4
+Document and Content Management,1f21b51d-3614-4a89-b563-ce60969dfb57,2026,Has the Entity implement a records and content capture process to ensure collection of information across its platforms?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall implement a standardized records and content capture process to ensure collection of information across its platforms. The Entity shall, at a minimum, do the following:
+
+SS1: Catalog all documents by tagging documents with the appropriate metadata
+SS2: Define document quality criteria and conduct quality and usage assessments accordingly, and identify document redundancies or gaps
+SS3:  Evaluate and document how will the documents support the business requirements",Records and content capture process document,DCM.2.2.3
+Document and Content Management,d428984a-da8b-4308-9df7-d980f4902c10,2026,Has the Entity enhanced its  document & content management tooling capabilities to include additional advanced features as specified in the National Data Standards (as applicable)?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"SS1: The system shall include the following additional features:
+• OCR (Optical Character Recognition) functionality to analyze imported images
+• Document indexing
+• Documents workflows development
+• Workflow automation
+• Web Content Management System (WCMS): an application designed for storing and managing web content utilized by the Entity's portals and internet sites","Tool version upgrade logs
+Feature release notes",DCM.2.2.2
+Document and Content Management,913d69cb-bfdf-497e-8153-bc8de915d912,2026,"Has the Entity selected a Document & Content Management Tool in alignment with the 'Tool Selection Criteria Template' and implemented the tool, as provided in the National  Document & Content Management Guidelines?",false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall implement a Document Management System (DMS), which is a comprehensive tool for the electronic capture, storage, and management of documents, including electronic files and digital media.
+
+SS1: Design an architecture that methodically organizes documents and content to support the entity's business objectives and adhere to compliance standards. The architecture shall cover, at a minimum, the following:
+• Document versioning, including histories of changes
+• Secured document access
+•Global search and discovery on the registered documents
+• Collaboration capabilities",Proof of implemented tool for DCM and the record of digitized documents,DCM.2.2.1
+Document and Content Management,453998b2-3501-4847-9998-715b789bbee4,2026,Has the Entity developed an information architecture that identifies the links and relationships between documents and content and specifies document attributes?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall develop an information architecture. The architecture shall identify the links and relationships between documents and content and specify document attributes. In detail, the Entity shall:
+
+SS1: Design an architecture that methodically organizes documents and content to support the entity's business objectives and adhere to compliance standards. The architecture shall cover, at a minimum, the following:
+• Design and implement controlled vocabularies to ensure consistent terminology across all
+• Design and utilize taxonomies and ontologies to organize documents and content
+• Design navigation maps that facilitate easy access to documents and content
+• Design the metadata maps that outline the required metadata for documents and content
+• Specify search functionality that allows users to efficiently find documents and content
+• Design user flows that describe how users interact with documents and content",Information Architecture Document,DCM.2.1.4
+Document and Content Management,5b79840b-567f-4a32-8492-fc00784d3fa0,2026,Has the Entity  prioritized and designed the workflows that are to be implemented as automated workflows within the Document Management System (DMS)?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall prioritize and design the workflows that are to be implemented as automated workflows within the Document Management System (DMS). Prioritization shall be determined based on criteria such as, but not limited to business criticality and ease of implementation. The Entity shall:
+
+SS1: Develop a list of prioritized workflows based on critical business processes within the Entity to be implemented
+SS2: Design the identified prioritized workflows",List of Prioritized Document Workflows,DCM.2.1.3
+Document and Content Management,32cf1d20-637a-4306-9fd7-fa4525fc3c70,2026,Has the Entity developed a list of prioritized documents for storage and management that shall be utilized to optimize the setup and ongoing management of the Entity’s Document Management System (DMS)?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall:
+
+SS1: Develop list of prioritized documents for storage and management. The prioritized list of documents shall then be utilized to optimize the setup and ongoing management of the Entity’s Document Management System (DMS). Documents shall be prioritized considering their operational importance and relevance",List of Prioritized Documents,DCM.2.1.2
+Document and Content Management,918c46cd-3837-4b76-864d-49ca7be65aa5,2026,Has the Entity conducted an inventory assessment on the information assets that are currently available within the Entity?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall:
+
+SS1: Develop current state assessment report on the document management system or equivalent (if available) to ensure understanding and management of the Entity’s information assets",Inventory Assessment Report/ Document,DCM.2.1.1
+Document and Content Management,ccd62436-5aa5-4827-93a5-c6eb6fe43260,2026,"Has the Entity developed a   Document & Content Management Plan that will be used and monitored to implement and activate  document & content management initiatives across the Entity, in alignment with the 'Document & Content Management Plan Process and Template' as provided in the National   Document & Content Management Guidelines?",false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"Aligning with the Entity’s data strategy, the Entity shall develop a document and content management plan for implementation and activation of document and content management across the Entity. The plan shall include, at a minimum, the following:
+
+SS1: List of initiatives, activities, and milestones. The plan should account for quick wins and longer-term strategic changes
+SS2: List of owners and stakeholders
+SS3: Interdependencies, assumptions, and risks
+SS4: Implementation timeline and cost",Document & Content Management Plan document,DCM.1.2.1
+Document and Content Management,f1871ca2-7ed8-4e83-b406-d5d627657ed5,2026,Has the Entity implemented DCM monitoring & reporting mechanisms to track the Entity's DCM efficiency in alignment with the DCM scorecards and dashboard templates as provided in the National   Document & Content Management Guidelines?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall further monitor the Entity's Document Management System (DMS) on a regular basis based on the defined KPIs. Monitoring shall include, at a minimum, the following:
+
+SS1: Reports detailing performance against the established KPIs and tracking the issues and resolution
+SS2: Reporting of identified issues to the identified internal organizational unit responsible for managing documents and content",Document & Content Management scorecards and dashboards,DCM.3.1.3
+Document and Content Management,a870c220-73da-4f82-a527-3e39a8989236,2026,Has the Entity implemented an automated system to monitor SLA compliance and trigger notifications when SLAs are breached?,true,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,SS1: Automated Monitoring of SLAs: Implementing systems that automatically monitor compliance with SLAs. This ensures that issues are identified and addressed promptly without requiring manual checks,Implementation proof of an automated SLA monitoring system,DCM.3.1.6
+Document and Content Management,6cc92c53-afad-4d67-be79-dec3d7123b98,2026,Has the Entity established key performance indicators (KPIs) to measure on its document management efficiency?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.2,"The Entity shall establish key performance indicators (KPIs) to measure and report on the Document Management System (DMS). KPIs shall include, at a minimum, the following:
+
+SS1: Total quantity of documents stored and managed within the Entity's Document Management System (DMS)
+SS2: Total number of users accessing the Entity's Document Management System (DMS)
+SS3: Percentage of paper-based documents converted to electronic format within the Entity",List of defined and documented DCM KPIs,DCM.3.1.1
+Document and Content Management,f0fbda3c-212a-42ec-9251-80c769f8fc9c,2026,Has the Entity provided guidelines for document and content management audit aligned to the national data management compliance framework?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall provide input and support to internal and external auditors on document and content management related topics. The Entity shall:
+
+SS1: Provide audit guidelines for document and content management audit aligned to the national data management compliance framework - document and content management topic",Document & Content Management Audit Guidelines,DCM.3.1.7
+Document and Content Management,f0eebca3-f44a-4d50-a634-96d3a1dc599e,2026,Has the Entity developed a  Document & Content Management Policy in alignment with ' Document & Content Management Policy Template' provided in National  Document & Content Management Guidelines?,false,4b793d57-a04e-4618-a275-082fb5c81792,false,,0.1,"The Entity shall create a document and content management policy to ensure the secure, standardized handling and management of documents and content throughout their lifecycle (creation, storage, access, retrieval, retention, versioning, backup, disposition or archival).
+
+SS1: The policy shall cover, at a minimum:
+• Overview, purpose, scope, and objectives of the policy
+• Policy applicability, validity, and review
+• Policy guidelines in alignment to the National Data Management Policy and Standards
+• Detailed policy statements covering, at a minimum, the following:
+◦ Retention, archival, and disposal of documents
+◦ Security measures for each type of document
+◦ Document and content management tool features
+◦ Training and awareness
+• Roles and Responsibilities
+• References",Document & Content Management Policy document,DCM.1.1.1
+Master and Reference Data Management,1780892e-d49a-4ded-8fb5-5ab956b4dd20,2026,"Has the Entity identified, defined, and classified master and reference data attributes (e.g., customer, products, supplier data) to ensure they are accurately sourced and effectively managed?",false,78739b15-7c02-49be-b03e-2b0c2f502c22,true,"curl -X POST \   ""https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/p_MDMRDM"" \   -H ""Content-Type: application/json"" \   -H ""Accept: application/json"" \   -d '{         ""in_username"": """",         ""in_password"": """"       }'",0.1,"SS1: The Entity shall define and implement a systematic process for identifying Master & Reference data attributes and defining the Master & Reference data domains that need to be managed (e.g.: customer, product, and supplier data). The identified Master & Reference data attributes shall be prioritized, as needed, based on criticality to the Entity’s operations.",Updated Data Catalog (with documented master and reference data assets),MRDM.1.2.1
+Master and Reference Data Management,f0b5d8ba-220a-49fb-acf4-41079f403f4e,2026,Has the Entity selected and implemented a master & reference data nanagement tool in alignment with the 'MDM Tool Selection Criteria Template' provided in the National Master & Reference Data Management Guidelines?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall implement Master & Reference Data Management tool, aligned with the Entity’s technology architecture. The tools shall include, at a minimum:
+
+SS1: Workflow management for master and reference data (i.e.: manage and streamline workflows related to master and reference data)
+SS2: Version control for master and reference data (i.e.: support for maintaining multiple versions of and reference data)
+SS3: Master and reference data import and export capabilities (e.g.: XML)
+SS4: Validation and matching at data entry (i.e.: validate and match data at the point of entry and in batch processing)
+SS5: Web services integration (i.e.: integrate with external systems via web services for data interaction)",Test results generated by the implemented tool,MRDM.2.2.1
+Master and Reference Data Management,d2814f0b-de9b-4530-8e16-9a371feac542,2026,"Has the Entity designed a common architecture archetype for its master & reference data, in alignment with the 'MRD Requirements Template' provided in the National Master & Reference Data Management Guidelines?",false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"SS1: The Entity shall adopt a common architecture archetype for its master & reference data, in alignment with the enterprise data model, the data catalog & metadata standard, and the data architecture and modeling standard. Examples of common architecture archetypes include:
+• Registry: The registry model is the simplest form of MRDM architecture. It links multiple systems through a central registry that maintains a reference to Master & Reference data without storing the data itself. This model provides a consolidated view of Master & Reference data but doesn't centralize data storage
+• Consolidation: In the consolidation model, data from various source systems is aggregated into a central MDM hub. The MRDM system cleanses and deduplicates this data to create a ""golden record"" that serves as a read-only reference (data is not updated back to the source systems)
+• Coexistence: The coexistence model allows for the bidirectional flow of data between the MRDM hub and the source systems. This model both feeds the consolidated, cleansed data back into the source systems and receives ongoing updates from them
+• Centralized: Under the centralized model, the MRDM system acts as the primary source of Master & Reference data. All data is entered directly into the MRDM system and then distributed to other systems. This model provides the highest level of control over Master & Reference data",MDM Hub Architecture Design Document,MRDM.2.1.2
+Master and Reference Data Management,a40144d4-a1fb-420e-8015-d79c2999c3ee,2026,"Has the Entity developed  a master & reference data management plan, in alignment with the Entity’s data strategy, to guide the implementation of master and reference data management initiatives across the Entity?",false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall develop a detailed master and reference data management plan, in alignment with the Entity’s data strategy, that will be used and monitored to implement and activate master and reference data management initiatives across the Entity. The plan shall include, at a minimum:
+
+SS1: List of activities and milestones. The plan should account for quick wins and longer-term strategic changes
+SS2: Owners and stakeholders
+SS3: Interdependencies, assumptions, and risks
+SS4: Implementation timeline and cost","Initiatives Cards
+Master & Reference Data Management Plan Document",MRDM.1.2.3
+Master and Reference Data Management,e9ce42e6-d015-430d-bff8-e1606ed7c45b,2026,Has the Entity implemented an automated system to monitor SLA compliance and trigger notifications when SLAs are breached?,true,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,SS1: Automated Monitoring of SLAs: Implementing systems that automatically monitor compliance with SLAs. This ensures that issues are identified and addressed promptly without requiring manual checks,Implementation proof of an automated SLA monitoring system,DCM.3.1.6
+Master and Reference Data Management,52f512b9-4146-4490-80d7-7e0d4267e774,2026,"Has the Entity reviewed, approved, and published the  Master & Reference Data Management Policy following the defined process in the National  Master & Reference Data Management Guidelines?",false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall publish its master & reference data management policy following the below guidelines:
+
+SS1: Review the draft policy with the Entity’s Data Committee or equivalent body
+SS2: Incorporate Data Committee or equivalent body’s feedback
+SS3: Review draft policy for auditability
+SS4: Incorporate internal audit feedback
+SS5: Seek policy review and guidance from National Data Governance Office and incorporate the provided feedback
+SS6: Publish the policy on Entity’s digital channels (e.g. The entity website)
+SS7: Socialize the policy within the Entity to drive adoption and change management",Formal Policy dissemination communication material,MRDM.1.1.2
+Master and Reference Data Management,0ddf8f39-d019-4ca6-b1ed-68a863c40a1c,2026,Has the Entity developed  Master & Reference Data Management Policy  in alignment with ' Master & Reference Data Management Policy Template' provided in National  Master & Reference Data Management Guidelines?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall establish a Master & Reference Data Management Policy to enforce a single source of truth of Master & Reference Data throughout the Entity.
+
+SS1: The policy shall cover, at a minimum, the following:
+• Overview, purpose, scope, and objectives of the policy
+• Policy applicability, validity, and review
+• Policy guidelines in alignment to the National Data Management Policy and Standards
+• Detailed policy statements covering, at a minimum, the following:
+◦ Master and reference data plan
+◦ Identification of master and reference data
+◦ Implementation of technology to support master and reference data management
+◦ Operation of master and reference data to support consuming systems
+◦ Performance management and monitoring
+◦ Escalation and issue management
+◦ Periodic policy review and updates
+◦ Key policy performance indicators
+• Roles and Responsibilities
+• References",Master & Reference Data Management Policy document,MRDM.1.1.1
+Master and Reference Data Management,3314c113-e32d-4a83-b8b4-927d5dcee9e5,2026,Has the Entity established Key Performance Indicators (KPIs) to measure the effectiveness of Master & Reference Data Management efforts and guide continuous improvement initiatives?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,true,"curl --location 'https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/MRDM_3_1_2' \ --header 'Content-Type: application/json' \ --data-raw '{       ""in_username"": """",     ""in_password"": """" }'",0.1,"The Entity shall establish Key Performance Indicators (KPIs) to measure the effectiveness of Master & Reference Data Management efforts and guide continuous improvement initiatives. KPIs shall include, at minimum:
+
+SS1: Master and reference data quality metrics, as defined in the data quality domain (refer to DQM.3.2.1)",List of defined and documented Master & Reference Data Management KPIs,MRDM.3.1.2
+Master and Reference Data Management,0fb8452f-431c-4a17-ab4d-e86f3c03fa32,2026,Has the Entity identified and designated the authoritative source for each dataset?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,true,"curl --location 'https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/MRDM_1_2_2' \ --header 'Content-Type: application/json' \ --data-raw '{     ""in_username"": """",     ""in_password"" :"""" }'",0.1,"SS1: The Entity shall identify and document the authoritative data source for each master & reference data attribute, ensuring that it refers to and utilizes the Reference Data published by the National Planning Council (NPC), as it is the authoritative Entity for reference data.
+SS2: The Entity shall validate and obtain approval from NPC for the business specific Reference Data created internally. The Reference Data should only be consumed by the Entity after it has been officially approved and shared by NPC.
+SS3: For attributes where the Entity is not the authoritative data source nor the data custodian, the Entity shall define a request process for acquiring necessary master & reference data from the respective external authoritative sources
+SS4: For attributes where the Entity is the authoritative data source and/ or custodian, the Entity shall define a process to make these attributes available to external entities as required. This process for sharing the data shall ensure adherence to National Data Sharing, Integration, and Interoperability Standards",Updated Data Catalog (with designated authoritative sources for each dataset),MRDM.1.2.2
+Master and Reference Data Management,c25148b4-8d93-469c-bb1a-486ff870f62e,2026,"Has the Entity develop rules for accurately matching and merging attribute instances, in alignment with the 'MRDM Rules Template' provided in the National Master & Reference Data Management Guidelines?",false,78739b15-7c02-49be-b03e-2b0c2f502c22,true,"curl --location 'https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/P-MRDM-2-1-1' \ --header 'Content-Type: application/json' \ --data-raw '{     ""in_username"" : """",     ""in_password"" : """" }'",0.1,"The Entity shall develop rules for accurately matching and merging attribute instances. These shall include, at a minimum:
+
+SS1: Attribute trust rules that define the level of trust associated with specific attributes within a source system or across multiple systems (e.g.: an attribute trust rule may specify that the customer name from a verified and reliable source system has a higher trust level compared to the same attribute from other sources)
+SS2: Similarity rules for identifying duplicate attributes during the match process
+SS3: Survivorship rules that determine which data attributes will be chosen in the final master record during the merge process",MDM Rules Document,MRDM.2.1.1
+Master and Reference Data Management,25a5e1f2-af3b-4560-8d68-f18d37d44fd2,2026,Has the Entity assigned and documented roles and responsibilities for data stewardship activities to support ongoing the maintenance of master & reference data management?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,true,"curl --location 'https://emc1-cai.dm1-em.informaticacloud.com/active-bpel/public/rt/bHy4RORsmyRlzK8o3vcRmA/MRDM_3_1_1' \ --header 'Content-Type: application/json' \ --data-raw '{       ""in_username"": """",     ""in_password"": """" }'",0.1,"SS1: The Entity shall assign and document roles and responsibilities for data stewardship activities to support ongoing the maintenance of master & reference data management. Below is an indicative, non-exhaustive list of activities that data stewards can be expected to perform:
+• Monitoring and validating the quality and integrity of Master and Reference Data to ensure they are accurate, complete, and up to date in alignment with the Entity’s Data Quality Policy
+• Analyzing records to identify anomalies after the matching-merging process, and providing feedback to source system owners to improve data accuracy and consistency
+• Participating in the development and refinement and fine-tuning of algorithms and processes used in Master & Reference Data Management tools
+• Facilitating cross-departmental collaboration to establish and maintain common values and definitions for Master & Reference Data
+• Managing metadata for Master & Reference Data, including steward name, originating organization, expected frequency of updates, schedule for updates, and processes using the Master & Reference Data
+• Overseeing workflows for the review and approval of changes to Master & Reference Data",List of assigned MRDM data stewards and documented roles and responsibilities,MRDM.3.1.1
+Master and Reference Data Management,c2253c0f-d32d-4e6b-8013-4a318b420fad,2026,Has the Entity enhanced its Master & Reference Data Management monitoring and reporting capabilities?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall enhance its master and reference data management monitoring and reporting capabilities as follows:
+
+SS1: Align master and reference data quality monitoring and reporting to all the data quality monitoring and reporting advanced sub-specifications as outlined in DQM.3.2.2","Implementation proof of process control reports, master and reference data quality gate reports, and automated alerts for master and reference data quality issues",MRDM.3.1.4
+Master and Reference Data Management,699dda03-4fdd-46ab-81c5-b94fc1caad42,2026,Has the Entity established and documented Master & Reference Data Management SLAs in alignment with the 'Master & Reference Data Management SLAs template' as provided in the National Master & Reference Data Management Guidelines?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall establish and implement service-level agreements (SLAs) that specify the performance criteria for Master & Reference Data Management. The SLAs shall include, at a minimum:
+
+SS1: Align master and reference SLAs to all the data quality SLAs foundational sub-specifications as outlined in DQM.3.2.3",Master & Reference Data Management SLA document,MRDM.3.1.5
+Master and Reference Data Management,d83522ce-2f81-4506-8351-34ff0d8c788d,2026,Has the Entity implemented Master & Reference Data Management Monitoring & Reporting mechanisms to track the Entity’s master and reference data management efforts based on the defined KPIs?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall monitor and report on the Entity's master and reference data management efforts based on the defined KPIs. This shall include, at a minimum:
+
+SS1: Align master and reference data quality monitoring and reporting to all the data quality monitoring and reporting foundational sub-specifications as outlined in DQM.3.2.2
+SS2: A register recording all change requests for reference and master data, along with the decisions and rationale for each action taken in response to these requests`",Master & Reference Data Management scorecards and dashboards,MRDM.3.1.3
+Master and Reference Data Management,835db66d-14e0-4a8b-b106-5313c54a9c97,2026,Has the Entity enhanced its master & reference data management capabilities to include AI/ML-powered functionalities such as automated discovery and entity resolution?,false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall further enhance its data quality tooling capabilities to support the following:
+
+SS1: AI Powered Master and Reference Data Management (i.e.: providing an AI/ML approach to master and reference data management such as automated discovery and identification of master data, pre-trained ML models for entity resolution, etc.)","Tool version upgrade logs
+Feature release notes",MRDM.2.2.3
+Master and Reference Data Management,bdf3b811-fa17-4593-8608-ffd8841cd229,2026,"Has the Entity enhanced its master & reference data management capabilities to include advanced features such as API integration, real-time data synchronization, dataset version mapping, and support for hierarchical datasets and multilingual data?",false,78739b15-7c02-49be-b03e-2b0c2f502c22,false,,0.1,"The Entity shall enhance its master and reference data management tooling capabilities to support the following:
+
+SS1: API integration support (i.e.: facilitate integration with external systems through APIs)
+SS2: Dynamic data synchronization (i.e.: facilitate real-time data exchange across distributed systems)
+SS3: Dataset version mapping (i.e.: provide capabilities to map and manage transitions between dataset versions)
+SS4: Hierarchical datasets support (i.e.: support management of data in hierarchical structures)
+SS5:Multilingual data handling (e.g.: manage and support reference data in multiple languages)
+SS6: Customizable user interface design (i.e.: offer customizable interfaces to meet diverse operational needs)","Tool version upgrade logs
+Feature release notes",MRDM.2.2.2
+Statistics & Analytics,466034a0-ddd0-4248-913d-0bf29fce377f,2026,Has the Entity deployed its analytics platforms and tools in alignment with the strategic roadmap and architecture?,false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"SS1. The Entity shall implement its statistics and analytics platform in alignment with the Entity’s roadmap, statistics and analytics platform architecture, as well as the defined use case implementation plan",Proof of implementation of analytics platforms and tools,SA.2.2.1
+Statistics & Analytics,ebd18861-3056-4879-a634-1a874d903caa,2026,Has the Entity implemented its statistical indicators and analytics use cases in alignment with the predefined milestones and timelines specified in the roadmap?,false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"The Entity shall adhere to GSBPM model to ensure following best practices for the statistical implementation processes during the Statistics Indicators and Analytics Use Case Implementation Plan activation defined in SA.1.1.3. The Entity shall, at a minimum:
+
+SS1. Demonstrate progress by adhering to the predefined milestones and timelines specified in the roadmap
+SS2. Document deviations from the planned milestones and timelines, if any, and submit to the Data Committee for approval",Proof of implementation of use cases as per defined roadmap,SA.2.2.2
+Statistics & Analytics,1ce76a51-7569-43ce-ac2d-4ec57ab9911c,2026,"Has the Entity established key performance indicators (KPIs) to measure the effectiveness of Statistics Indicators and Analytics Use Cases and guide continuous improvement initiatives, in alignment with the 'Data Management KPIs Register Template' provided in the National Statistics & Analytics Guidelines?",false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"SS1. The Entity shall establish and maintain a comprehensive statistics and Analytics (KPIs) portfolio that includes, at a minimum, definitions, technical documentation and comprehensive descriptions of KPIs, calculation methods, and reporting frequencies of all the implemented indicators / use cases.",Statistics and Analytics KPIs Portfolio,SA.3.1.1
+Statistics & Analytics,959da951-72a4-4270-8fd8-e1c6a13349b9,2026,"Has the Entity  developed and maintained use case user guides/ manuals that provides instructions on the functionalities, operations, and best practices for running Statistics Indicators and Analytics Use Cases, in alignment with the 'Standard Operating Procedure (SOP)' template provided in the National Statistics & Analytics Guidelines?",false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"SS1. The Entity shall develop and maintain a use case user guides/ manuals that detail the functionalities and operations of the use cases. Below is a non-exhaustive, indicative guideline of the contents that can be included in a user guide:
+• Step-by-step instructions on how to access and navigate the analytics tools or platform
+• Detailed guidance on how to set up and run specific analyses, including screenshots and command descriptions
+• Explanation of various parameters that can be controlled by the user and their impacts on the analysis
+• Examples of how to interpret common outputs or results within the context of the use case
+• Support contact information (i.e.: how to get in touch with technical support or find further help)
+• Definitions of technical terms and jargon used throughout the guide",Statistics and Analytics User Guide Documents,SA.3.1.2
+Statistics & Analytics,2dae920a-38ca-4f9e-8e1f-a29b3a935ac6,2026,"Has the Entity implemented maintenance and reporting activities to ensure that the indicators and use cases portfolio are performing as expected, in alignment with the 'Change Request & Impact Assessment Template' provided in the National Statistics & Analytics Guidelines?",false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"The Entity shall implement maintenance and reporting activities to ensure that the indicators and use cases portfolio are performing as expected. The frequency of the process shall be aligned with the operations team capacity. These activities shall include, at a minimum:
+
+SS1. Measuring and monitoring the value realization metrics for each Indicator / use case against projected values in the charters (refer to SA.1.1.2.SS3)
+SS2. Operational monitoring of the indicators / use cases such as monitoring of the production pipeline (e.g.: through dashboards)
+SS3. Implementing tools to gather feedback from feedback from end-users and monitoring adoption for the deployed indicator / use cases (e.g.: surveys)
+SS4. Creating change request documents to address change requirements based on the feedback received from end-users",Change Request & Impact Assessment Reports,SA.3.1.3
+Statistics & Analytics,ec1c31d9-f607-4ece-bbe9-46e715041dff,2026,Has the Entity developed standardized guidelines and templates for reports and dashboards to ensure consistency and accuracy in data presentation across the Entity?,false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"SS1. The Entity shall develop standardized templates for reports and dashboards to ensure consistency and accuracy in data presentation across the Entity. These templates shall adhere to the Entity's branding guidelines, including the color scheme, typography, and logo placement, to maintain a cohesive visual identity throughout all internal and external communications",Standardized Templates and Branding Guidelines,SA.2.1.2
+Statistics & Analytics,ae5c3535-8508-4893-bea9-898c9a812611,2026,Has the Entity designed an integrated fit-for-purpose statistics and analytics platform and tools that are necessary to implement the planned statistics indicators and analytics use cases?,false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"The Entity shall design and plan for an integrated fit-for-purpose statistics and analytics platform and deployment of tools that are necessary to implement the planned statistics indicators and analytics use cases. The planned statistics and analytics platform and tools should allow for at a minimum:
+
+SS1. The ingestion of data from various sources available on the private network within the Entity, on the government wide network with other government entities and on the internet with other organizations beyond the Qatar Government
+SS2. The ability to ingest structured and unstructured data in a batched manner
+SS3. The ability to store, process, organize and catalog and explore the ingested data, to be consumed for analytics purposes, in a scalable and secure manner
+SS4. The ability to develop statistics and analytics models (covering Descriptive, Diagnostic, Predictive & Prescriptive), and visualize its outcomes
+SS5. The ability to serve raw and transformed data to other parties, to be consumed in a prepackaged format and as self-service",Statistics and Analytics Platform Design Documents,SA.2.1.1
+Statistics & Analytics,416635ee-ef3d-4c63-8128-2582120a96c5,2026,"Has the Entity  identified, prioritized, and documented statistics indicators and analytics use case portfolio based on the Entity’s business strategy and key sector requirements, in alignment with the 'Statistics Indicators and Analytics Use Case Prioritization Framework' and 'Statistics Indicators and Analytics Use Case Library' templates provided in the National Statistics & Analytics Guidelines?",false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"The Entity shall identify and prioritize statistics indicators and analytics use case portfolio based on the Entity's business strategy and key sector requirements. This list should extend beyond the indicators and use cases identified during the data strategy development phase, encompassing all the Entity’s business domains. This shall include, at a minimum:
+
+SS1. Conducting ideation workshops and identify a long list of use cases (covering descriptive, diagnostic, predictive and prescriptive use cases) and indicators documented in a portfolio, with its name, description, and stakeholders to be involved in this use case and indicator.
+SS2. Prioritize the long list of indicators and use cases for implementation based on a predefined prioritization framework/ matrix with criteria such as business impact and ease of implementation. Below is an indicative prioritization approach that can be followed:
+• High value, Low effort to build (i.e.: quick wins)
+• High value, High effort to build (i.e.: differentiators/ big projects)
+• Low value, Low effort (i.e.: fill-ins)
+• Low value, High effort (i.e.: time sinks/ money pits)","Statistics Indicators and Analytics Use Case Library
+Statistics Indicators and Analytics Use Case Details",SA.1.1.1
+Statistics & Analytics,759a3321-0eee-4b8a-ace3-42c23823b08e,2026,"Has the Entity developed a comprehensive roadmap to pilot, deploy, and monitor analytics use cases and indicators, in alignment with the 'Statistics Indicators and Analytics Use Case Implementation Plan Template' provided in the National Statistics & Analytics Guidelines?",false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"The Entity shall develop an implementation plan documenting the required activities to pilot the use cases and indicators, followed by production and then monitoring results. The implementation plan shall address, at a minimum:
+
+SS1. High-Level Design – Conceptual design of the solution (e.g.: wireframes)
+SS2. Staging and Production Environment Preparations – solution hosting environments during and after development
+SS3. Development – Functional and non-functional requirements to be developed to meet the high-level design
+SS4. Testing – Scope and types of testing to be conducted
+SS5. Deployment and Schedule – Timeline for establishing a pilot and/ or delivery of the complete use case
+SS6. Required Resources – Key personnel within the Entity who have the needed skills, expertise and knowledge to successfully implement the use case
+SS7. Acceptance Criteria – Key criteria for measuring the successful implementation of the analytics use case, including legal, security, ethical and privacy criteria",Statistics Indicators and Analytics Use Case Implementation Plan,SA.1.1.3
+Statistics & Analytics,cee96966-bfd3-4430-90d1-d235bd96cb76,2026,Has the Entity developed detailed charters for each shortlisted use case in alignment with the 'Statistics Indicators and Analytics Use Case Charter ' templates provided in the National Statistics & Analytics Guidelines?,false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"The Entity shall detail each shortlisted use case in charters. The use case charters shall be compiled in use cases portfolio and include, at a minimum:
+
+SS1. Use case description and development rationale
+SS2, Type of Analytics leveraged (i.e.: discovery, descriptive, diagnostic, predictive, prescriptive)
+SS3. The expected benefits and business value aimed to be derived (ROI), as well as the estimated costs of implementation through the development of a business case
+SS4. Stakeholders involved in the implementation of the use case, the owner that would lead the use case, and the target consumers that would benefit from the insights generated by the use case
+SS5. List of business requirements to implement the use case
+SS6. List of functional requirements to implement the use case
+SS7. Data sources that would feed the use case with the required data fields
+SS8. Dependencies that need to be overcome to initiate development of the data product (e.g.: technologies, resources, and capabilities required to implement the use cases)
+SS9. Indication if ethical, security and privacy components exist may exist and how they shall be addressed
+SS10. The Entity Shall document in details each shortlisted statistics indicator at minimum with:
+• Indicator Type
+• Description
+• Data elements
+• Data Source(s)
+• Calculation formula
+• Indicator owner","Statistics Indicators and Analytics Use Case Charter Templates - Analytics Use Case Charter
+Statistics Indicators and Analytics Use Case Charter Templates - Statistics Indicators Charter",SA.1.1.2
+Statistics & Analytics,d4f12aaf-7a15-4f6a-b3b0-d769a730fea0,2026,"Has the Entity  developed a data sourcing plan for each indicator/ use case identified based on the use case implementation plan, in alignment with the 'Statistics and Analytics Use Case Data Sourcing Plan Template' provided in the National Statistics & Analytics Guidelines?",false,91feeabb-ef97-493c-98b8-accdac8324f3,false,,0.1,"The Entity shall identify data sources and develop a data sourcing plan for each Indicator / use case identified based on the use case implementation plan. Data Sources shall include, but are not limited to:
+
+SS1. Internal data to the Entity
+SS2. Data from surveys and census
+SS3. Data from other Entities
+SS4. Data from 3rd party suppliers
+SS5. Open Data from the National Open Data platform
+SS6. Big Data",Statistics and Analytics Use Case Data Sourcing Plan,SA.1.1.4

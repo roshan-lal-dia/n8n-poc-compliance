@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS audit_questions (
     -- Cloud-sync path
     cloud_sync_api_url                TEXT,
     cloud_sync_evaluation_instruction TEXT,
+    accepted_evidence                 TEXT,
+    specification_number              TEXT,
 
     -- Audit trail
     created_at  TIMESTAMP DEFAULT NOW(),

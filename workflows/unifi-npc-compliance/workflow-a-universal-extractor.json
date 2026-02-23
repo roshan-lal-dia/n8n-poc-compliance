@@ -293,15 +293,46 @@
     },
     {
       "parameters": {
-        "command": "=libreoffice --headless --convert-to pdf \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.{{ $node[\"Set Binary Filename\"].json[\"fileExtension\"] }}\" --outdir /tmp/n8n_processing"
+        "command": "=python3 /scripts/excel_extractor.py \"/tmp/n8n_processing/{{ $node[\"Set Binary Filename\"].json[\"filePrefix\"] }}input.{{ $node[\"Set Binary Filename\"].json[\"fileExtension\"] }}\" \"{{ $node[\"Set Binary Filename\"].json[\"originalFileName\"] }}\""
       },
-      "id": "convert-excel-to-pdf",
-      "name": "Convert Excel to PDF",
+      "id": "extract-excel-python",
+      "name": "Extract Excel (Python)",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
         1940,
         660
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse excel_extractor.py stdout → Workflow A output contract\nconst item = $input.all()[0];\nconst exitCode = item.json.exitCode ?? 0;\nconst rawOut  = (item.json.stdout || '').trim();\nconst rawErr  = (item.json.stderr || '').trim();\n\nlet extracted;\ntry {\n  extracted = JSON.parse(rawOut);\n} catch (e) {\n  // stdout wasn't valid JSON — surface stderr as the error message\n  return [{ json: {\n    error: rawErr || `excel_extractor.py output was not valid JSON: ${rawOut.substring(0, 300)}`,\n    errorCode: 'EXCEL_PARSE_FAILED',\n    originalFileName: $node[\"Set Binary Filename\"].json.originalFileName\n  }}];\n}\n\n// If the extractor itself returned an error object, pass it through\nif (extracted.error) {\n  return [{ json: extracted }];\n}\n\n// Normalise to Workflow A output contract\nreturn [{ json: {\n  filePrefix:       extracted.filePrefix,\n  originalFileName: extracted.originalFileName,\n  totalPages:       extracted.totalPages,\n  totalWords:       extracted.totalWords,\n  hasDiagrams:      false,\n  fullDocument:     extracted.fullDocument,\n  pages:            extracted.pages,\n  metadata:         extracted.metadata\n}}];"
+      },
+      "id": "parse-excel-result",
+      "name": "Parse Excel Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "respond-error-excel",
+      "name": "Respond Error Excel",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2380,
+        800
       ]
     },
     {
@@ -691,7 +722,7 @@
         ],
         [
           {
-            "node": "Convert Excel to PDF",
+            "node": "Extract Excel (Python)",
             "type": "main",
             "index": 0
           }
@@ -749,16 +780,30 @@
         ]
       ]
     },
-    "Convert Excel to PDF": {
+    "Extract Excel (Python)": {
       "main": [
         [
           {
-            "node": "Extract Images",
+            "node": "Parse Excel Result",
             "type": "main",
             "index": 0
           }
         ]
       ]
+    },
+    "Parse Excel Result": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond Error Excel": {
+      "main": []
     },
     "Error: Unsupported Type": {
       "main": [

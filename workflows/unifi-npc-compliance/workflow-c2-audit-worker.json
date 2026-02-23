@@ -323,7 +323,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_logs SET step_name = 'searching', percentage = {{ 30 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 50) }}\nWHERE session_id = '{{ $('Consolidate Evidence Text').first().json.sessionId }}'::uuid AND question_id = '{{ $('Consolidate Evidence Text').first().json.qId }}' AND step_name = 'extracting';",
+        "query": "UPDATE audit_logs SET step_name = 'searching', percentage = {{ 30 + Math.floor((($('Split by Question').item.json.questionIndex + 1) / $('Split by Question').item.json.totalQuestions) * 50) }}\nWHERE session_id = '{{ $('Consolidate Evidence Text').first().json.sessionId }}'::uuid AND question_id = '{{ $('Consolidate Evidence Text').first().json.qId }}' AND step_name = 'extracting';",
         "options": {}
       },
       "id": "dd450847-c225-4807-ab85-64469917d8f5",
@@ -449,7 +449,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = {{ 85 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 10) }}\nWHERE session_id = '{{ $('Build AI Prompt').first().json.sessionId }}'::uuid AND question_id = '{{ $('Build AI Prompt').first().json.qId }}' AND step_name = 'searching';",
+        "query": "UPDATE audit_logs SET step_name = 'evaluating', percentage = {{ 80 + Math.floor((($('Split by Question').item.json.questionIndex + 1) / $('Split by Question').item.json.totalQuestions) * 10) }}\nWHERE session_id = '{{ $('Build AI Prompt').first().json.sessionId }}'::uuid AND question_id = '{{ $('Build AI Prompt').first().json.qId }}' AND step_name = 'searching';",
         "options": {}
       },
       "id": "9f589243-032f-49be-b108-b23978ceec7b",
@@ -503,7 +503,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, question_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}'::uuid,\n  'completed',\n  'success',\n  '{{ JSON.stringify($json.evaluation).replace(/'/g, \"''\") }}'::jsonb,\n  '{{ (\"Question evaluated successfully (Score: \" + $json.evaluation.score + \")\").replace(/'/g, \"''\") }}',\n  {{ 95 + Math.floor(($('Split by Question').first().json.questionIndex / $('Split by Question').first().json.totalQuestions) * 5) }}\n);",
+        "query": "INSERT INTO audit_logs (session_id, question_id, step_name, status, ai_response, message, percentage)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}'::uuid,\n  'completed',\n  'success',\n  '{{ JSON.stringify($json.evaluation).replace(/'/g, \"''\") }}'::jsonb,\n  '{{ (\"Question evaluated successfully (Score: \" + $json.evaluation.score + \")\").replace(/'/g, \"''\") }}',\n  {{ 90 + Math.floor((($('Split by Question').item.json.questionIndex + 1) / $('Split by Question').item.json.totalQuestions) * 9) }}\n);",
         "options": {}
       },
       "id": "0a2b895f-7b51-4727-8b34-b48852cb4dc3",
@@ -558,7 +558,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $('Aggregate Scores').first().json.sessionId }}'::uuid, 'completed', 'success', '{{ \"All \" + $('Aggregate Scores').first().json.totalQuestions + \" questions evaluated. Overall score: \" + $('Aggregate Scores').first().json.overallScore }}', 100);",
+        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nVALUES ('{{ $('Aggregate Scores').item.json.sessionId }}'::uuid, 'completed', 'success', 'All ' || {{ $('Aggregate Scores').item.json.totalQuestions }} || ' questions evaluated. Overall score: ' || {{ $('Aggregate Scores').item.json.overallScore }}, 100);",
         "options": {}
       },
       "id": "b5f3fe32-1b5a-431f-8430-2e4f7795ebb5",

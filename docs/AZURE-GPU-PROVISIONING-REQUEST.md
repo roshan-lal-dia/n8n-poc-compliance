@@ -455,3 +455,6 @@ Once the VM is provisioned and Steps 1–4 in Section 9 are complete, we will ve
 *Document prepared: February 23, 2026*  
 *VM retirement deadline: September 30, 2026 (NVv3-series)*  
 *NCv3 extended deadline (East US 2, West Europe, US Central): February 28, 2026 — **URGENT if this region is involved***
+
+
+Note : also hybrid search for the qdrant vecory search??

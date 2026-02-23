@@ -324,6 +324,8 @@ This is the n8n automation engine's own database. All IDs are UUIDs. No FK const
 | `cloud_sync_evaluation_instruction` | text | How to interpret the API response — populated when `is_cloud_sync_enabled = TRUE` |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | Auto-updated by trigger |
+| `specification_number` | text | The specification number for the question |
+| `accepted_evidence` | text | Evidence focused on the question expected docs |
 
 ### `audit_evidence`
 

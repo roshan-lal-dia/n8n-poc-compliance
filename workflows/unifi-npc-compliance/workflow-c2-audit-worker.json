@@ -268,7 +268,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO audit_evidence (session_id, question_id, domain_id, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}'::uuid,\n  '{{ $json.domain_id }}'::uuid,\n  '{{ $json.filename.replace(/'/g, \"''\") }}',\n  '{{ $json.fileHash }}',\n  {{ $json.fileSize }},\n  '{{ $json.extractedData.replace(/'/g, \"''\") }}'::jsonb,\n  {{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, question_id, file_hash) DO NOTHING;",
+        "query": "INSERT INTO audit_evidence (session_id, question_id, domain_id, filename, file_hash, file_size_bytes, extracted_data, evidence_order)\nVALUES (\n  '{{ $json.sessionId }}'::uuid,\n  '{{ $json.qId }}'::uuid,\n  '{{ $json.domain }}'::uuid,\n  '{{ $json.filename.replace(/'/g, \"''\") }}',\n  '{{ $json.fileHash }}',\n  {{ $json.fileSize }},\n  '{{ $json.extractedData.replace(/'/g, \"''\") }}'::jsonb,\n  {{ $json.evidenceOrder }}\n)\nON CONFLICT (session_id, question_id, file_hash) DO NOTHING;",
         "options": {}
       },
       "id": "73a9f217-7202-41fa-acd2-52f9646df9f4",

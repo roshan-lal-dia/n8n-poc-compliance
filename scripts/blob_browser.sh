@@ -129,8 +129,9 @@ cmd_dl() {
   local SAS; SAS=$(generate_sas "b" "$CONTAINER" "$ESCAPED_BLOB_PATH" "r" 2>/dev/null)
   local FULL_URL="${BASE_URL}/${CONTAINER}/${ESCAPED_BLOB_PATH}?${SAS}"
 
-  # Debugging: Print the full URL
-  echo "Generated URL: $FULL_URL"
+  # Debugging: Print URL without SAS query parameters to avoid credential leakage
+  local SAFE_URL="${FULL_URL%%\?*}"
+  echo "Generated URL (no SAS): $SAFE_URL"
 
   local CODE; CODE=$(curl -sf -w "%{http_code}" -o "$DEST" "$FULL_URL" 2>/dev/null; echo)
   local HTTP_CODE; HTTP_CODE=$(tail -c 3 <<< "$CODE")

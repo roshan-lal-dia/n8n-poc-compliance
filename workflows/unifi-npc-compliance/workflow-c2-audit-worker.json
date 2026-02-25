@@ -219,7 +219,7 @@
               "responseFormat": "json"
             }
           },
-          "timeout": 300000
+          "timeout": 1800000
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"

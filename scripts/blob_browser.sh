@@ -118,12 +118,24 @@ cmd_dl() {
   mkdir -p "$DEST_DIR"
   local FILENAME; FILENAME=$(basename "$BLOB_PATH")
   local DEST="${DEST_DIR}/${FILENAME}"
-  local SAS; SAS=$(generate_sas "b" "$CONTAINER" "$BLOB_PATH" "r" 2>/dev/null)
-  local CODE; CODE=$(curl -sf -w "%{http_code}" -o "$DEST" "${BASE_URL}/${CONTAINER}/${BLOB_PATH}?${SAS}" 2>/dev/null; echo)
-  # curl -w appends code after body; grab last 3 chars
+
+  # Debugging: Print paths and URLs
+  echo "Downloading blob: $BLOB_PATH"
+  echo "Destination: $DEST"
+
+  # Escape special characters in BLOB_PATH
+  local ESCAPED_BLOB_PATH; ESCAPED_BLOB_PATH=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe='/'))" "$BLOB_PATH")
+
+  local SAS; SAS=$(generate_sas "b" "$CONTAINER" "$ESCAPED_BLOB_PATH" "r" 2>/dev/null)
+  local FULL_URL="${BASE_URL}/${CONTAINER}/${ESCAPED_BLOB_PATH}?${SAS}"
+
+  # Debugging: Print URL without SAS query parameters to avoid credential leakage
+  local SAFE_URL="${FULL_URL%%\?*}"
+  echo "Generated URL (no SAS): $SAFE_URL"
+
+  local CODE; CODE=$(curl -sf -w "%{http_code}" -o "$DEST" "$FULL_URL" 2>/dev/null; echo)
   local HTTP_CODE; HTTP_CODE=$(tail -c 3 <<< "$CODE")
-  # re-run cleanly with -w only
-  HTTP_CODE=$(curl -s -o "$DEST" -w "%{http_code}" "${BASE_URL}/${CONTAINER}/${BLOB_PATH}?${SAS}")
+
   case "$HTTP_CODE" in
     200)
       local SIZE; SIZE=$(wc -c < "$DEST" | tr -d ' ')

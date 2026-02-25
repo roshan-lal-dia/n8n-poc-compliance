@@ -1,0 +1,61 @@
+name: Deploy n8n POC to Azure VM
+
+on:
+  push:
+    branches: [ main ]  # Default trigger: push to main
+  workflow_dispatch:      # Manual trigger from GitHub UI
+
+env:
+  # The path to the repository on the remote VM
+  DEPLOY_PATH: /home/azureuser/n8n-poc-compliance
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup SSH deployment key
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "StrictHostKeyChecking no" >> ~/.ssh/config
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_KEY }}
+
+    - name: Sync files to Azure VM
+      # rsync syncs our repo with the VM, excluding git history and sensitive/cache files
+      run: |
+        rsync -avz --delete \
+          --exclude '.git' \
+          --exclude '.github' \
+          --exclude '.env' \
+          --exclude 'temp-assets/' \
+          --exclude 'node_modules/' \
+          --exclude '__pycache__/' \
+          ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:$DEPLOY_PATH
+
+    - name: Execute Remote Deployment Script
+      # SSH into VM to rebuild images and restart services
+      run: |
+        ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
+          cd $DEPLOY_PATH &&
+          
+          # Optional: Make sure scripts are executable
+          chmod +x scripts/*.sh &&
+          
+          # 1. Rebuild the n8n image (picks up new Python deps like openpyxl)
+          docker compose -f docker-compose.prod.yml build n8n &&
+          
+          # 2. Rebuild Florence image (if anything changed there)
+          docker compose -f docker-compose.prod.yml build florence &&
+          
+          # 3. Bring up new containers (Docker applies changes gracefully)
+          docker compose -f docker-compose.prod.yml up -d &&
+          
+          # 4. Clean up old dangling images to save disk space
+          docker image prune -f
+        "

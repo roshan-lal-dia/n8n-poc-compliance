@@ -255,7 +255,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Store newly extracted evidence to database\nconst data = $input.first().json;\nconst insertStatements = [];\n\n// Safety check\nif (!data || !data.newExtractions || !Array.isArray(data.newExtractions)) {\n  return [];\n}\n\nlet order = 1;\nfor (const evidence of data.newExtractions) {\n  insertStatements.push({\n    sessionId: data.sessionId,\n    qId: data.qId,\n    domain: data.domain,\n    filename: evidence.filename,\n    fileHash: evidence.hash,\n    fileSize: evidence.fileSize,\n    extractedData: JSON.stringify(evidence.extractedData),\n    evidenceOrder: order++\n  });\n}\n\n// If nothing to insert, return empty array to skip DB insert\nif (insertStatements.length === 0) {\n  return [];\n}\n\nreturn insertStatements.map(s => ({ json: s }));"
+        "jsCode": "// Store newly extracted evidence to database\nconst allItems = $input.all();\nconst insertStatements = [];\n\n// Process each evidence item\nlet order = 1;\nfor (const item of allItems) {\n  const data = item.json;\n  \n  // Only insert if not from cache\n  if (data.fromCache === false) {\n    insertStatements.push({\n      sessionId: data.sessionId,\n      qId: data.qId,\n      domain: data.domain,\n      filename: data.filename,\n      fileHash: data.fileHash,\n      fileSize: data.fileSize,\n      extractedData: JSON.stringify(data.extractedData),\n      evidenceOrder: order++\n    });\n  }\n}\n\n// If nothing to insert, return empty array to skip DB insert\nif (insertStatements.length === 0) {\n  return [];\n}\n\nreturn insertStatements.map(s => ({ json: s }));"
       },
       "id": "6d8e5634-06bf-4e93-8e30-b032e748ffb2",
       "name": "Prepare Evidence Inserts",

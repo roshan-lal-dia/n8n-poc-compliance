@@ -524,7 +524,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// After all questions complete, aggregate scores\n// Get evaluation data from Parse AI Response, not from Log result\nconst allResults = $('Parse AI Response').all();\n\n// Safety check\nif (!allResults || allResults.length === 0) {\n  throw new Error('No question results to aggregate');\n}\n\n// Calculate average score\nconst scores = allResults.map(r => r.json?.evaluation?.score || 0);\nconst avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;\n\n// Get session ID from first result\nconst sessionId = allResults[0].json.sessionId;\n\nif (!sessionId) {\n  console.error('SessionId is undefined! First result:', JSON.stringify(allResults[0].json, null, 2));\n  throw new Error('SessionId not found in evaluation results');\n}\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    overallScore: Math.round(avgScore * 100) / 100,\n    totalQuestions: allResults.length,\n    questionResults: allResults.map(r => ({\n      qId: r.json.qId,\n      score: r.json?.evaluation?.score || 0,\n      compliant: r.json?.evaluation?.compliant || false\n    }))\n  }\n}];"
+        "jsCode": "// After all questions complete, aggregate scores\n// Get evaluation data from Log Evaluation Result (works for both cached and non-cached paths)\nconst allResults = $input.all();\n\n// Safety check\nif (!allResults || allResults.length === 0) {\n  throw new Error('No question results to aggregate');\n}\n\nconsole.log('=== AGGREGATE SCORES DEBUG ===');\nconsole.log('Total results:', allResults.length);\n\n// Extract scores from the logged data\n// The data structure comes from either Parse AI Response or Format Cached Response\nconst scores = [];\nconst questionResults = [];\nlet sessionId = null;\n\nfor (const result of allResults) {\n  const data = result.json;\n  \n  // Get session ID from first result\n  if (!sessionId && data.sessionId) {\n    sessionId = data.sessionId;\n  }\n  \n  // Extract evaluation data\n  const evaluation = data.evaluation || {};\n  const score = evaluation.score || 0;\n  const compliant = evaluation.compliant || false;\n  \n  scores.push(score);\n  questionResults.push({\n    qId: data.qId,\n    score: score,\n    compliant: compliant,\n    fromCache: data.fromMasterCache || false\n  });\n  \n  console.log(`Question ${data.qId}: score=${score}, cached=${data.fromMasterCache || false}`);\n}\n\n// Calculate average score\nconst avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;\n\nif (!sessionId) {\n  console.error('SessionId is undefined! First result:', JSON.stringify(allResults[0].json, null, 2));\n  throw new Error('SessionId not found in evaluation results');\n}\n\nconsole.log(`Overall score: ${avgScore.toFixed(2)}`);\nconsole.log(`Cache hits: ${questionResults.filter(q => q.fromCache).length}/${questionResults.length}`);\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    overallScore: Math.round(avgScore * 100) / 100,\n    totalQuestions: allResults.length,\n    questionResults: questionResults,\n    cacheHits: questionResults.filter(q => q.fromCache).length,\n    cacheMisses: questionResults.filter(q => !q.fromCache).length\n  }\n}];"
       },
       "id": "87e27c6e-dc45-4290-82e6-2643e2592a61",
       "name": "Aggregate Scores",
@@ -953,19 +953,18 @@
             "node": "Log Evaluation Result",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Log Evaluation Result": {
-      "main": [
-        [
+          },
           {
             "node": "Aggregate Scores",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Log Evaluation Result": {
+      "main": [
+        []
       ]
     },
     "Aggregate Scores": {
@@ -1040,6 +1039,11 @@
         [
           {
             "node": "Log Evaluation Result",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate Scores",
             "type": "main",
             "index": 0
           }

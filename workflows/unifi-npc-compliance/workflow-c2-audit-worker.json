@@ -6,7 +6,8 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes"
+              "field": "seconds",
+              "secondsInterval": 10
             }
           ]
         }
@@ -592,7 +593,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Find a previous session that evaluated this exact question with the exact same file hashes\nWITH current_hashes AS (\n  SELECT UNNEST(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]) AS hash\n),\ncurrent_hash_count AS (\n  SELECT COUNT(*) AS cnt FROM current_hashes\n),\nmatching_sessions AS (\n  SELECT \n    ae.session_id,\n    ae.question_id,\n    COUNT(DISTINCT ae.file_hash) AS file_count,\n    ARRAY_AGG(DISTINCT ae.file_hash ORDER BY ae.file_hash) AS file_hashes\n  FROM audit_evidence ae\n  WHERE ae.question_id = '{{ $('Split by Question').first().json.qId }}'::uuid\n    AND ae.file_hash IN (SELECT hash FROM current_hashes)\n  GROUP BY ae.session_id, ae.question_id\n  HAVING COUNT(DISTINCT ae.file_hash) = (SELECT cnt FROM current_hash_count)\n)\nSELECT \n  al.ai_response,\n  al.session_id AS cached_session_id,\n  ms.file_hashes\nFROM matching_sessions ms\nJOIN audit_logs al ON al.session_id = ms.session_id \n  AND al.question_id = ms.question_id\n  AND al.step_name = 'completed'\n  AND al.ai_response IS NOT NULL\nORDER BY al.created_at DESC\nLIMIT 1;",
+        "query": "-- Check if this exact question + file combination was evaluated before\nWITH current_hashes AS (\n  SELECT UNNEST(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]) AS hash\n),\ncurrent_hash_count AS (\n  SELECT COUNT(*) as cnt FROM current_hashes\n),\nmatching_sessions AS (\n  SELECT DISTINCT\n    al.session_id,\n    al.question_id,\n    al.ai_response,\n    al.created_at,\n    COUNT(DISTINCT ae.file_hash) as file_count\n  FROM audit_logs al\n  JOIN audit_evidence ae ON ae.session_id = al.session_id AND ae.question_id = al.question_id\n  WHERE al.question_id = '{{ $('Split by Question').first().json.qId }}'::uuid\n    AND al.step_name = 'completed'\n    AND al.status = 'success'\n    AND al.ai_response IS NOT NULL\n    AND ae.file_hash IN (SELECT hash FROM current_hashes)\n  GROUP BY al.session_id, al.question_id, al.ai_response, al.created_at\n  HAVING COUNT(DISTINCT ae.file_hash) = (SELECT cnt FROM current_hash_count)\n)\nSELECT\n  session_id,\n  question_id,\n  ai_response,\n  created_at\nFROM matching_sessions\nORDER BY created_at DESC\nLIMIT 1\nUNION ALL\nSELECT\n  NULL::uuid as session_id,\n  NULL::uuid as question_id,\n  NULL::jsonb as ai_response,\n  NULL::timestamp as created_at\nWHERE NOT EXISTS (SELECT 1 FROM matching_sessions)\nLIMIT 1;",
         "options": {}
       },
       "id": "master-cache-check-node-001",
@@ -653,72 +654,6 @@
       "position": [
         43984,
         1168
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "-- Check if this exact question + file combination was evaluated before\nWITH current_hashes AS (\n  SELECT UNNEST(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]) AS hash\n),\ncurrent_hash_count AS (\n  SELECT COUNT(*) as cnt FROM current_hashes\n),\nmatching_sessions AS (\n  SELECT DISTINCT\n    al.session_id,\n    al.question_id,\n    al.ai_response,\n    al.created_at,\n    COUNT(DISTINCT ae.file_hash) as file_count\n  FROM audit_logs al\n  JOIN audit_evidence ae ON ae.session_id = al.session_id AND ae.question_id = al.question_id\n  WHERE al.question_id = '{{ $('Split by Question').first().json.qId }}'::uuid\n    AND al.step_name = 'completed'\n    AND al.status = 'success'\n    AND al.ai_response IS NOT NULL\n    AND ae.file_hash IN (SELECT hash FROM current_hashes)\n  GROUP BY al.session_id, al.question_id, al.ai_response, al.created_at\n  HAVING COUNT(DISTINCT ae.file_hash) = (SELECT cnt FROM current_hash_count)\n)\nSELECT\n  session_id,\n  question_id,\n  ai_response,\n  created_at\nFROM matching_sessions\nORDER BY created_at DESC\nLIMIT 1;",
-        "options": {}
-      },
-      "id": "master-cache-check-node-id",
-      "name": "Check Master Cache",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        43536,
-        944
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "postgres-compliance"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "has-cached-result",
-              "leftValue": "={{ $json.ai_response !== undefined && $json.ai_response !== null }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "is-cached-if-node-id",
-      "name": "Is Cached?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        43760,
-        944
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Reuse cached AI evaluation from previous session\nconst cachedResult = $input.first().json;\nconst questionData = $('Split by Question').item.json;\n\nconsole.log('=== MASTER CACHE HIT ===');\nconsole.log('Reusing evaluation from session:', cachedResult.session_id);\nconsole.log('Original evaluation date:', cachedResult.created_at);\n\n// Extract the cached evaluation\nconst evaluation = cachedResult.ai_response;\n\n// Mock the output format of Parse AI Response\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    evaluation: evaluation,\n    rawResponse: JSON.stringify(evaluation),\n    ragSources: [],\n    sourceFiles: [],\n    promptLength: 0,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions,\n    fromMasterCache: true,\n    cachedFromSession: cachedResult.session_id,\n    cachedAt: cachedResult.created_at\n  }\n}];"
-      },
-      "id": "format-cached-response-node-id",
-      "name": "Format Cached Response",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        43984,
-        1144
       ]
     }
   ],

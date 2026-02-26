@@ -143,7 +143,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        43536,
+        43984,
         944
       ],
       "credentials": {
@@ -162,7 +162,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        43744,
+        44192,
         944
       ]
     },
@@ -194,7 +194,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        43968,
+        44416,
         944
       ]
     },
@@ -229,7 +229,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        44192,
+        44640,
         944
       ],
       "credentials": {
@@ -248,7 +248,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        44416,
+        44864,
         944
       ]
     },
@@ -261,7 +261,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        44640,
+        45088,
         944
       ]
     },
@@ -276,7 +276,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        44864,
+        45312,
         944
       ],
       "credentials": {
@@ -295,7 +295,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45088,
+        45536,
         944
       ]
     },
@@ -310,7 +310,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45312,
+        45760,
         944
       ],
       "credentials": {
@@ -331,7 +331,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45536,
+        45984,
         944
       ],
       "credentials": {
@@ -350,7 +350,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45536,
+        45984,
         944
       ]
     },
@@ -370,7 +370,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        45760,
+        46208,
         944
       ]
     },
@@ -383,7 +383,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45984,
+        46432,
         944
       ]
     },
@@ -396,7 +396,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        46208,
+        46656,
         944
       ]
     },
@@ -416,7 +416,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        46432,
+        46880,
         944
       ]
     },
@@ -429,7 +429,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        46656,
+        47104,
         944
       ]
     },
@@ -442,7 +442,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        46880,
+        47328,
         944
       ]
     },
@@ -457,7 +457,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        47104,
+        47552,
         944
       ],
       "credentials": {
@@ -483,7 +483,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        47328,
+        47776,
         944
       ]
     },
@@ -496,7 +496,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        47552,
+        48000,
         944
       ]
     },
@@ -511,7 +511,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        47776,
+        48224,
         944
       ],
       "credentials": {
@@ -530,7 +530,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        48000,
+        48448,
         944
       ]
     },
@@ -545,7 +545,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48224,
+        48672,
         944
       ],
       "credentials": {
@@ -566,7 +566,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48448,
+        48896,
         944
       ],
       "credentials": {
@@ -585,22 +585,22 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        48672,
+        49120,
         944
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM audit_evidence WHERE session_id = '{{ $('Cleanup: Temp Files').first().json.sessionId }}'::uuid;",
+        "query": "-- Find a previous session that evaluated this exact question with the exact same file hashes\nWITH current_hashes AS (\n  SELECT UNNEST(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]) AS hash\n),\ncurrent_hash_count AS (\n  SELECT COUNT(*) AS cnt FROM current_hashes\n),\nmatching_sessions AS (\n  SELECT \n    ae.session_id,\n    ae.question_id,\n    COUNT(DISTINCT ae.file_hash) AS file_count,\n    ARRAY_AGG(DISTINCT ae.file_hash ORDER BY ae.file_hash) AS file_hashes\n  FROM audit_evidence ae\n  WHERE ae.question_id = '{{ $('Split by Question').first().json.qId }}'::uuid\n    AND ae.file_hash IN (SELECT hash FROM current_hashes)\n  GROUP BY ae.session_id, ae.question_id\n  HAVING COUNT(DISTINCT ae.file_hash) = (SELECT cnt FROM current_hash_count)\n)\nSELECT \n  al.ai_response,\n  al.session_id AS cached_session_id,\n  ms.file_hashes\nFROM matching_sessions ms\nJOIN audit_logs al ON al.session_id = ms.session_id \n  AND al.question_id = ms.question_id\n  AND al.step_name = 'completed'\n  AND al.ai_response IS NOT NULL\nORDER BY al.created_at DESC\nLIMIT 1;",
         "options": {}
       },
-      "id": "a55ec688-b618-405a-856e-c5e1f74fa441",
-      "name": "Cleanup: Evidence DB",
+      "id": "master-cache-check-node-001",
+      "name": "Check Master Cache",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48896,
+        43536,
         944
       ],
       "credentials": {
@@ -609,6 +609,117 @@
           "name": "postgres-compliance"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-cached-response",
+              "leftValue": "={{ $json.ai_response !== undefined && $json.ai_response !== null }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-cached-if-node-002",
+      "name": "Is Cached?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        43760,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format cached AI response to match Parse AI Response output\nconst cachedData = $input.first().json;\nconst questionData = $('Split by Question').item.json;\n\n// Extract the cached evaluation\nconst evaluation = cachedData.ai_response;\n\nconsole.log('=== MASTER CACHE HIT ===');\nconsole.log('Using cached evaluation from session:', cachedData.cached_session_id);\nconsole.log('Question:', questionData.qId);\nconsole.log('File hashes matched:', cachedData.file_hashes);\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    evaluation: evaluation,\n    rawResponse: JSON.stringify(evaluation),\n    ragSources: [],\n    sourceFiles: [],\n    promptLength: 0,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions,\n    fromMasterCache: true,\n    cachedFromSession: cachedData.cached_session_id\n  }\n}];"
+      },
+      "id": "format-cached-response-003",
+      "name": "Format Cached Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        43984,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Check if this exact question + file combination was evaluated before\nWITH current_hashes AS (\n  SELECT UNNEST(ARRAY[{{ $('Split by Question').first().json.evidenceFiles.map(f => \"'\" + f.hash + \"'\").join(',') }}]::text[]) AS hash\n),\ncurrent_hash_count AS (\n  SELECT COUNT(*) as cnt FROM current_hashes\n),\nmatching_sessions AS (\n  SELECT DISTINCT\n    al.session_id,\n    al.question_id,\n    al.ai_response,\n    al.created_at,\n    COUNT(DISTINCT ae.file_hash) as file_count\n  FROM audit_logs al\n  JOIN audit_evidence ae ON ae.session_id = al.session_id AND ae.question_id = al.question_id\n  WHERE al.question_id = '{{ $('Split by Question').first().json.qId }}'::uuid\n    AND al.step_name = 'completed'\n    AND al.status = 'success'\n    AND al.ai_response IS NOT NULL\n    AND ae.file_hash IN (SELECT hash FROM current_hashes)\n  GROUP BY al.session_id, al.question_id, al.ai_response, al.created_at\n  HAVING COUNT(DISTINCT ae.file_hash) = (SELECT cnt FROM current_hash_count)\n)\nSELECT\n  session_id,\n  question_id,\n  ai_response,\n  created_at\nFROM matching_sessions\nORDER BY created_at DESC\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "master-cache-check-node-id",
+      "name": "Check Master Cache",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        43536,
+        944
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-cached-result",
+              "leftValue": "={{ $json.ai_response !== undefined && $json.ai_response !== null }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-cached-if-node-id",
+      "name": "Is Cached?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        43760,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reuse cached AI evaluation from previous session\nconst cachedResult = $input.first().json;\nconst questionData = $('Split by Question').item.json;\n\nconsole.log('=== MASTER CACHE HIT ===');\nconsole.log('Reusing evaluation from session:', cachedResult.session_id);\nconsole.log('Original evaluation date:', cachedResult.created_at);\n\n// Extract the cached evaluation\nconst evaluation = cachedResult.ai_response;\n\n// Mock the output format of Parse AI Response\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    evaluation: evaluation,\n    rawResponse: JSON.stringify(evaluation),\n    ragSources: [],\n    sourceFiles: [],\n    promptLength: 0,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions,\n    fromMasterCache: true,\n    cachedFromSession: cachedResult.session_id,\n    cachedAt: cachedResult.created_at\n  }\n}];"
+      },
+      "id": "format-cached-response-node-id",
+      "name": "Format Cached Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        43984,
+        1144
+      ]
     }
   ],
   "pinData": {},
@@ -683,7 +794,7 @@
       "main": [
         [
           {
-            "node": "Check Evidence Cache",
+            "node": "Check Master Cache",
             "type": "main",
             "index": 0
           }
@@ -957,9 +1068,43 @@
     },
     "Cleanup: Temp Files": {
       "main": [
+        []
+      ]
+    },
+    "Check Master Cache": {
+      "main": [
         [
           {
-            "node": "Cleanup: Evidence DB",
+            "node": "Is Cached?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Cached?": {
+      "main": [
+        [
+          {
+            "node": "Format Cached Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Evidence Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Cached Response": {
+      "main": [
+        [
+          {
+            "node": "Log Evaluation Result",
             "type": "main",
             "index": 0
           }

@@ -319,3 +319,41 @@ _____________________________________________________________
 ---
 
 **Status:** Ready for Deployment ✅
+
+
+---
+
+## Update 2026-02-26: Evidence Summary Original Filenames Fix
+
+### Issue
+The `evidence_summary` field was showing temporary file paths instead of original filenames from the API request.
+
+### Changes Made
+1. **Workflow C1** (`workflow-c1-audit-entry.json`):
+   - "Prepare File Writes" node: Added `originalFileName` field to preserve API filename
+   - "Aggregate Files" node: Use `originalFileName` instead of `fileName` (which gets overwritten)
+
+2. **Workflow C2** (`workflow-c2-audit-worker.json`):
+   - "Consolidate Evidence Text" node: Look up original filenames from `fileMap` using hash
+   - "Parse AI Response" node: Use `sourceFiles` from `promptData` for evidence summary
+
+### Deployment Steps
+1. Re-import Workflow C1 from `workflows/unifi-npc-compliance/workflow-c1-audit-entry.json`
+2. Re-import Workflow C2 from `workflows/unifi-npc-compliance/workflow-c2-audit-worker.json`
+3. Test with a new audit submission
+4. Verify `evidence_summary` shows original filenames
+
+### Documentation
+See `docs/EVIDENCE-SUMMARY-ORIGINAL-FILENAMES-FIX.md` for complete details.
+
+### Testing
+```bash
+curl -X POST http://localhost:5678/webhook/audit/submit \
+  -H "X-API-Key: your-secret-key" \
+  -F "domain=6ec7535e-6134-4010-9817-8c0849e8f59b" \
+  -F 'questions=[{"question_id":"1daa7d40-a975-4026-b6a9-818b34c2f3c0","files":["null0","null1"]}]' \
+  -F "null0=@NPC_DGO_QDKC_General_Initiative Card Template_V2.pptx" \
+  -F "null1=@NPC_DGO_QDKC_General_Data Management Domain Plan Template_V2.xlsx"
+```
+
+Expected result: `evidence_summary` should show original filenames, not temp paths.

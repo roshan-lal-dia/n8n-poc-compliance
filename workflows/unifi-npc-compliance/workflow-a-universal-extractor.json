@@ -378,21 +378,6 @@
     {
       "parameters": {
         "executeOnce": false,
-        "command": "=tesseract \"{{ $json.filePath }}\" stdout -l eng+ara --oem 3 --psm 3"
-      },
-      "id": "ocr-processing",
-      "name": "OCR Processing",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        2820,
-        220
-      ],
-      "executeOnce": false
-    },
-    {
-      "parameters": {
-        "executeOnce": false,
         "command": "=curl -v --retry 3 --retry-delay 2 -X POST -H \"Content-Type: application/json\" -d \"{\\\"filePath\\\": \\\"{{ $json.filePath }}\\\"}\" http://florence:5000/analyze"
       },
       "id": "florence-vision-analysis",
@@ -406,22 +391,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "options": {}
-      },
-      "id": "merge-vision-ocr",
-      "name": "Merge Vision & OCR",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [
-        3040,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst ocrItems = $('OCR Processing').all();\nconst visionItems = $('Florence Vision Analysis').all();\nconst metaItems = $('Prepare Generated File List').all();\n\nfor (let i = 0; i < items.length; i++) {\n  const ocrText = ocrItems[i]?.json?.stdout || '';\n  const visionText = visionItems[i]?.json?.stdout || '';\n  const meta = metaItems[i]?.json || {};\n  \n  let visionData = {};\n  try {\n    visionData = JSON.parse(visionText);\n  } catch (e) {\n    visionData = { raw: visionText };\n  }\n  \n  const text = ocrText;\n  const wordCount = text.split(/\\s+/).length;\n  const complexityScore = (wordCount < 50) ? 0.8 : 0.2;\n\n  results.push({\n    json: {\n      ...meta,\n      extractedText: text,\n      visionAnalysis: visionData,\n      wordCount,\n      complexityScore,\n      isDiagram: complexityScore > 0.5\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst visionItems = $('Florence Vision Analysis').all();\nconst metaItems = $('Prepare Generated File List').all();\n\nfor (let i = 0; i < items.length; i++) {\n  const visionText = visionItems[i]?.json?.stdout || '';\n  const meta = metaItems[i]?.json || {};\n  \n  let visionData = {};\n  let text = '';\n  try {\n    visionData = JSON.parse(visionText);\n    text = visionData.description || '';\n  } catch (e) {\n    text = visionText;\n    visionData = { raw: visionText };\n  }\n  \n  const wordCount = text.split(/\\s+/).length;\n  // Without Tesseract, if word count is low we guess it's a diagram\n  const complexityScore = (wordCount < 50) ? 0.8 : 0.2;\n\n  results.push({\n    json: {\n      ...meta,\n      extractedText: text,\n      visionAnalysis: visionData,\n      wordCount,\n      complexityScore,\n      isDiagram: complexityScore > 0.5\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "parse-ocr",
       "name": "Parse OCR & Vision",
@@ -831,11 +801,6 @@
       "main": [
         [
           {
-            "node": "OCR Processing",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Florence Vision Analysis",
             "type": "main",
             "index": 0
@@ -843,29 +808,7 @@
         ]
       ]
     },
-    "OCR Processing": {
-      "main": [
-        [
-          {
-            "node": "Merge Vision & OCR",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Florence Vision Analysis": {
-      "main": [
-        [
-          {
-            "node": "Merge Vision & OCR",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge Vision & OCR": {
       "main": [
         [
           {

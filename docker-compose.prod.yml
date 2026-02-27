@@ -85,7 +85,7 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    entrypoint: [ "/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull mistral-nemo:12b; wait" ]
+    entrypoint: [ "/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull mistral-nemo:12b; /bin/ollama pull nomic-embed-text; wait" ]
     healthcheck:
       # curl is not available in the ollama image — use the bundled CLI instead
       test: [ "CMD", "/bin/ollama", "list" ]
@@ -93,35 +93,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-
-  # ============================================
-  # Dedicated Embedding Service
-  # ============================================
-  embedding-service:
-    build:
-      context: ./embedding-service
-      dockerfile: Dockerfile
-    container_name: compliance-embeddings
-    restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-    ports:
-      - "8080:8080"
-    volumes:
-      - hf_model_cache:/app/hf_cache
-    healthcheck:
-      test: [ "CMD", "python3", "-c", "import urllib.request, sys; r = urllib.request.urlopen('http://localhost:8080/health', timeout=5); sys.exit(0 if r.status == 200 else 1)" ]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 120s
 
   # ============================================
   # Vision Service (Florence-2)
@@ -234,7 +205,7 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - QDRANT_HOST=http://qdrant:6333
       - FLORENCE_HOST=http://florence:5000
-      - EMBEDDING_HOST=http://embedding-service:8080
+      - EMBEDDING_HOST=http://ollama:11434
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -253,8 +224,6 @@ services:
       ollama:
         condition: service_started
       florence:
-        condition: service_started
-      embedding-service:
         condition: service_started
 
     healthcheck:

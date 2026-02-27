@@ -4,7 +4,16 @@ import sys
 import threading
 from unittest.mock import MagicMock
 
-# No flash_attn mock needed anymore — A10 GPU supports flash attention natively.
+# Mock flash_attn to bypass transformers dynamic module import check.
+# Florence-2's modeling file does `import flash_attn` at the top level.
+# We mock it so the import succeeds, but we force SDPA attention below
+# so flash_attn is never actually called at runtime.
+mock_flash = MagicMock()
+mock_flash.__spec__ = MagicMock()
+mock_flash.__version__ = "2.6.3"
+sys.modules["flash_attn"] = mock_flash
+sys.modules["flash_attn.flash_attn_interface"] = MagicMock()
+sys.modules["flash_attn.bert_padding"] = MagicMock()
 
 from flask import Flask, request, jsonify
 from PIL import Image
@@ -30,10 +39,12 @@ def load_model():
     global model, processor
     logger.info(f"Loading model: {model_id}...")
     try:
-        # Use default attention (flash_attn if installed and supported, else sdpa)
+        # Use SDPA (Scaled Dot Product Attention) — built into PyTorch 2.0+
+        # This avoids needing the external flash_attn package while still being fast on A10
         model = AutoModelForCausalLM.from_pretrained(
             model_id, 
-            trust_remote_code=True
+            trust_remote_code=True,
+            attn_implementation="sdpa"
         ).to(device)
         model.eval() # Explicitly set to eval mode
         processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)

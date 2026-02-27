@@ -59,6 +59,27 @@ def health():
         return jsonify({"status": "loading", "message": "Model is loading..."}), 503
     return jsonify({"status": "ready"}), 200
 
+def run_task(image, task_prompt):
+    """Run a single Florence-2 task and return the parsed result."""
+    with torch.inference_mode():
+        inputs = processor(text=task_prompt, images=image, return_tensors="pt").to(device)
+        generated_ids = model.generate(
+            input_ids=inputs["input_ids"],
+            pixel_values=inputs["pixel_values"],
+            max_new_tokens=1024,
+            do_sample=False,
+            num_beams=1,
+        )
+        generated_text = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
+        parsed = processor.post_process_generation(
+            generated_text,
+            task=task_prompt,
+            image_size=(image.width, image.height)
+        )
+        del inputs, generated_ids, generated_text
+        return parsed
+
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     if model is None:
@@ -68,11 +89,6 @@ def analyze():
     if not data or 'filePath' not in data:
         return jsonify({"error": "Missing 'filePath' in request body"}), 400
 
-    # The file path comes from n8n. 
-    # n8n sees it as /tmp/n8n_processing/...
-    # We mount that same volume to /shared_data/...
-    # So we need to map the path if they differ, or keep them identical.
-    # Strategy: We will mount the shared volume to /tmp/n8n_processing in THIS container too.
     image_path = data['filePath']
 
     if not os.path.exists(image_path):
@@ -83,39 +99,31 @@ def analyze():
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        prompt = "<MORE_DETAILED_CAPTION>"
-        
-        # Run inference in context manager to save memory
-        with torch.inference_mode():
-            inputs = processor(text=prompt, images=image, return_tensors="pt").to(device)
+        # Task 1: Visual description (for diagram detection & image understanding)
+        caption_prompt = "<MORE_DETAILED_CAPTION>"
+        caption_result = run_task(image, caption_prompt)
+        description = caption_result.get(caption_prompt, "")
 
-            generated_ids = model.generate(
-                input_ids=inputs["input_ids"],
-                pixel_values=inputs["pixel_values"],
-                max_new_tokens=1024,
-                do_sample=False,
-                num_beams=1,
-            )
+        # Task 2: OCR text extraction (replaces Tesseract)
+        ocr_prompt = "<OCR>"
+        ocr_result = run_task(image, ocr_prompt)
+        ocr_text = ocr_result.get(ocr_prompt, "")
 
-            generated_text = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-            parsed_answer = processor.post_process_generation(
-                generated_text, 
-                task=prompt, 
-                image_size=(image.width, image.height)
-            )
-        
-        description = parsed_answer.get(prompt, "")
-        
         # Cleanup
-        del inputs, generated_ids, generated_text
         import gc
         gc.collect()
-        
+        if device == "cuda":
+            torch.cuda.empty_cache()
+
+        logger.info(f"Analyzed {image_path}: caption={len(description)} chars, ocr={len(ocr_text)} chars")
+
         return jsonify({
             "description": description,
+            "ocr_text": ocr_text,
             "metadata": {
                 "model": model_id,
-                "image_size": image.size
+                "image_size": image.size,
+                "device": device
             }
         })
 

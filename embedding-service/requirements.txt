@@ -1,0 +1,5 @@
+torch
+sentence-transformers
+flask
+einops
+timm

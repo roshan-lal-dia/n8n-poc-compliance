@@ -4,13 +4,7 @@ import sys
 import threading
 from unittest.mock import MagicMock
 
-# Mock flash_attn to bypass transformers dynamic module import check
-# This is required to run Florence-2 on CPU-only environments where flash_attn cannot be installed.
-# We set __spec__ to verify it exists, but __version__ to 0.0.0 to force CPU fallback.
-mock_flash = MagicMock()
-mock_flash.__spec__ = MagicMock()
-mock_flash.__version__ = "0.0.0"
-sys.modules["flash_attn"] = mock_flash
+# No flash_attn mock needed anymore — A10 GPU supports flash attention natively.
 
 from flask import Flask, request, jsonify
 from PIL import Image
@@ -29,19 +23,17 @@ app = Flask(__name__)
 # Global model variables
 model = None
 processor = None
-device = "cpu"
-model_id = 'microsoft/Florence-2-base'
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model_id = 'microsoft/Florence-2-large-ft'
 
 def load_model():
     global model, processor
     logger.info(f"Loading model: {model_id}...")
     try:
-        # Force eager attention to avoid flash_attn requirements
-        # We still keep the sys.modules mock above just in case the dynamic code checks imports before config
+        # Use default attention (flash_attn if installed and supported, else sdpa)
         model = AutoModelForCausalLM.from_pretrained(
             model_id, 
-            trust_remote_code=True,
-            attn_implementation="eager" 
+            trust_remote_code=True
         ).to(device)
         model.eval() # Explicitly set to eval mode
         processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)

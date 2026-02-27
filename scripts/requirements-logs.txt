@@ -1,0 +1,2 @@
+# Requirements for n8n log export script
+psycopg2-binary>=2.9.9

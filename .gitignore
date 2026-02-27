@@ -11,3 +11,5 @@ internal-files/
 
 # Ignore all .env files
 .env*
+
+venv/

@@ -237,7 +237,8 @@
       "position": [
         1720,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -263,7 +264,8 @@
       "position": [
         1940,
         220
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -276,7 +278,8 @@
       "position": [
         1940,
         380
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -289,7 +292,8 @@
       "position": [
         1940,
         540
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -360,7 +364,8 @@
       "position": [
         2380,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -387,7 +392,8 @@
       "position": [
         2820,
         380
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -589,6 +595,47 @@
       "position": [
         460,
         300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "error-trigger-a",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconst errorMessage = error.message || error.error?.message || 'Unknown error in extraction pipeline';\nconst nodeName = error.node?.name || error.workflow?.name || 'Unknown';\n\nreturn [{\n  json: {\n    error: errorMessage,\n    errorCode: 'EXTRACTION_PIPELINE_ERROR',\n    failedNode: nodeName,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "format-pipeline-error-a",
+      "name": "Format Pipeline Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-pipeline-error-a",
+      "name": "Respond: Pipeline Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        800
       ]
     }
   ],
@@ -897,6 +944,28 @@
         [
           {
             "node": "Validate Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Pipeline Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Pipeline Error": {
+      "main": [
+        [
+          {
+            "node": "Respond: Pipeline Error",
             "type": "main",
             "index": 0
           }

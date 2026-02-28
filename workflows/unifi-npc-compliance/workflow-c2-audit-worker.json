@@ -238,7 +238,8 @@
           "id": "webhook-api-key",
           "name": "webhook-api-key"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -373,7 +374,8 @@
       "position": [
         46208,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -419,7 +421,8 @@
       "position": [
         46880,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -486,7 +489,8 @@
       "position": [
         47776,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -655,6 +659,74 @@
         43984,
         1168
       ]
+    },
+    {
+      "parameters": {},
+      "id": "error-trigger-c2",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        41984,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract error details from the Error Trigger\nconst errorData = $input.first().json;\nconst errorMessage = errorData.message || errorData.error?.message || 'Unknown error in audit worker';\nconst nodeName = errorData.node?.name || 'Unknown';\nconst executionId = errorData.execution?.id || 'unknown';\n\n// Try to get session ID from the execution context\n// The error trigger provides the execution data\nlet sessionId = null;\n\n// Try to extract from execution data\ntry {\n  const executionData = errorData.execution?.data;\n  if (executionData) {\n    // Look through node outputs for sessionId\n    const resultData = executionData.resultData?.runData;\n    if (resultData) {\n      for (const [nodeName, runs] of Object.entries(resultData)) {\n        for (const run of runs) {\n          for (const output of (run.data?.main || [])) {\n            for (const item of (output || [])) {\n              if (item?.json?.sessionId) {\n                sessionId = item.json.sessionId;\n                break;\n              }\n            }\n            if (sessionId) break;\n          }\n          if (sessionId) break;\n        }\n        if (sessionId) break;\n      }\n    }\n  }\n} catch (e) {\n  console.error('Could not extract sessionId from error context:', e.message);\n}\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    errorMessage: errorMessage,\n    failedNode: nodeName,\n    executionId: executionId,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "extract-error-details-c2",
+      "name": "Extract Error Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        42208,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE audit_sessions SET status = 'failed', completed_at = NOW(), metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('error', '{{ $json.errorMessage.replace(/'/g, \"''\") }}', 'failedNode', '{{ $json.failedNode }}', 'failedAt', '{{ $json.timestamp }}') WHERE session_id = '{{ $json.sessionId }}'::uuid AND status = 'processing';",
+        "options": {}
+      },
+      "id": "mark-session-failed-c2",
+      "name": "Mark Session Failed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        42432,
+        1400
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage) VALUES ('{{ $json.sessionId }}'::uuid, 'error', 'failed', '{{ (\"Error in \" + $json.failedNode + \": \" + $json.errorMessage).replace(/'/g, \"''\").substring(0, 500) }}', 0);",
+        "options": {}
+      },
+      "id": "log-error-to-db-c2",
+      "name": "Log Error to DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        42656,
+        1400
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -1044,6 +1116,39 @@
           },
           {
             "node": "Aggregate Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Error Details": {
+      "main": [
+        [
+          {
+            "node": "Mark Session Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Session Failed": {
+      "main": [
+        [
+          {
+            "node": "Log Error to DB",
             "type": "main",
             "index": 0
           }

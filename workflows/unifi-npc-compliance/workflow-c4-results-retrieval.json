@@ -56,7 +56,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "Compliance DB"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -77,7 +78,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "Compliance DB"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -137,6 +139,49 @@
       "position": [
         672,
         400
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "error-trigger-c4",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"error\": \"Internal server error while fetching results\", \"status\": 500 } }}",
+        "options": {}
+      },
+      "id": "format-error-c4",
+      "name": "Format Server Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-error-500-c4",
+      "name": "Respond: Server Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        448,
+        600
       ]
     }
   ],
@@ -207,6 +252,28 @@
         [
           {
             "node": "Respond: Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Server Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Server Error": {
+      "main": [
+        [
+          {
+            "node": "Respond: Server Error",
             "type": "main",
             "index": 0
           }

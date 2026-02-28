@@ -136,7 +136,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const extracted = $input.first().json;\nconst webhookData = $('Webhook: Ingest Standard').first();\nconst standardName = webhookData.json.query?.standardName || webhookData.json.body?.standardName || 'Unknown Standard';\nconst domain = webhookData.json.query?.domain || webhookData.json.body?.domain || 'General';\nconst version = webhookData.json.query?.version || webhookData.json.body?.version || '1.0';\n\nreturn [{\n  json: {\n    standardName,\n    domain,\n    version,\n    fullText: extracted.fullDocument,\n    totalPages: extracted.totalPages,\n    metadata: {\n      originalFileName: extracted.originalFileName,\n      totalWords: extracted.totalWords,\n      hasDiagrams: extracted.hasDiagrams,\n      uploadedAt: new Date().toISOString(),\n      fileHash: $('Calculate File Hash').first().json.fileHash\n    }\n  }\n}];"
+        "jsCode": "const extracted = $input.first().json;\n\n// Guard: if the upstream extractor returned an error, surface it clearly\nif (extracted.error || extracted.errorCode) {\n  throw new Error(`Extractor failed: ${extracted.error || extracted.errorMessage || JSON.stringify(extracted)}`);\n}\nif (!extracted.fullDocument && !extracted.fullText) {\n  throw new Error(`Extractor returned no text content. Keys received: ${Object.keys(extracted).join(', ')}`);\n}\n\nconst webhookData = $('Webhook: Ingest Standard').first();\nconst standardName = webhookData.json.query?.standardName || webhookData.json.body?.standardName || 'Unknown Standard';\nconst domain = webhookData.json.query?.domain || webhookData.json.body?.domain || 'General';\nconst version = webhookData.json.query?.version || webhookData.json.body?.version || '1.0';\n\nreturn [{\n  json: {\n    standardName,\n    domain,\n    version,\n    fullText: extracted.fullDocument || extracted.fullText || '',\n    totalPages: extracted.totalPages || 0,\n    metadata: {\n      originalFileName: extracted.originalFileName || 'unknown',\n      totalWords: extracted.totalWords || 0,\n      hasDiagrams: extracted.hasDiagrams || false,\n      uploadedAt: new Date().toISOString(),\n      fileHash: $('Calculate File Hash').first().json.fileHash\n    }\n  }\n}];"
       },
       "id": "3ed78410-eb6f-4532-a3d6-e5332349a8e5",
       "name": "Prepare Metadata",
@@ -145,11 +145,12 @@
       "position": [
         5056,
         1040
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const text = $input.first().json.fullText;\nconst chunkSize = 1000;\nconst chunkOverlap = 200;\nconst metadata = $input.first().json;\n\nconst chunks = [];\nconst words = text.split(/\\s+/);\n\nfor (let i = 0; i < words.length; i += (chunkSize - chunkOverlap)) {\n  const chunk = words.slice(i, i + chunkSize).join(' ');\n  if (chunk.trim().length > 50) {\n    chunks.push({\n      json: {\n        text: chunk,\n        chunkIndex: chunks.length,\n        standardName: metadata.standardName,\n        domain: metadata.domain,\n        version: metadata.version,\n        metadata: metadata.metadata\n      }\n    });\n  }\n}\n\nreturn chunks;"
+        "jsCode": "const text = $input.first().json.fullText || '';\nif (!text || text.trim().length === 0) {\n  throw new Error('No text content to chunk — fullText is empty or missing');\n}\nconst chunkSize = 1000;\nconst chunkOverlap = 200;\nconst metadata = $input.first().json;\n\nconst chunks = [];\nconst words = text.split(/\\s+/);\n\nfor (let i = 0; i < words.length; i += (chunkSize - chunkOverlap)) {\n  const chunk = words.slice(i, i + chunkSize).join(' ');\n  if (chunk.trim().length > 50) {\n    chunks.push({\n      json: {\n        text: chunk,\n        chunkIndex: chunks.length,\n        standardName: metadata.standardName,\n        domain: metadata.domain,\n        version: metadata.version,\n        metadata: metadata.metadata\n      }\n    });\n  }\n}\n\nreturn chunks;"
       },
       "id": "1818b43e-c68d-46a8-bf28-43f12d850f7d",
       "name": "Chunk Text",
@@ -158,7 +159,8 @@
       "position": [
         5280,
         1040
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -190,7 +192,8 @@
       "position": [
         5712,
         1040
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {

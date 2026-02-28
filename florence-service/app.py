@@ -4,13 +4,16 @@ import sys
 import threading
 from unittest.mock import MagicMock
 
-# Mock flash_attn to bypass transformers dynamic module import check
-# This is required to run Florence-2 on CPU-only environments where flash_attn cannot be installed.
-# We set __spec__ to verify it exists, but __version__ to 0.0.0 to force CPU fallback.
+# Mock flash_attn to bypass transformers dynamic module import check.
+# Florence-2's modeling file does `import flash_attn` at the top level.
+# We mock it so the import succeeds, but we force SDPA attention below
+# so flash_attn is never actually called at runtime.
 mock_flash = MagicMock()
 mock_flash.__spec__ = MagicMock()
-mock_flash.__version__ = "0.0.0"
+mock_flash.__version__ = "2.6.3"
 sys.modules["flash_attn"] = mock_flash
+sys.modules["flash_attn.flash_attn_interface"] = MagicMock()
+sys.modules["flash_attn.bert_padding"] = MagicMock()
 
 from flask import Flask, request, jsonify
 from PIL import Image
@@ -29,19 +32,19 @@ app = Flask(__name__)
 # Global model variables
 model = None
 processor = None
-device = "cpu"
-model_id = 'microsoft/Florence-2-base'
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model_id = 'microsoft/Florence-2-large-ft'
 
 def load_model():
     global model, processor
     logger.info(f"Loading model: {model_id}...")
     try:
-        # Force eager attention to avoid flash_attn requirements
-        # We still keep the sys.modules mock above just in case the dynamic code checks imports before config
+        # Use SDPA (Scaled Dot Product Attention) — built into PyTorch 2.0+
+        # This avoids needing the external flash_attn package while still being fast on A10
         model = AutoModelForCausalLM.from_pretrained(
             model_id, 
             trust_remote_code=True,
-            attn_implementation="eager" 
+            attn_implementation="sdpa"
         ).to(device)
         model.eval() # Explicitly set to eval mode
         processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
@@ -56,6 +59,27 @@ def health():
         return jsonify({"status": "loading", "message": "Model is loading..."}), 503
     return jsonify({"status": "ready"}), 200
 
+def run_task(image, task_prompt):
+    """Run a single Florence-2 task and return the parsed result."""
+    with torch.inference_mode():
+        inputs = processor(text=task_prompt, images=image, return_tensors="pt").to(device)
+        generated_ids = model.generate(
+            input_ids=inputs["input_ids"],
+            pixel_values=inputs["pixel_values"],
+            max_new_tokens=1024,
+            do_sample=False,
+            num_beams=1,
+        )
+        generated_text = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
+        parsed = processor.post_process_generation(
+            generated_text,
+            task=task_prompt,
+            image_size=(image.width, image.height)
+        )
+        del inputs, generated_ids, generated_text
+        return parsed
+
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     if model is None:
@@ -65,11 +89,6 @@ def analyze():
     if not data or 'filePath' not in data:
         return jsonify({"error": "Missing 'filePath' in request body"}), 400
 
-    # The file path comes from n8n. 
-    # n8n sees it as /tmp/n8n_processing/...
-    # We mount that same volume to /shared_data/...
-    # So we need to map the path if they differ, or keep them identical.
-    # Strategy: We will mount the shared volume to /tmp/n8n_processing in THIS container too.
     image_path = data['filePath']
 
     if not os.path.exists(image_path):
@@ -80,39 +99,31 @@ def analyze():
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        prompt = "<MORE_DETAILED_CAPTION>"
-        
-        # Run inference in context manager to save memory
-        with torch.inference_mode():
-            inputs = processor(text=prompt, images=image, return_tensors="pt").to(device)
+        # Task 1: Visual description (for diagram detection & image understanding)
+        caption_prompt = "<MORE_DETAILED_CAPTION>"
+        caption_result = run_task(image, caption_prompt)
+        description = caption_result.get(caption_prompt, "")
 
-            generated_ids = model.generate(
-                input_ids=inputs["input_ids"],
-                pixel_values=inputs["pixel_values"],
-                max_new_tokens=1024,
-                do_sample=False,
-                num_beams=1,
-            )
+        # Task 2: OCR text extraction (replaces Tesseract)
+        ocr_prompt = "<OCR>"
+        ocr_result = run_task(image, ocr_prompt)
+        ocr_text = ocr_result.get(ocr_prompt, "")
 
-            generated_text = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-            parsed_answer = processor.post_process_generation(
-                generated_text, 
-                task=prompt, 
-                image_size=(image.width, image.height)
-            )
-        
-        description = parsed_answer.get(prompt, "")
-        
         # Cleanup
-        del inputs, generated_ids, generated_text
         import gc
         gc.collect()
-        
+        if device == "cuda":
+            torch.cuda.empty_cache()
+
+        logger.info(f"Analyzed {image_path}: caption={len(description)} chars, ocr={len(ocr_text)} chars")
+
         return jsonify({
             "description": description,
+            "ocr_text": ocr_text,
             "metadata": {
                 "model": model_id,
-                "image_size": image.size
+                "image_size": image.size,
+                "device": device
             }
         })
 

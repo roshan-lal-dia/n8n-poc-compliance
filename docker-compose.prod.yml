@@ -21,7 +21,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U n8n -d compliance_db"]
+      test: [ "CMD-SHELL", "pg_isready -U n8n -d compliance_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -40,7 +40,7 @@ services:
     environment:
       QDRANT__SERVICE__GRPC_PORT: 6334
     healthcheck:
-      test: ["CMD-SHELL", "timeout 5s bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      test: [ "CMD-SHELL", "timeout 5s bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,7 +59,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,14 +71,24 @@ services:
     image: ollama/ollama:latest
     container_name: compliance-ollama
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OLLAMA_NUM_GPU=1
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    entrypoint: ["/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull llama3.2; /bin/ollama pull nomic-embed-text; wait"]
+    entrypoint: [ "/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull mistral-nemo:12b; /bin/ollama pull nomic-embed-text; wait" ]
     healthcheck:
       # curl is not available in the ollama image — use the bundled CLI instead
-      test: ["CMD", "/bin/ollama", "list"]
+      test: [ "CMD", "/bin/ollama", "list" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -93,15 +103,23 @@ services:
       dockerfile: Dockerfile
     container_name: compliance-florence
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
     ports:
       - "5000:5000"
     volumes:
       - shared_processing:/tmp/n8n_processing
-      - florence_model_cache:/app/hf_cache
+      - hf_model_cache:/app/hf_cache
     healthcheck:
       # curl is not available in the python-slim image — use stdlib urllib instead
-      test: ["CMD", "python3", "-c",
-             "import urllib.request, sys; r = urllib.request.urlopen('http://localhost:5000/health', timeout=5); sys.exit(0 if r.status == 200 else 1)"]
+      test: [ "CMD", "python3", "-c", "import urllib.request, sys; r = urllib.request.urlopen('http://localhost:5000/health', timeout=5); sys.exit(0 if r.status == 200 else 1)" ]
       interval: 30s
       timeout: 15s
       retries: 3
@@ -187,6 +205,7 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - QDRANT_HOST=http://qdrant:6333
       - FLORENCE_HOST=http://florence:5000
+      - EMBEDDING_HOST=http://ollama:11434
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -208,7 +227,7 @@ services:
         condition: service_started
 
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -228,7 +247,7 @@ volumes:
     driver: local
   ollama_data:
     driver: local
-  florence_model_cache:
+  hf_model_cache:
     driver: local
   shared_processing:
     driver: local

@@ -15,13 +15,10 @@ COPY --from=builder /var/cache/apk /var/cache/apk
 # Added font packages to ensure proper rendering
 # Added openjdk11-jre for LibreOffice PPTX conversion
 # Optimization: Combined install/build/cleanup to reduce image size
-RUN apk update && apk add --no-cache \
+RUN (apk update || sleep 5 && apk update) && apk add --no-cache \
     libreoffice \
     openjdk11-jre \
     poppler-utils \
-    tesseract-ocr \
-    tesseract-ocr-data-eng \
-    tesseract-ocr-data-ara \
     font-noto \
     font-noto-cjk \
     terminus-font \
@@ -30,12 +27,8 @@ RUN apk update && apk add --no-cache \
     curl \
     python3 \
     py3-pip \
-    && apk add --no-cache --virtual .build-deps \
-    python3-dev \
-    gcc \
-    musl-dev \
-    linux-headers \
-    && pip3 install --no-cache-dir pdfplumber openpyxl pandas --break-system-packages \
+    && (apk add --no-cache --virtual .build-deps python3-dev gcc musl-dev linux-headers || sleep 5 && apk add --no-cache --virtual .build-deps python3-dev gcc musl-dev linux-headers) \
+    && (pip3 install --no-cache-dir pdfplumber openpyxl pandas --break-system-packages || sleep 5 && pip3 install --no-cache-dir pdfplumber openpyxl pandas --break-system-packages) \
     && apk del .build-deps
 
 # Ensure the shared directory has correct permissions

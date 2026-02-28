@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python deps
-# Optimization: Force PyTorch CPU version (~3GB savings)
-RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+# Optimization: Install PyTorch with CUDA 12.1 support for GPU acceleration
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --no-cache-dir
 # Install remaining deps (including gunicorn for production)
 RUN pip install --no-cache-dir -r requirements.txt gunicorn
 

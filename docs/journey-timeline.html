@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>n8n Compliance Engine — Project Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #12121a;
+  --bg-card-hover: #1a1a2e;
+  --border: #1e1e30;
+  --border-glow: rgba(99, 102, 241, 0.3);
+  --text: #e2e2f0;
+  --text-dim: #8888aa;
+  --text-muted: #555570;
+  --accent-1: #6366f1;
+  --accent-2: #8b5cf6;
+  --accent-3: #06b6d4;
+  --accent-4: #10b981;
+  --accent-5: #f59e0b;
+  --accent-6: #ef4444;
+  --accent-7: #ec4899;
+  --gradient-main: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* === HERO === */
+.hero {
+  position: relative;
+  min-height: 60vh;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  padding: 2rem;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(99,102,241,0.15) 0%, transparent 70%),
+              radial-gradient(ellipse at 20% 80%, rgba(6,182,212,0.1) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.1) 0%, transparent 50%);
+}
+.hero-content { position: relative; z-index: 2; max-width: 800px; }
+.hero h1 {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: var(--gradient-main);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+}
+.hero .subtitle {
+  font-size: 1.25rem; color: var(--text-dim); font-weight: 300;
+  max-width: 600px; margin: 0 auto 2rem;
+}
+
+/* Stats ribbon */
+.stats-ribbon {
+  display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;
+  margin-top: 2rem;
+}
+.stat-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  min-width: 140px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+.stat-box:hover {
+  border-color: var(--border-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99,102,241,0.1);
+}
+.stat-number {
+  font-size: 2rem; font-weight: 800;
+  background: var(--gradient-main);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.stat-label { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* === FILTER BAR === */
+.filter-bar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem;
+  display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+}
+.filter-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem; font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.filter-btn:hover, .filter-btn.active {
+  border-color: var(--accent-1);
+  color: white;
+  background: rgba(99,102,241,0.15);
+}
+.filter-btn .count { font-size: 0.7rem; opacity: 0.6; margin-left: 4px; }
+
+/* === TIMELINE === */
+.timeline-container { max-width: 1000px; margin: 0 auto; padding: 3rem 2rem; }
+.phase-section { margin-bottom: 4rem; }
+.phase-header {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.phase-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.phase-title { font-size: 1.4rem; font-weight: 700; }
+.phase-dates { font-size: 0.8rem; color: var(--text-dim); }
+.phase-desc { font-size: 0.9rem; color: var(--text-dim); margin-top: 0.25rem; }
+
+/* Timeline line */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--border), transparent);
+}
+
+/* Commit cards */
+.commit {
+  position: relative;
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: slideIn 0.4s ease forwards;
+}
+.commit:nth-child(1) { animation-delay: 0s; }
+.commit:nth-child(2) { animation-delay: 0.02s; }
+.commit:nth-child(3) { animation-delay: 0.04s; }
+.commit:nth-child(4) { animation-delay: 0.06s; }
+.commit:nth-child(5) { animation-delay: 0.08s; }
+
+.commit::before {
+  content: '';
+  position: absolute;
+  left: -2rem; top: 1rem;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+.commit:hover::before {
+  border-color: var(--accent-1);
+  background: var(--accent-1);
+  box-shadow: 0 0 12px rgba(99,102,241,0.5);
+}
+
+.commit-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.commit-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-glow);
+  transform: translateX(4px);
+}
+.commit-meta {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.commit-hash {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--accent-3);
+  background: rgba(6,182,212,0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.commit-date { font-size: 0.75rem; color: var(--text-muted); }
+.commit-tag {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tag-feat { background: rgba(16,185,129,0.15); color: #10b981; }
+.tag-fix { background: rgba(239,68,68,0.15); color: #ef4444; }
+.tag-refactor { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+.tag-docs { background: rgba(6,182,212,0.15); color: #06b6d4; }
+.tag-chore { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.tag-merge { background: rgba(136,136,170,0.1); color: var(--text-muted); }
+
+.commit-msg { font-size: 0.85rem; font-weight: 500; }
+.commit.hidden { display: none; }
+
+/* Milestone markers */
+.milestone {
+  margin: 2rem 0;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.05));
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.milestone::after {
+  content: '🏁';
+  position: absolute;
+  right: 1rem; top: 50%;
+  transform: translateY(-50%);
+  font-size: 2rem;
+  opacity: 0.3;
+}
+.milestone-title { font-weight: 700; font-size: 1rem; color: var(--accent-1); }
+.milestone-desc { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem; }
+
+/* Architecture diagram section */
+.arch-section {
+  max-width: 1000px; margin: 0 auto 4rem; padding: 0 2rem;
+}
+.arch-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  overflow-x: auto;
+}
+.arch-card h2 {
+  font-size: 1.5rem; margin-bottom: 1.5rem;
+  background: var(--gradient-main);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.arch-flow {
+  display: flex; align-items: center; gap: 0.5rem;
+  flex-wrap: wrap; justify-content: center;
+  padding: 1rem 0;
+}
+.arch-node {
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-1);
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+.arch-node:hover {
+  background: rgba(99,102,241,0.2);
+  transform: scale(1.05);
+}
+.arch-node.gpu { border-color: rgba(16,185,129,0.4); color: var(--accent-4); background: rgba(16,185,129,0.1); }
+.arch-node.db { border-color: rgba(245,158,11,0.4); color: var(--accent-5); background: rgba(245,158,11,0.1); }
+.arch-node.ai { border-color: rgba(236,72,153,0.4); color: var(--accent-7); background: rgba(236,72,153,0.1); }
+.arch-arrow { color: var(--text-muted); font-size: 1.2rem; }
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+@keyframes slideIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 640px) {
+  .stats-ribbon { gap: 0.75rem; }
+  .stat-box { min-width: 100px; padding: 0.75rem 1rem; }
+  .stat-number { font-size: 1.5rem; }
+  .timeline { padding-left: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-content">
+    <h1>Project Journey</h1>
+    <p class="subtitle">n8n Compliance Engine — From first commit to production-ready GPU-accelerated audit system</p>
+    <div class="stats-ribbon">
+      <div class="stat-box"><div class="stat-number">115</div><div class="stat-label">Commits</div></div>
+      <div class="stat-box"><div class="stat-number">26</div><div class="stat-label">Days</div></div>
+      <div class="stat-box"><div class="stat-number">6</div><div class="stat-label">Workflows</div></div>
+      <div class="stat-box"><div class="stat-number">8</div><div class="stat-label">Services</div></div>
+      <div class="stat-box"><div class="stat-number">3</div><div class="stat-label">Branches</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ARCHITECTURE ===== -->
+<section class="arch-section">
+  <div class="arch-card">
+    <h2>Final Architecture</h2>
+    <div class="arch-flow">
+      <div class="arch-node">📤 Webhook API</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">⚙️ n8n Workflows (A–C4)</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node ai">🤖 Florence-2 OCR</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node gpu">🧠 Mistral Nemo 12B</div>
+    </div>
+    <div class="arch-flow" style="margin-top:-0.5rem">
+      <div class="arch-node db">🐘 PostgreSQL</div>
+      <span class="arch-arrow">↔</span>
+      <div class="arch-node">📋 Redis Queue</div>
+      <span class="arch-arrow">↔</span>
+      <div class="arch-node gpu">🔍 Qdrant (RAG)</div>
+      <span class="arch-arrow">↔</span>
+      <div class="arch-node">☁️ Azure Blob</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FILTER BAR ===== -->
+<div class="filter-bar">
+  <button class="filter-btn active" data-filter="all">All <span class="count">(115)</span></button>
+  <button class="filter-btn" data-filter="feat">Features</button>
+  <button class="filter-btn" data-filter="fix">Fixes</button>
+  <button class="filter-btn" data-filter="refactor">Refactor</button>
+  <button class="filter-btn" data-filter="docs">Docs</button>
+  <button class="filter-btn" data-filter="chore">Chore</button>
+</div>
+
+<!-- ===== TIMELINE ===== -->
+<div class="timeline-container" id="timeline">
+</div>
+
+<footer class="footer">
+  Generated on Feb 28, 2026 • n8n Compliance Engine • Roshan Lal J
+</footer>
+
+<script>
+// ============================================================
+// Commit data (parsed from git log)
+// ============================================================
+const commits = [
+  // Phase 8: Polish & Error Handling (Feb 28)
+  {date:"2026-02-28",hash:"e3f6d1e",msg:"feat: add PowerShell KB upload script for bulk ingestion of 14 standards",tag:"feat",phase:8},
+  {date:"2026-02-28",hash:"64d9fcd",msg:"feat: add comprehensive error handling to all 6 workflows",tag:"feat",phase:8},
+  {date:"2026-02-28",hash:"49be2d8",msg:"Merge pull request #6 from roshan-lal-dia/new-arch",tag:"merge",phase:8},
+  {date:"2026-02-28",hash:"55fe762",msg:"remove old",tag:"chore",phase:8},
+  // Phase 7: GPU Architecture (Feb 27)
+  {date:"2026-02-27",hash:"af3c510",msg:"feat: add OCR text extraction to Florence-2 alongside vision analysis",tag:"feat",phase:7},
+  {date:"2026-02-27",hash:"37ea434",msg:"feat: add schema.sql and seed.sql for GPU VM database initialization",tag:"feat",phase:7},
+  {date:"2026-02-27",hash:"e6346f4",msg:"fix: update workflow-a to use Florence standalone for OCR and Vision",tag:"fix",phase:7},
+  {date:"2026-02-27",hash:"4004447",msg:"chore: remove unused embedding-service directory",tag:"chore",phase:7},
+  {date:"2026-02-27",hash:"9bd28a3",msg:"fix: switch embeddings to Ollama nomic-embed-text, remove custom embedding-service",tag:"fix",phase:7},
+  {date:"2026-02-27",hash:"81e79e3",msg:"fix: restore flash_attn mock and use SDPA attention for Florence-2",tag:"fix",phase:7},
+  {date:"2026-02-27",hash:"bec0177",msg:"fix: add retry loops to apk update and pip install for flaky Azure network",tag:"fix",phase:7},
+  {date:"2026-02-27",hash:"c78d8fb",msg:"docs: add successful GPU setup workflow instructions",tag:"docs",phase:7},
+  {date:"2026-02-27",hash:"f3db522",msg:"feat: GPU architecture upgrade, mistral-nemo, and embedding service",tag:"feat",phase:7},
+  {date:"2026-02-27",hash:"d34c381",msg:"Merge pull request #5 from roshan-lal-dia/new-arch",tag:"merge",phase:7},
+  {date:"2026-02-27",hash:"2f3b33d",msg:"restore docker compose",tag:"fix",phase:7},
+  {date:"2026-02-27",hash:"c05779b",msg:"Merge pull request #4 from roshan-lal-dia/new-arch",tag:"merge",phase:7},
+  {date:"2026-02-27",hash:"0d415fa",msg:"chore: Clean up temporary documentation and debug artifacts",tag:"chore",phase:7},
+  // Phase 6: Evidence & Caching (Feb 25-26)
+  {date:"2026-02-26",hash:"4eb7ead",msg:"chore: Add execution log and evidence preparation script",tag:"chore",phase:6},
+  {date:"2026-02-26",hash:"f785a74",msg:"chore: Add execution log and debug utilities for workflow-c2",tag:"chore",phase:6},
+  {date:"2026-02-26",hash:"7cfd725",msg:"chore: Add execution log and evidence consolidation script",tag:"chore",phase:6},
+  {date:"2026-02-26",hash:"fafb3b1",msg:"chore: Clean up temporary debug and session files",tag:"chore",phase:6},
+  {date:"2026-02-26",hash:"7e1d74c",msg:"chore: Clean up temporary debug files and fix workflow-c1 node config",tag:"chore",phase:6},
+  {date:"2026-02-26",hash:"15f616c",msg:"docs: Add evidence summary filename fix documentation",tag:"docs",phase:6},
+  {date:"2026-02-26",hash:"5ce6b7a",msg:"fix(workflow-c2): Fix evidence summary to use original filenames from Build AI Prompt",tag:"fix",phase:6},
+  {date:"2026-02-26",hash:"d97bb37",msg:"fix(workflow-c2): Fix Parse AI Response to use sourceFiles from Build AI Prompt",tag:"fix",phase:6},
+  {date:"2026-02-26",hash:"b9f720e",msg:"fix(workflow-c2): Fix evidence summary to use original filenames from API request",tag:"fix",phase:6},
+  {date:"2026-02-26",hash:"aa4303f",msg:"docs: Add evidence summary fix and future enhancements documentation",tag:"docs",phase:6},
+  {date:"2026-02-26",hash:"637a421",msg:"fix(workflow-c2): Fix data flow connections and aggregate scores node reference",tag:"fix",phase:6},
+  {date:"2026-02-26",hash:"a0f6294",msg:"fix(workflow-c2): Fix UNION ALL syntax error in Check Master Cache query",tag:"fix",phase:6},
+  {date:"2026-02-26",hash:"cdfd251",msg:"feat(workflow-c2): Add master cache optimization with deployment checklist",tag:"feat",phase:6},
+  {date:"2026-02-26",hash:"6fa83d9",msg:"workflow 2 enhancement and kiro stuff",tag:"feat",phase:6},
+  {date:"2026-02-26",hash:"a22e782",msg:"trying to not reference internal file paths in evidence summary ai prompt",tag:"fix",phase:6},
+  {date:"2026-02-25",hash:"67195cd",msg:"Merge pull request #3 from roshan-lal-dia/main",tag:"merge",phase:6},
+  {date:"2026-02-25",hash:"b9d0aad",msg:"Merge pull request #2 from roshan-lal-dia/new-arch",tag:"merge",phase:6},
+  {date:"2026-02-25",hash:"cc418b7",msg:"Update scripts/blob_browser.sh",tag:"fix",phase:6},
+  {date:"2026-02-25",hash:"070e86f",msg:"fix: Update blob download script, enhance debugging output, increase timeout",tag:"fix",phase:6},
+  {date:"2026-02-25",hash:"b86702d",msg:"docs: Add Deployment Guide",tag:"docs",phase:6},
+  // Phase 5: Azure Deployment (Feb 24)
+  {date:"2026-02-24",hash:"be7d3a2",msg:"feat: Add deployment workflow for n8n POC to Azure VM",tag:"feat",phase:5},
+  {date:"2026-02-24",hash:"c23a22c",msg:"Merge pull request #1 from roshan-lal-dia/new-arch",tag:"merge",phase:5},
+  // Phase 4: Workflow Orchestration (Feb 23)
+  {date:"2026-02-23",hash:"dc69c0b",msg:"fix: Update log percentage calculation for accurate progress per question",tag:"fix",phase:4},
+  {date:"2026-02-23",hash:"48c9af7",msg:"fix: Update workflow nodes to correctly reference question data",tag:"fix",phase:4},
+  {date:"2026-02-23",hash:"392d3d8",msg:"fix: Update SQL query to use correct field name for question ID",tag:"fix",phase:4},
+  {date:"2026-02-23",hash:"666aa6b",msg:"fix: Correct SQL field name, add JSON sanitization, enhance file matching",tag:"fix",phase:4},
+  {date:"2026-02-23",hash:"3931e99",msg:"feat: Refine audit workflow progress percentage and status polling",tag:"feat",phase:4},
+  {date:"2026-02-23",hash:"a74063c",msg:"feat: Add specification number and accepted evidence fields",tag:"feat",phase:4},
+  {date:"2026-02-23",hash:"4c10cf3",msg:"feat: Add scripts to enrich CSV and seed audit questions from Excel",tag:"feat",phase:4},
+  {date:"2026-02-23",hash:"77fd128",msg:"addest data files",tag:"feat",phase:4},
+  {date:"2026-02-23",hash:"7bfa83c",msg:"feat: Implement Python-based Excel data extraction in Workflow A",tag:"feat",phase:4},
+  {date:"2026-02-23",hash:"77d806c",msg:"update the DOC about hybrid search",tag:"docs",phase:4},
+  {date:"2026-02-23",hash:"c8c39ef",msg:"refactor: update model and image download URLs in Azure GPU provisioning",tag:"refactor",phase:4},
+  {date:"2026-02-23",hash:"77f1e86",msg:"feat: add Azure GPU VM provisioning request and AI model upgrade plan",tag:"feat",phase:4},
+  {date:"2026-02-23",hash:"35cbf6d",msg:"refactor: enhance disk usage monitoring and cleanup in queue monitor",tag:"refactor",phase:4},
+  // Phase 3: DB Schema & Auth (Feb 20-21)
+  {date:"2026-02-21",hash:"a4ea2a6",msg:"refactor: update file hash calculation logic for improved compatibility",tag:"refactor",phase:3},
+  {date:"2026-02-21",hash:"c88e5b8",msg:"refactor: enhance file size calculation and validation in audit entry",tag:"refactor",phase:3},
+  {date:"2026-02-21",hash:"c6a711b",msg:"refactor: update file hash calculation to use buffer",tag:"refactor",phase:3},
+  {date:"2026-02-21",hash:"5433970",msg:"Remove outdated docs and implement webhook authentication with API key",tag:"feat",phase:3},
+  {date:"2026-02-21",hash:"93d7622",msg:"refactor: Replace 'q_id' with 'question_id' across all workflows",tag:"refactor",phase:3},
+  {date:"2026-02-21",hash:"cf0a437",msg:"refactor: update comments and rename unique index for audit_questions",tag:"refactor",phase:3},
+  {date:"2026-02-20",hash:"dd334b5",msg:"feat: update database schema to align with UUID standards",tag:"feat",phase:3},
+  {date:"2026-02-20",hash:"9bdc049",msg:"feat: add compliance app database configuration and schema reference",tag:"feat",phase:3},
+  {date:"2026-02-20",hash:"978d0b7",msg:"Refactor Azure Blob fetching logic in workflows",tag:"refactor",phase:3},
+  // Phase 2: Azure Integration (Feb 18-19)
+  {date:"2026-02-19",hash:"5914dd7",msg:"fix: update Azure Blob fetching logic and enhance error handling",tag:"fix",phase:2},
+  {date:"2026-02-19",hash:"82825f2",msg:"Refactor code structure for improved readability and maintainability",tag:"refactor",phase:2},
+  {date:"2026-02-19",hash:"6dc1a19",msg:"feat: remove deprecated HTTP request workflows",tag:"feat",phase:2},
+  {date:"2026-02-19",hash:"fb36bde",msg:"feat: add new HTTP request workflows for audit submission and retrieval",tag:"feat",phase:2},
+  {date:"2026-02-19",hash:"04a6b09",msg:"Enhance workflows with Azure Blob Storage integration and authentication",tag:"feat",phase:2},
+  {date:"2026-02-18",hash:"3eecf18",msg:"feat: replace WORKFLOW-GUIDE.md with FILE-MAP.md for better documentation",tag:"docs",phase:2},
+  {date:"2026-02-17",hash:"6e61359",msg:"fix: Correct typo in guidelines regarding the archive-poc folder usage",tag:"fix",phase:2},
+  // Phase 1B: Workflow Engine (Feb 15-16)
+  {date:"2026-02-16",hash:"f8e7580",msg:"Refactor code structure for improved readability and maintainability",tag:"refactor",phase:1},
+  {date:"2026-02-16",hash:"8d6bd9f",msg:"Refactor: Remove outdated plan, add hash check and health check scripts",tag:"refactor",phase:1},
+  {date:"2026-02-16",hash:"c2a4351",msg:"Remove deprecated testing files and scripts from api-playground",tag:"chore",phase:1},
+  {date:"2026-02-15",hash:"365fb85",msg:"feat: Add Excel file type validation and conversion in Workflow A",tag:"feat",phase:1},
+  {date:"2026-02-15",hash:"9af1d09",msg:"feat: Add comprehensive technical docs for Workflow C2: Audit Worker",tag:"docs",phase:1},
+  // Phase 1A: Core Workflows (Feb 10-11)
+  {date:"2026-02-11",hash:"02d8327",msg:"change",tag:"chore",phase:1},
+  {date:"2026-02-11",hash:"4716106",msg:"update yaak",tag:"chore",phase:1},
+  {date:"2026-02-11",hash:"2405a1c",msg:"feat: Update HTTP request configs and add new folder structure",tag:"feat",phase:1},
+  {date:"2026-02-11",hash:"7c63f96",msg:"feat: Update Parse & Validate Input node enhance file handling",tag:"feat",phase:1},
+  {date:"2026-02-11",hash:"8382875",msg:"feat: Enhance file handling in C1 and C2 with improved session management",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"c5d9b78",msg:"fix: escape single quotes in SQL queries for audit sessions and evidence",tag:"fix",phase:1},
+  {date:"2026-02-10",hash:"3c831d6",msg:"Refactor n8n workflow import script and update workflows",tag:"refactor",phase:1},
+  {date:"2026-02-10",hash:"0784126",msg:"workflow 2-a working",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"d747932",msg:"fix: update NODE_FUNCTION_ALLOW_BUILTIN and modify cron trigger type",tag:"fix",phase:1},
+  {date:"2026-02-10",hash:"585db86",msg:"feat: Refactor job queue operations and extraction logic in C1 and C2",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"d6f9827",msg:"fix: correct SQL query syntax in C3 and C4 for session ID handling",tag:"fix",phase:1},
+  {date:"2026-02-10",hash:"813b14b",msg:"feat: Update node positions and add error handling in C1, C3, and C4",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"4b91c0f",msg:"Add workflows for status polling and results retrieval",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"dd62fc6",msg:"Add workflow C: Audit Orchestrator and final response structure",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"f00d67d",msg:"feat: Update workflow nodes for improved processing and error handling",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"1ed8aad",msg:"feat: Enhance Postgres insert and hash check nodes with query parameters",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"ee6c069",msg:"feat: Add hash check and health check nodes to workflow",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"ccc87dd",msg:"feat: update Set Binary Filename node to handle multiple input items",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"475886f",msg:"feat: update workflow to set binary filename with prefix",tag:"feat",phase:1},
+  {date:"2026-02-10",hash:"099e604",msg:"Add debug ls and wait-for-pdf nodes for pdftoppm timing",tag:"fix",phase:1},
+  {date:"2026-02-10",hash:"5ecfc74",msg:"Add workflows for KB ingestion and audit orchestrator",tag:"feat",phase:1},
+  // Phase 0: Foundation (Feb 3-9)
+  {date:"2026-02-09",hash:"362d11a",msg:"feat: update healthcheck command for Qdrant service",tag:"feat",phase:0},
+  {date:"2026-02-09",hash:"75b8abb",msg:"feat: update .gitignore; add N8N_SECURE_COOKIE in docker-compose",tag:"feat",phase:0},
+  {date:"2026-02-09",hash:"f697161",msg:"Production deployment configuration",tag:"feat",phase:0},
+  {date:"2026-02-09",hash:"9995b0e",msg:"feat: optimize Dockerfile; add tech spec and Azure VM connection test",tag:"feat",phase:0},
+  {date:"2026-02-05",hash:"6c2fb01",msg:"feat: enhance Dockerfile for Python support; add merge_hybrid.py",tag:"feat",phase:0},
+  {date:"2026-02-05",hash:"97fd3df",msg:"feat: update README for hybrid architecture and sidecar pattern",tag:"docs",phase:0},
+  {date:"2026-02-05",hash:"55711cc",msg:"feat: implement Florence service for image analysis",tag:"feat",phase:0},
+  {date:"2026-02-05",hash:"7f9dbfd",msg:"fix: update node IDs and positions in compliance workflow",tag:"fix",phase:0},
+  {date:"2026-02-05",hash:"71fb3fc",msg:"Refactor code structure for improved readability",tag:"refactor",phase:0},
+  {date:"2026-02-05",hash:"6b0adf1",msg:"feat: update README for n8n Compliance POC",tag:"docs",phase:0},
+  {date:"2026-02-05",hash:"9955aec",msg:"refactor: remove pdf2image service and Dockerfile",tag:"refactor",phase:0},
+  {date:"2026-02-05",hash:"ef5ad14",msg:"fix: standardize Dockerfile syntax for builder stage",tag:"fix",phase:0},
+  {date:"2026-02-05",hash:"8794bb2",msg:"feat: update copilot instructions and add findings document",tag:"feat",phase:0},
+  {date:"2026-02-05",hash:"d733baa",msg:"feat: implement pdf2image service for PDF-to-image conversion",tag:"feat",phase:0},
+  {date:"2026-02-04",hash:"8d2813d",msg:"chore: update code structure for better readability",tag:"chore",phase:0},
+  {date:"2026-02-04",hash:"ca4c9ef",msg:"Enhance n8n task runners with LibreOffice support for PPTX/DOCX",tag:"feat",phase:0},
+  {date:"2026-02-03",hash:"a042444",msg:"Add build script and compliance guide; configure task runners",tag:"feat",phase:0},
+  {date:"2026-02-03",hash:"d789a4d",msg:"Update compliance-poc.json workflow with webhook and validation nodes",tag:"feat",phase:0},
+  {date:"2026-02-03",hash:"9f5d582",msg:"Add initial configuration files for n8n setup, docker-compose, and API playground",tag:"feat",phase:0},
+];
+
+// Phase definitions
+const phases = [
+  {id:0, icon:"🚀", title:"Phase 0 — Foundation", dates:"Feb 3–9", color:"var(--accent-3)",
+   desc:"Docker setup, n8n config, Florence-2, Gotenberg, initial single workflow"},
+  {id:1, icon:"⚙️", title:"Phase 1 — Core Workflows", dates:"Feb 10–16", color:"var(--accent-1)",
+   desc:"Split monolith into 6 workflows (A, B, C1–C4), Redis queue, evidence pipeline"},
+  {id:2, icon:"☁️", title:"Phase 2 — Azure Integration", dates:"Feb 17–19", color:"var(--accent-3)",
+   desc:"Azure Blob Storage fetch, webhook auth, API playground, file handling"},
+  {id:3, icon:"🗄️", title:"Phase 3 — Database & Auth", dates:"Feb 20–21", color:"var(--accent-5)",
+   desc:"PostgreSQL schema v2 with UUIDs, API key auth, question_id standardization"},
+  {id:4, icon:"📊", title:"Phase 4 — Audit Orchestration", dates:"Feb 23", color:"var(--accent-4)",
+   desc:"Excel extraction, progress bars, GPU provisioning request, CSV seed data"},
+  {id:5, icon:"📦", title:"Phase 5 — Azure Deployment", dates:"Feb 24", color:"var(--accent-2)",
+   desc:"First PR merge, Azure VM deployment workflow, CI/CD pipeline"},
+  {id:6, icon:"🔍", title:"Phase 6 — Evidence & Caching", dates:"Feb 25–26", color:"var(--accent-7)",
+   desc:"Master cache optimization, original filename tracking, evidence consolidation"},
+  {id:7, icon:"🎮", title:"Phase 7 — GPU Architecture", dates:"Feb 27", color:"var(--accent-4)",
+   desc:"GPU VM with A10, Mistral Nemo 12B, Florence-2 OCR, nomic-embed-text"},
+  {id:8, icon:"🛡️", title:"Phase 8 — Error Handling & Polish", dates:"Feb 28", color:"var(--accent-6)",
+   desc:"Comprehensive error triggers for all workflows, KB upload script, final cleanup"},
+];
+
+const milestones = {
+  0: {title:"🎯 First Working Extraction", desc:"PDF → Images → Florence-2 → Text, running locally in Docker"},
+  1: {title:"🎯 Multi-Workflow Architecture", desc:"6 independent workflows: extract, ingest, submit, process, poll, retrieve"},
+  5: {title:"🎯 First Azure Deployment", desc:"PR #1 merged, n8n compliance engine running on Azure VM"},
+  7: {title:"🎯 GPU Acceleration Live", desc:"A10 GPU running Mistral Nemo 12B + Florence-2 OCR — 6× faster inference"},
+  8: {title:"🎯 Production Ready", desc:"Comprehensive error handling, session failure recovery, KB bulk upload, 14 standards ingested"},
+};
+
+// ============================================================
+// Render
+// ============================================================
+function render(filter = 'all') {
+  const container = document.getElementById('timeline');
+  container.innerHTML = '';
+
+  for (const phase of phases) {
+    const phaseCommits = commits.filter(c => c.phase === phase.id && (filter === 'all' || c.tag === filter));
+    if (phaseCommits.length === 0) continue;
+
+    const section = document.createElement('div');
+    section.className = 'phase-section';
+
+    // Milestone before phase if exists
+    if (milestones[phase.id]) {
+      const ms = milestones[phase.id];
+      section.innerHTML += `<div class="milestone"><div class="milestone-title">${ms.title}</div><div class="milestone-desc">${ms.desc}</div></div>`;
+    }
+
+    section.innerHTML += `
+      <div class="phase-header">
+        <div class="phase-icon" style="background:${phase.color}22;border:1px solid ${phase.color}44">${phase.icon}</div>
+        <div>
+          <div class="phase-title">${phase.title}</div>
+          <div class="phase-dates">${phase.dates} • ${phaseCommits.length} commits</div>
+          <div class="phase-desc">${phase.desc}</div>
+        </div>
+      </div>
+    `;
+
+    const timeline = document.createElement('div');
+    timeline.className = 'timeline';
+
+    for (const c of phaseCommits) {
+      const tagClass = {feat:'tag-feat',fix:'tag-fix',refactor:'tag-refactor',docs:'tag-docs',chore:'tag-chore',merge:'tag-merge'}[c.tag] || 'tag-chore';
+      timeline.innerHTML += `
+        <div class="commit" data-tag="${c.tag}">
+          <div class="commit-card">
+            <div class="commit-meta">
+              <span class="commit-hash">${c.hash}</span>
+              <span class="commit-date">${c.date}</span>
+              <span class="commit-tag ${tagClass}">${c.tag}</span>
+            </div>
+            <div class="commit-msg">${c.msg}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    section.appendChild(timeline);
+    container.appendChild(section);
+  }
+}
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render(btn.dataset.filter);
+  });
+});
+
+// Initial render
+render();
+</script>
+</body>
+</html>

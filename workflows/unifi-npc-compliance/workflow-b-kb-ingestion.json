@@ -292,7 +292,7 @@
         "operation": "executeQuery",
         "query": "\n            INSERT INTO kb_standards (standard_name, domain_id, file_hash, filename, total_chunks, uploaded_at) \n            VALUES ($1, $2, $3, $4, $5, NOW()) \n            ON CONFLICT (file_hash) DO UPDATE SET uploaded_at = NOW() \n            RETURNING id\n            ",
         "options": {
-          "queryReplacement": "={{ $('Prepare Metadata').first().json.standardName }},{{ $('Prepare Metadata').first().json.domain }},{{ $('Prepare Metadata').first().json.metadata.fileHash }},{{ $('Prepare Metadata').first().json.metadata.originalFileName }},{{ $('Format Qdrant Point').all().length }}"
+          "queryReplacement": "={{ [ $('Prepare Metadata').first().json.standardName, $('Prepare Metadata').first().json.domain, $('Prepare Metadata').first().json.metadata.fileHash, $('Prepare Metadata').first().json.metadata.originalFileName, $('Format Qdrant Point').all().length ] }}"
         }
       },
       "id": "7e3136a2-2523-4359-a79a-bf5e2c2a31bd",
@@ -372,7 +372,7 @@
         "operation": "executeQuery",
         "query": "SELECT id, standard_name FROM kb_standards WHERE file_hash = $1\nUNION ALL\nSELECT NULL as id, NULL as standard_name WHERE NOT EXISTS (SELECT 1 FROM kb_standards WHERE file_hash = $1)\nLIMIT 1",
         "options": {
-          "queryReplacement": "={{ $json.fileHash }}"
+          "queryReplacement": "={{ [$json.fileHash] }}"
         }
       },
       "id": "0a6e3f84-8b87-4b63-b3e4-e14cd1239ca5",

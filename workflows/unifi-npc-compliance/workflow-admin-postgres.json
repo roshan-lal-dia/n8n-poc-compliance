@@ -845,7 +845,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM audit_logs RETURNING count(*) OVER() as deleted_count",
+        "query": "WITH deleted AS (DELETE FROM audit_logs RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
         "options": {}
       },
       "id": "admin-node-31",
@@ -896,7 +896,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM audit_evidence RETURNING count(*) OVER() as deleted_count",
+        "query": "WITH deleted AS (DELETE FROM audit_evidence RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
         "options": {}
       },
       "id": "admin-node-34",
@@ -947,7 +947,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM audit_sessions RETURNING count(*) OVER() as deleted_count",
+        "query": "WITH deleted AS (DELETE FROM audit_sessions RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
         "options": {}
       },
       "id": "admin-node-37",
@@ -998,7 +998,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM kb_standards RETURNING count(*) OVER() as deleted_count",
+        "query": "WITH deleted AS (DELETE FROM kb_standards RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
         "options": {}
       },
       "id": "admin-node-40",

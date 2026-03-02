@@ -36,7 +36,8 @@
       "position": [
         17024,
         1120
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -71,7 +72,8 @@
         17472,
         1120
       ],
-      "id": "754c7f4b-0c57-401d-a997-ce58b38e06bf"
+      "id": "754c7f4b-0c57-401d-a997-ce58b38e06bf",
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -100,7 +102,8 @@
         17904,
         1120
       ],
-      "id": "76acc9ae-d643-40d2-831a-7ee7a2c0eaeb"
+      "id": "76acc9ae-d643-40d2-831a-7ee7a2c0eaeb",
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -135,7 +138,8 @@
       "position": [
         18352,
         1120
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -256,7 +260,8 @@
       "position": [
         16912,
         1120
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -269,7 +274,8 @@
       "position": [
         16912,
         1120
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {},
@@ -293,7 +299,8 @@
       "position": [
         17020,
         1600
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {

@@ -35,7 +35,8 @@
       "position": [
         224,
         0
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -92,7 +93,8 @@
       "position": [
         880,
         0
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {

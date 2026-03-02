@@ -92,7 +92,8 @@
       "position": [
         4608,
         1040
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -291,7 +292,8 @@
       "position": [
         3808,
         1200
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -384,7 +386,8 @@
       "position": [
         4400,
         1024
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -397,7 +400,8 @@
       "position": [
         3488,
         1200
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -410,7 +414,8 @@
       "position": [
         3488,
         1200
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {},
@@ -434,7 +439,8 @@
       "position": [
         3596,
         1600
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {

@@ -46,7 +46,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const result = $input.first().json;\n\n// If queue is empty, return empty array to stop execution\nif (!result || !result.output) {\n  return [];\n}\n\n// Handle both string and object output from Redis\nlet job;\nif (typeof result.output === 'string') {\n  job = JSON.parse(result.output);\n} else if (typeof result.output === 'object') {\n  job = result.output;\n} else {\n  console.error('Unexpected output type:', typeof result.output);\n  return [];\n}\n\nreturn [{ json: job }];"
+        "jsCode": "const result = $input.first().json;\n\n// If queue is empty, return empty array to stop execution\nif (!result || !result.output) {\n  return [];\n}\n\n// Handle both string and object output from Redis\nlet job;\nif (typeof result.output === 'string') {\n  try { job = JSON.parse(result.output); } catch(e) { throw new Error(\"Failed to parse Redis job JSON: \" + (result.output || \"\").substring(0, 200)); };\n} else if (typeof result.output === 'object') {\n  job = result.output;\n} else {\n  console.error('Unexpected output type:', typeof result.output);\n  return [];\n}\n\nreturn [{ json: job }];"
       },
       "id": "78023187-366d-422f-aba1-acfda52e107a",
       "name": "Parse Job (Exit if Empty)",
@@ -55,7 +55,8 @@
       "position": [
         42432,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -76,7 +77,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -97,7 +99,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -110,7 +113,8 @@
       "position": [
         43088,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -131,7 +135,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -152,7 +157,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -165,7 +171,8 @@
       "position": [
         44192,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -252,7 +259,8 @@
       "position": [
         44864,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -265,7 +273,8 @@
       "position": [
         45088,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -286,7 +295,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -299,7 +309,8 @@
       "position": [
         45536,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -320,7 +331,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -341,7 +353,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -354,7 +367,8 @@
       "position": [
         45984,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -388,7 +402,8 @@
       "position": [
         46432,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -401,7 +416,8 @@
       "position": [
         46656,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -435,7 +451,8 @@
       "position": [
         47104,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -448,7 +465,8 @@
       "position": [
         47328,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -469,7 +487,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -494,7 +513,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse AI response and construct evaluation object\nconst aiResponse = $('Ollama: Evaluate Compliance').first().json.response;\nconst promptData = $('Build AI Prompt').first().json;\n\n// Extract sourceFiles from promptData (which came from Consolidate Evidence Text)\nconst sourceFiles = promptData.sourceFiles || [];\n\n// Build evidence summary using original filenames\nconst evidenceSummary = sourceFiles.length > 0\n  ? `Evidence files reviewed: ${sourceFiles.map(f => f.filename).join(', ')}`\n  : 'No evidence files provided';\n\nlet evaluation;\ntry {\n  // Try to parse as JSON first\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    evaluation = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (e) {\n  // Fallback: extract fields using regex\n  evaluation = {\n    score: parseInt(aiResponse.match(/score[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    compliant: /compliant[\"']?\\s*:\\s*true/i.test(aiResponse),\n    confidence: parseInt(aiResponse.match(/confidence[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    findings: aiResponse.match(/findings[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1] || 'Unable to parse findings',\n    gaps: [],\n    recommendations: []\n  };\n}\n\n// Override evidence_summary with original filenames\nevaluation.evidence_summary = evidenceSummary;\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    evaluation: evaluation,\n    rawResponse: aiResponse,\n    ragSources: promptData.ragSources || [],\n    sourceFiles: sourceFiles,  // Pass through for downstream nodes\n    promptLength: promptData.promptLength,\n    questionIndex: promptData.questionIndex,\n    totalQuestions: promptData.totalQuestions\n  }\n}];"
+        "jsCode": "// Parse AI response and construct evaluation object\nconst aiResponse = $('Ollama: Evaluate Compliance').first().json.response;\nconst promptData = $('Build AI Prompt').first().json;\n\n// Extract sourceFiles from promptData (which came from Consolidate Evidence Text)\nconst sourceFiles = promptData.sourceFiles || [];\n\n// Build evidence summary using original filenames\nconst evidenceSummary = sourceFiles.length > 0\n  ? `Evidence files reviewed: ${sourceFiles.map(f => f.filename).join(', ')}`\n  : 'No evidence files provided';\n\nlet evaluation;\ntry {\n  // Try to parse as JSON first\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    try { evaluation = JSON.parse(jsonMatch[0]); } catch(e) { throw new Error(\"Failed to parse AI JSON response: \" + (jsonMatch[0] || \"\").substring(0, 200)); };\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (e) {\n  // Fallback: extract fields using regex\n  evaluation = {\n    score: parseInt(aiResponse.match(/score[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    compliant: /compliant[\"']?\\s*:\\s*true/i.test(aiResponse),\n    confidence: parseInt(aiResponse.match(/confidence[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    findings: aiResponse.match(/findings[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1] || 'Unable to parse findings',\n    gaps: [],\n    recommendations: []\n  };\n}\n\n// Override evidence_summary with original filenames\nevaluation.evidence_summary = evidenceSummary;\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    evaluation: evaluation,\n    rawResponse: aiResponse,\n    ragSources: promptData.ragSources || [],\n    sourceFiles: sourceFiles,  // Pass through for downstream nodes\n    promptLength: promptData.promptLength,\n    questionIndex: promptData.questionIndex,\n    totalQuestions: promptData.totalQuestions\n  }\n}];"
       },
       "id": "c9d446b1-619b-490f-9afd-5c557e742fb0",
       "name": "Parse AI Response",
@@ -503,7 +522,8 @@
       "position": [
         48000,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -524,7 +544,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -537,7 +558,8 @@
       "position": [
         48448,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -558,7 +580,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -579,7 +602,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -592,7 +616,8 @@
       "position": [
         49120,
         944
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -613,7 +638,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -658,7 +684,8 @@
       "position": [
         43984,
         1168
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {},
@@ -682,7 +709,8 @@
       "position": [
         42208,
         1400
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {

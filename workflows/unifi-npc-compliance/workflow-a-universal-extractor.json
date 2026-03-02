@@ -93,7 +93,8 @@
       "position": [
         1120,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -251,7 +252,8 @@
       "position": [
         2160,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -320,7 +322,8 @@
       "position": [
         2160,
         660
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -369,7 +372,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const files = $input.all()[0].json.stdout.split('\\n').filter(f => f.trim() !== '');\nconst filePrefix = $('Set Binary Filename').all()[0].json.filePrefix;\nconst originalFileName = $('Set Binary Filename').all()[0].json.originalFileName;\n\nreturn files.map((filePath, index) => {\n  const fileName = filePath.split('/').pop();\n  return {\n    json: {\n      pageNumber: index + 1,\n      fileName: fileName,\n      filePath: filePath,\n      originalFile: originalFileName,\n      filePrefix: filePrefix\n    }\n  };\n});"
+        "jsCode": "const stdout = $input.all()[0].json.stdout || '';\nif (!stdout.trim()) {\n  throw new Error('No images generated from PDF - pdftoppm produced no output');\n}\nconst files = stdout.split('\\n').filter(f => f.trim() !== '');\nconst filePrefix = $('Set Binary Filename').all()[0].json.filePrefix;\nconst originalFileName = $('Set Binary Filename').all()[0].json.originalFileName;\n\nreturn files.map((filePath, index) => {\n  const fileName = filePath.split('/').pop();\n  return {\n    json: {\n      pageNumber: index + 1,\n      fileName: fileName,\n      filePath: filePath,\n      originalFile: originalFileName,\n      filePrefix: filePrefix\n    }\n  };\n});"
       },
       "id": "prepare-file-list",
       "name": "Prepare Generated File List",
@@ -378,7 +381,8 @@
       "position": [
         2600,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -406,7 +410,8 @@
       "position": [
         3260,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -419,7 +424,8 @@
       "position": [
         3480,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -582,7 +588,8 @@
       "position": [
         460,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -595,7 +602,8 @@
       "position": [
         460,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {},
@@ -619,7 +627,8 @@
       "position": [
         460,
         800
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {

@@ -7,7 +7,7 @@
         "path": "extract",
         "responseMode": "responseNode",
         "options": {
-          "responseTimeout": 1800000
+          "responseTimeout": 3600000
         },
         "authentication": "headerAuth"
       },

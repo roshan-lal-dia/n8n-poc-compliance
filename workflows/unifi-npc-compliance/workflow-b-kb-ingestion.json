@@ -137,14 +137,86 @@
     },
     {
       "parameters": {
-        "jsCode": "const extracted = $input.first().json;\n\n// Guard: if the upstream extractor returned an error, surface it clearly\nif (extracted.error || extracted.errorCode) {\n  throw new Error(`Extractor failed: ${extracted.error || extracted.errorMessage || JSON.stringify(extracted)}`);\n}\nif (!extracted.fullDocument && !extracted.fullText) {\n  throw new Error(`Extractor returned no text content. Keys received: ${Object.keys(extracted).join(', ')}`);\n}\n\nconst webhookData = $('Webhook: Ingest Standard').first();\nconst standardName = webhookData.json.query?.standardName || webhookData.json.body?.standardName || 'Unknown Standard';\nconst domain = webhookData.json.query?.domain || webhookData.json.body?.domain || 'General';\nconst version = webhookData.json.query?.version || webhookData.json.body?.version || '1.0';\n\nreturn [{\n  json: {\n    standardName,\n    domain,\n    version,\n    fullText: extracted.fullDocument || extracted.fullText || '',\n    totalPages: extracted.totalPages || 0,\n    metadata: {\n      originalFileName: extracted.originalFileName || 'unknown',\n      totalWords: extracted.totalWords || 0,\n      hasDiagrams: extracted.hasDiagrams || false,\n      uploadedAt: new Date().toISOString(),\n      fileHash: $('Calculate File Hash').first().json.fileHash\n    }\n  }\n}];"
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "has-fullDocument",
+                    "leftValue": "={{ $json.fullDocument != null || $json.fullText != null }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "check-extraction-ok",
+      "name": "Extraction OK?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        4940,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst errorMsg = input.error || input.errorMessage || input.message || 'Extraction returned no content';\nreturn [{ json: {\n  error: errorMsg,\n  errorCode: 'EXTRACTION_FAILED',\n  status: 502,\n  detail: 'The Universal Extractor (Workflow A) failed. This is typically caused by ADLS/Florence/timeout issues.',\n  receivedKeys: Object.keys(input).join(', ')\n}}];"
+      },
+      "id": "format-extraction-error",
+      "name": "Format Extraction Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5160,
+        1240
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "respond-extraction-error",
+      "name": "Respond: Extraction Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        5400,
+        1240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const extracted = $input.first().json;\n\nconst webhookData = $('Webhook: Ingest Standard').first();\nconst standardName = webhookData.json.query?.standardName || webhookData.json.body?.standardName || 'Unknown Standard';\nconst domain = webhookData.json.query?.domain || webhookData.json.body?.domain || 'General';\nconst version = webhookData.json.query?.version || webhookData.json.body?.version || '1.0';\n\nreturn [{\n  json: {\n    standardName,\n    domain,\n    version,\n    fullText: extracted.fullDocument || extracted.fullText || '',\n    totalPages: extracted.totalPages || 0,\n    metadata: {\n      originalFileName: extracted.originalFileName || 'unknown',\n      totalWords: extracted.totalWords || 0,\n      hasDiagrams: extracted.hasDiagrams || false,\n      uploadedAt: new Date().toISOString(),\n      fileHash: $('Calculate File Hash').first().json.fileHash\n    }\n  }\n}];"
       },
       "id": "3ed78410-eb6f-4532-a3d6-e5332349a8e5",
       "name": "Prepare Metadata",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5056,
+        5160,
         1040
       ],
       "continueOnFail": true
@@ -517,7 +589,36 @@
       "main": [
         [
           {
+            "node": "Extraction OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraction OK?": {
+      "main": [
+        [
+          {
             "node": "Prepare Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Extraction Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Extraction Error": {
+      "main": [
+        [
+          {
+            "node": "Respond: Extraction Failed",
             "type": "main",
             "index": 0
           }

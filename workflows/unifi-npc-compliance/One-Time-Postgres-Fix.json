@@ -1,0 +1,59 @@
+{
+    "name": "One-Time Fix: Postgres Standard Name",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "e3852d7e-22e6-4fa2-bfba-aecd01c0c273",
+            "name": "Start",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "UPDATE kb_standards \nSET \n  standard_name = 'QDKC- Data Sharing, Integration and Interoperability',\n  domain_id = '6ec7535e-6134-4010-9817-8c0849e8f59b'\nWHERE filename = 'QDKC- Data Sharing, Integration and Interoperability.pdf'\nRETURNING id, standard_name, domain_id, filename, uploaded_at;",
+                "options": {}
+            },
+            "id": "bd053d26-4a41-4565-ab18-87a2a07c14de",
+            "name": "Update Postgres Standard",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                460,
+                300
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "3ME8TvhWnolXkgqg",
+                    "name": "Compliance DB"
+                }
+            }
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Start": {
+            "main": [
+                [
+                    {
+                        "node": "Update Postgres Standard",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {},
+    "versionId": "f0fe4e71-4171-4602-9ca9-35c8b0e7d018",
+    "meta": {
+        "templateCredsSetupCompleted": true
+    },
+    "id": "fix-postgres-workflow",
+    "tags": []
+}

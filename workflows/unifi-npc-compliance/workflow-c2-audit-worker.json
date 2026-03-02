@@ -250,6 +250,61 @@
     },
     {
       "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "has-extraction-content",
+                    "leftValue": "={{ $json.fullDocument != null || $json.pages != null || $json.fullText != null }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "c2-check-extraction-ok",
+      "name": "C2: Extraction OK?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        44752,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst questionData = $('Split by Question').item.json;\nconst errMsg = input.error || input.errorMessage || input.message || 'Extraction failed (ADLS/Florence/timeout)';\n\nconsole.error('=== EXTRACTION FAILED ===');\nconsole.error('Session:', questionData.sessionId);\nconsole.error('Question:', questionData.qId);\nconsole.error('Error:', errMsg);\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    evaluation: {\n      compliance_score: 0,\n      compliance_level: 'Error',\n      summary: 'Extraction failed: ' + errMsg,\n      evidence_summary: 'Could not extract evidence from uploaded files',\n      recommendations: ['Re-upload the files and try again'],\n      error: true\n    },\n    rawResponse: JSON.stringify({ error: errMsg }),\n    ragSources: [],\n    sourceFiles: [],\n    promptLength: 0,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions,\n    extractionFailed: true\n  }\n}];"
+      },
+      "id": "c2-mark-extraction-failed",
+      "name": "Mark Extraction Failed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        44864,
+        1168
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
         "jsCode": "// Combine extracted results with cached evidence\nconst currentItems = $input.all();\nconst preparedItems = $('Prepare Files for Extraction').all();\n\n// Check if this is the FALSE path (no extraction needed)\nif (currentItems.length > 0 && currentItems[0].json.allEvidence !== undefined) {\n  // Already has the complete structure, pass through\n  return currentItems;\n}\n\n// This is the TRUE path (extraction happened)\n// Get cached evidence from first prepared item\nconst cachedEvidence = preparedItems[0].json.cachedEvidence || [];\nconst firstPrepared = preparedItems[0].json;\nconst questionData = $('Split by Question').item.json;\n\nconst allEvidence = [...cachedEvidence];\nconst newExtractions = [];\n\n// Process each extraction result\nfor (let i = 0; i < currentItems.length; i++) {\n  const extractedData = currentItems[i].json;\n  const preparedData = preparedItems[i].json;\n  \n  // Validate that extraction returned proper data\n  if (!extractedData.fullDocument && !extractedData.text) {\n    console.error('Extraction failed for file:', preparedData.filename);\n    console.error('Got data:', JSON.stringify(extractedData));\n    \n    // Use empty extraction as fallback\n    extractedData.fullDocument = `[Extraction failed for ${preparedData.filename}]`;\n    extractedData.totalPages = 0;\n    extractedData.totalWords = 0;\n    extractedData.hasDiagrams = false;\n  }\n  \n  // Get original filename from Workflow A response\n  const originalFilename = extractedData.originalFileName || preparedData.filename;\n  \n  console.log(`File ${preparedData.hash}: using originalFileName=\"${originalFilename}\"`);\n  \n  allEvidence.push({\n    hash: preparedData.hash,\n    filename: originalFilename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize,\n    fromCache: false\n  });\n  \n  newExtractions.push({\n    hash: preparedData.hash,\n    filename: originalFilename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize\n  });\n}\n\n// CRITICAL FIX: Return individual items for each evidence file\n// This allows Consolidate Evidence Text to process each file separately\nconst outputItems = [];\n\nfor (const evidence of allEvidence) {\n  outputItems.push({\n    json: {\n      sessionId: firstPrepared.sessionId,\n      qId: firstPrepared.qId,\n      domain: firstPrepared.domain,\n      filename: evidence.filename,\n      fileHash: evidence.hash,\n      fileSize: evidence.fileSize,\n      extractedData: evidence.extractedData,\n      fromCache: evidence.fromCache,\n      questionIndex: questionData.questionIndex,\n      totalQuestions: questionData.totalQuestions\n    }\n  });\n}\n\nreturn outputItems;"
       },
       "id": "2427df0a-f379-4502-ba53-60130fba9d37",
@@ -880,7 +935,41 @@
       "main": [
         [
           {
+            "node": "C2: Extraction OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C2: Extraction OK?": {
+      "main": [
+        [
+          {
             "node": "Combine Extraction Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Extraction Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Extraction Failed": {
+      "main": [
+        [
+          {
+            "node": "Log Evaluation Result",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate Scores",
             "type": "main",
             "index": 0
           }

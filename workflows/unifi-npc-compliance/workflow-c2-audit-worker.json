@@ -551,7 +551,7 @@
         "url": "http://ollama:11434/api/generate",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"llama3.2\",\n  \"prompt\": $('Build AI Prompt').first().json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000\n  }\n} }}",
+        "jsonBody": "={{ {\n  \"model\": \"mistral\",\n  \"prompt\": $('Build AI Prompt').first().json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000\n  }\n} }}",
         "options": {
           "timeout": 600000
         }

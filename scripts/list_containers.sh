@@ -42,7 +42,7 @@ echo "Listing all containers..."
 echo ""
 
 # Generate account-level SAS token for listing
-SAS=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "" "" "" "l")
+SAS=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "s" "" "" "l")
 
 # List containers
 curl -sf "https://${ACCOUNT_NAME}.blob.core.windows.net/?comp=list&${SAS}" | python3 -c "

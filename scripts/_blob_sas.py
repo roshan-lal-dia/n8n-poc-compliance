@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Usage: _blob_sas.py account_name account_key resource_type container blob_path permissions
-# resource_type: "b" = blob, "c" = container
+# resource_type: "b" = blob, "c" = container, "" or "s" = service (account-level)
 import sys, hmac, hashlib, base64, datetime, urllib.parse
 
 account_name, account_key, resource_type, container, blob_path, permissions = sys.argv[1:]
@@ -13,8 +13,12 @@ se = (now + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 # Canonical resource
 if resource_type == "b":
     canonical = f"/blob/{account_name}/{container}/{blob_path}"
-else:
+elif resource_type == "c":
     canonical = f"/blob/{account_name}/{container}"
+else:
+    # Account-level (service) SAS
+    canonical = f"/blob/{account_name}"
+    resource_type = "s"  # Service-level SAS
 
 # sv=2020-12-06: 16 fields, 15 \n, NO trailing newline
 # signedPermissions, signedStart, signedExpiry, canonicalizedResource,

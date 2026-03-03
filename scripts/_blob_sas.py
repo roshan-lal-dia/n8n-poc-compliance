@@ -35,33 +35,37 @@ se  = (now + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 tenant_id     = os.environ.get("AZURE_TENANT_ID", "")
 client_id     = os.environ.get("AZURE_CLIENT_ID", "")
 client_secret = os.environ.get("AZURE_CLIENT_SECRET", "")
-USE_OAUTH     = bool(tenant_id and client_id and client_secret)
+# Managed Identity auth via IMDS only needs client_id (user-assigned MI).
+# client_secret is NOT used for Managed Identity — IMDS handles auth transparently.
+USE_OAUTH     = bool(client_id)
 
 
 def _get_access_token():
-    """Client-credentials OAuth2 token for https://storage.azure.com/"""
+    """
+    Get OAuth token for https://storage.azure.com/ using Azure Managed Identity (IMDS).
+    The client_id is the user-assigned Managed Identity's client ID.
+    IMDS endpoint is only reachable from inside Azure VMs.
+    Ref: https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/how-to-use-vm-token
+    """
     import urllib.request, urllib.error
-    data = urllib.parse.urlencode({
-        "grant_type":    "client_credentials",
-        "client_id":     client_id,
-        "client_secret": client_secret,
-        "scope":         "https://storage.azure.com/.default",
-    }).encode()
+    params = urllib.parse.urlencode({
+        "api-version": "2018-02-01",
+        "resource":    "https://storage.azure.com/",
+        "client_id":   client_id,   # user-assigned MI client ID
+    })
     req = urllib.request.Request(
-        f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token",
-        data=data,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        f"http://169.254.169.254/metadata/identity/oauth2/token?{params}",
+        headers={"Metadata": "true"},
     )
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             return json.loads(resp.read())["access_token"]
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")
-        print(f"[OAUTH ERROR] HTTP {e.code} from token endpoint", file=sys.stderr)
-        print(f"[OAUTH ERROR] body: {body}", file=sys.stderr)
-        print(f"[OAUTH ERROR] tenant_id={repr(tenant_id)}", file=sys.stderr)
-        print(f"[OAUTH ERROR] client_id={repr(client_id)}", file=sys.stderr)
-        print(f"[OAUTH ERROR] secret_len={len(client_secret)} secret_last4={repr(client_secret[-4:])}", file=sys.stderr)
+        print(f"[IMDS ERROR] HTTP {e.code}: {body}", file=sys.stderr)
+        raise
+    except Exception as e:
+        print(f"[IMDS ERROR] {e}", file=sys.stderr)
         raise
 
 

@@ -45,28 +45,16 @@ if [ -z "$ACCOUNT_KEY" ]; then
     exit 1
 fi
 
-echo "2. Testing Auth Token Generation:"
-RAW_TOKEN=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "s" "" "" "l" 2>&1)
+echo "2. Testing SAS Token Generation:"
+SAS=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "s" "" "" "l")
 SAS_EXIT=$?
 echo "   Exit code: $SAS_EXIT"
 if [ $SAS_EXIT -ne 0 ]; then
-    echo "   ERROR: Token generation failed"
-    echo "   Output: $RAW_TOKEN"
+    echo "   ERROR: SAS generation failed"
+    echo "   Output: $SAS"
     exit 1
 fi
-
-# Detect OAuth Bearer token vs legacy SAS query string
-if [[ "$RAW_TOKEN" == BEARER:* ]]; then
-    AUTH_MODE="bearer"
-    BEARER_TOKEN="${RAW_TOKEN#BEARER:}"
-    echo "   Auth mode: OAuth Bearer (User Delegation)"
-    echo "   Token: ${BEARER_TOKEN:0:40}..."
-else
-    AUTH_MODE="sas"
-    SAS="$RAW_TOKEN"
-    echo "   Auth mode: Shared Key SAS"
-    echo "   SAS Token: ${SAS:0:50}..."
-fi
+echo "   SAS Token: ${SAS:0:50}..."
 echo ""
 
 echo "3. Testing Azure Blob Service Endpoint:"
@@ -75,12 +63,7 @@ echo "   URL: ${BASE_URL}/?comp=list"
 echo ""
 
 echo "4. Making Request (with full error output):"
-if [ "$AUTH_MODE" = "bearer" ]; then
-    RESPONSE=$(curl -v -H "Authorization: Bearer ${BEARER_TOKEN}" -H "x-ms-version: 2020-12-06" \
-        "https://${ACCOUNT_NAME}.blob.core.windows.net/?comp=list" 2>&1)
-else
-    RESPONSE=$(curl -v "https://${ACCOUNT_NAME}.blob.core.windows.net/?comp=list&${SAS}" 2>&1)
-fi
+RESPONSE=$(curl -v "https://${ACCOUNT_NAME}.blob.core.windows.net/?comp=list&${SAS}" 2>&1)
 CURL_EXIT=$?
 echo "   Curl exit code: $CURL_EXIT"
 echo ""
@@ -118,51 +101,3 @@ except Exception as e:
 else
     echo "6. Response is not XML (authentication may have failed)"
 fi
-
-echo ""
-echo "7. SDK Key Validation (bypasses our HMAC code):"
-python3 - "$ACCOUNT_NAME" "$ACCOUNT_KEY" << 'PYEOF'
-import sys
-account_name = sys.argv[1]
-account_key = sys.argv[2]
-
-# Test 1: Try azure-storage-blob SDK
-try:
-    from azure.storage.blob import BlobServiceClient
-    conn_str = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-    client = BlobServiceClient.from_connection_string(conn_str)
-    containers = list(client.list_containers())
-    print(f"   [SDK] SUCCESS — found {len(containers)} container(s): {[c['name'] for c in containers]}")
-    sys.exit(0)
-except ImportError:
-    print("   [SDK] azure-storage-blob not installed, trying Shared Key auth...")
-except Exception as e:
-    print(f"   [SDK] FAILED: {e}")
-    print("   => Key is likely INVALID or rotated in Azure portal. Re-fetch key from: Azure Portal > Storage Account > Access Keys")
-    sys.exit(1)
-
-# Test 2: Shared Key auth (different signing path to our SAS code)
-import hmac, hashlib, base64, datetime, urllib.request, urllib.error
-
-date_str = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
-string_to_sign = "\n".join([
-    "GET", "", "", "", "", "", "", "", "", "", "", "",
-    f"x-ms-date:{date_str}\nx-ms-version:2020-12-06",
-    f"/{account_name}/\ncomp:list"
-])
-key_bytes = base64.b64decode(account_key)
-sig = base64.b64encode(hmac.new(key_bytes, string_to_sign.encode("utf-8"), hashlib.sha256).digest()).decode()
-auth = f"SharedKey {account_name}:{sig}"
-url = f"https://{account_name}.blob.core.windows.net/?comp=list"
-req = urllib.request.Request(url, headers={
-    "x-ms-date": date_str, "x-ms-version": "2020-12-06", "Authorization": auth
-})
-try:
-    with urllib.request.urlopen(req) as resp:
-        print(f"   [SharedKey] SUCCESS — HTTP {resp.status}")
-except urllib.error.HTTPError as e:
-    body = e.read().decode()
-    print(f"   [SharedKey] FAILED HTTP {e.code}: {body[:300]}")
-    if "AuthenticationFailed" in body:
-        print("   => CONFIRMED: Account key is WRONG. Rotate/re-fetch key from Azure Portal.")
-PYEOF

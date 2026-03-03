@@ -77,8 +77,7 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -180,7 +179,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -245,8 +244,7 @@
           "id": "webhook-api-key",
           "name": "webhook-api-key"
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -300,8 +298,7 @@
       "position": [
         44864,
         1168
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -328,8 +325,7 @@
       "position": [
         45088,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -350,8 +346,7 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -386,8 +381,7 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -443,8 +437,7 @@
       "position": [
         46208,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -457,8 +450,7 @@
       "position": [
         46432,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -492,8 +484,7 @@
       "position": [
         46880,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -520,8 +511,7 @@
       "position": [
         47328,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -563,8 +553,7 @@
       "position": [
         47776,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -577,8 +566,7 @@
       "position": [
         48000,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -599,8 +587,7 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -613,8 +600,7 @@
       "position": [
         48448,
         944
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -635,8 +621,7 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -702,7 +687,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -764,8 +749,7 @@
       "position": [
         42208,
         1400
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -781,7 +765,6 @@
         42432,
         1400
       ],
-      "continueOnFail": true,
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
@@ -803,7 +786,6 @@
         42656,
         1400
       ],
-      "continueOnFail": true,
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",

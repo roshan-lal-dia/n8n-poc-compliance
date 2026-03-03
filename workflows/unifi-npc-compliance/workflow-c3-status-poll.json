@@ -26,7 +26,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const sessionId = $input.first().json.params.sessionId;\n\nif (!sessionId) {\n  throw new Error('Session ID is required');\n}\n\nreturn [{ json: { sessionId } }];"
+        "jsCode": "const sessionId = $input.first().json.params.sessionId;\n\nif (!sessionId) {\n  throw new Error('Session ID is required');\n}\n\n// Validate UUID format (8-4-4-4-12 hex digits)\nconst uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nif (!uuidRegex.test(sessionId)) {\n  throw new Error('Invalid session ID format. Expected UUID format.');\n}\n\nreturn [{ json: { sessionId } }];"
       },
       "id": "06e1ac0e-87df-4bfe-beab-8ac0e0be69c9",
       "name": "Extract Session ID",
@@ -37,6 +37,39 @@
         0
       ],
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-session-id",
+              "leftValue": "={{ $json.sessionId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-session-id-c3",
+      "name": "IF: Valid Session ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        374,
+        0
+      ]
     },
     {
       "parameters": {
@@ -62,6 +95,47 @@
     },
     {
       "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "has-session-data",
+                    "leftValue": "={{ $json.session_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": false
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "check-session-exists-c3",
+      "name": "Check: Session Found?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        648,
+        0
+      ]
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "SELECT question_id, step_name, status, message, percentage, created_at\nFROM audit_logs\nWHERE session_id = '{{ $('Extract Session ID').first().json.sessionId }}'::uuid\nORDER BY percentage DESC, created_at DESC\nLIMIT 50;",
         "options": {}
@@ -79,8 +153,7 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "Compliance DB"
         }
-      },
-      "continueOnFail": true
+      }
     },
     {
       "parameters": {
@@ -93,8 +166,7 @@
       "position": [
         880,
         0
-      ],
-      "continueOnFail": true
+      ]
     },
     {
       "parameters": {
@@ -144,32 +216,6 @@
       ]
     },
     {
-      "parameters": {},
-      "id": "error-trigger-c3",
-      "name": "Error Trigger",
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "raw",
-        "jsonOutput": "={{ { \"error\": \"Internal server error while fetching status\", \"status\": 500 } }}",
-        "options": {}
-      },
-      "id": "format-error-c3",
-      "name": "Format Server Error",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        224,
-        400
-      ]
-    },
-    {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
@@ -196,11 +242,6 @@
             "node": "Extract Session ID",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Error: Not Found",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
@@ -209,7 +250,7 @@
       "main": [
         [
           {
-            "node": "Query Session",
+            "node": "IF: Valid Session ID?",
             "type": "main",
             "index": 0
           }
@@ -220,7 +261,7 @@
       "main": [
         [
           {
-            "node": "Query Recent Logs",
+            "node": "Check: Session Found?",
             "type": "main",
             "index": 0
           }
@@ -260,22 +301,36 @@
         ]
       ]
     },
-    "Error Trigger": {
+    "Check: Session Found?": {
       "main": [
         [
           {
-            "node": "Format Server Error",
+            "node": "Query Recent Logs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not Found",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Server Error": {
+    "IF: Valid Session ID?": {
       "main": [
         [
           {
-            "node": "Respond: Server Error",
+            "node": "Query Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not Found",
             "type": "main",
             "index": 0
           }

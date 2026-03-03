@@ -1,0 +1,182 @@
+# Implementation Plan
+
+- [ ] 1. Write bug condition exploration test
+  - **Property 1: Fault Condition** - Workflow Error Handling Failures
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bugs exist across workflows A, B, C2, C3, C4
+  - **Scoped PBT Approach**: Test concrete failing cases for each workflow type
+  - Test implementation details from Fault Condition in design:
+    - Workflow A: Upload file with `blobPath: "Data Quality Scorecard Report Template.pptx"` (spaces in filename)
+    - Workflow A: Trigger pipeline node failure with corrupt file, observe cascading garbage errors
+    - Workflow A: Successful blob fetch, observe IF node throws type validation error on undefined `$json.error`
+    - Workflow B: Execute workflow, observe duplicate Fetch Azure Blob node causes execution issues
+    - Workflow C3: Simulate Postgres connection failure, observe client receives 200/202 instead of 500
+    - Workflow C2: Trigger Ollama model failure, observe error suppressed by continueOnFail, Error Trigger doesn't fire
+  - The test assertions should match the Expected Behavior Properties from design:
+    - Webhook workflows (A, B, C3, C4) should return appropriate error status codes (400/500) to clients
+    - Error messages should reflect actual root cause, not cascading secondary failures
+    - Cron workflow (C2) should surface critical failures to Error Trigger for database logging
+    - Blob URLs should be properly encoded for special characters
+    - IF nodes should evaluate undefined as false, not throw type validation errors
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bugs exist)
+  - Document counterexamples found:
+    - Azure Blob 404 errors cascade into "Cannot read property 'filePath' of undefined"
+    - Clients receive 200 responses when errors occur in webhook workflows
+    - Error Trigger fires but client still sees success response
+    - Ollama failures in C2 don't trigger Error Trigger, sessions stuck in "processing"
+    - IF nodes throw "Type validation failed" on undefined values
+    - Duplicate nodes cause execution flow issues
+  - Mark task complete when test is written, run, and failures are documented
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Unchanged Success Path and Configuration
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs:
+    - Workflow A: Upload valid PDF/PPTX/DOCX with simple filename (no spaces), observe successful extraction
+    - Workflow B: Ingest standard document, observe chunking, embedding, Qdrant upsert work correctly
+    - Workflow C2: Enqueue valid audit job, observe successful processing, session updates, results storage
+    - Workflow C3: Poll status for existing session, observe correct response format and data
+    - Workflow C4: Retrieve results for completed session, observe correct response format and data
+    - All workflows: Verify credential references (Postgres ID: 3ME8TvhWnolXkgqg, Redis ID: K8jo4houPYYpv2hq)
+    - All workflows: Verify Azure storage config (account: stcompdldevqc01, container: complianceblobdev)
+    - All workflows: Verify node positions and canvas layout preserved
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Valid requests with no errors return same success responses (200/202) with correct data
+    - Workflow C1 and workflow-admin-postgres continue functioning without modifications
+    - All credential and infrastructure references remain unchanged
+    - Canvas layout and node positions preserved in JSON files
+    - Simple filenames (no special chars) continue to fetch blobs successfully
+    - IF nodes continue routing correctly for defined values
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9_
+
+- [x] 3. Fix remaining n8n workflows (A, B, C2, C3, C4)
+
+  - [x] 3.1 Phase 1: Fix Workflow C3 (status-poll) - Simplest webhook
+    - Create Python script `fix_workflow_c3.py` with UTF-8-sig BOM handling
+    - Remove Error Trigger pattern: Delete `Error Trigger` and `Format Server Error` nodes
+    - Fix responseMode: Verify `Webhook: Get Status` has `responseMode: "responseNode"`
+    - Remove continueOnFail from all nodes: `Extract Session ID, Query Session, Query Recent Logs, Build Status Response`
+    - Fix IF node type validation: Set `typeValidation: "loose"` on IF nodes checking errors
+    - Preserve all three Respond nodes: `Respond: Status (200), Respond: Error (404), Respond: Server Error (500)`
+    - Preserve node positions and credentials
+    - Validate by re-parsing JSON and printing node list + connections
+    - Delete script after successful execution
+    - _Bug_Condition: isBugCondition(input) where input.workflowId == 'C3' AND (input.hasErrorTriggerNode OR input.responseMode == "onReceived" OR input.pipelineNodesContinueOnFail OR input.ifNodesUseStrictTypeValidation)_
+    - _Expected_Behavior: Webhook workflow with clean error propagation - validation errors route to 404, pipeline errors auto-return 500, success returns 200_
+    - _Preservation: All Respond nodes, node positions, credentials (Postgres: 3ME8TvhWnolXkgqg, webhook-api-key)_
+    - _Requirements: 2.1, 2.2, 2.3, 2.7, 3.1, 3.2, 3.3, 3.4, 3.9_
+
+  - [x] 3.2 Phase 1: Fix Workflow C4 (results-retrieval) - Simplest webhook
+    - Create Python script `fix_workflow_c4.py` with UTF-8-sig BOM handling
+    - Remove Error Trigger pattern: Delete `Error Trigger` and `Format Server Error` nodes
+    - Fix responseMode: Verify `Webhook: Get Results` has `responseMode: "responseNode"`
+    - Remove continueOnFail from all nodes: `Extract Session ID, Query Completed Session, Query Evaluations, Build Results Response`
+    - Fix IF node type validation: Set `typeValidation: "loose"`
+    - Preserve all three Respond nodes: `Respond: Results (200), Respond: Error (404), Respond: Server Error (500)`
+    - Preserve node positions and credentials
+    - Validate by re-parsing JSON and printing node list + connections
+    - Delete script after successful execution
+    - _Bug_Condition: isBugCondition(input) where input.workflowId == 'C4' AND (input.hasErrorTriggerNode OR input.responseMode == "onReceived" OR input.pipelineNodesContinueOnFail OR input.ifNodesUseStrictTypeValidation)_
+    - _Expected_Behavior: Webhook workflow with clean error propagation - validation errors route to 404, pipeline errors auto-return 500, success returns 200_
+    - _Preservation: All Respond nodes, node positions, credentials (Postgres: 3ME8TvhWnolXkgqg, webhook-api-key)_
+    - _Requirements: 2.1, 2.2, 2.3, 2.7, 3.1, 3.2, 3.3, 3.4, 3.9_
+
+  - [x] 3.3 Phase 2: Fix Workflow A (universal-extractor) - Most complex webhook
+    - Create Python script `fix_workflow_a.py` with UTF-8-sig BOM handling
+    - Remove Error Trigger pattern: Delete `Error Trigger` and `Format Pipeline Error` nodes
+    - Fix responseMode: Verify `Webhook: Extract Content` has `responseMode: "responseNode"`
+    - Remove continueOnFail from pipeline nodes EXCEPT: `Fetch Azure Blob` (routes to explicit error check), `Validate Binary` (if routes to 400)
+    - Remove duplicate Fetch Azure Blob node: Keep connected node, delete disconnected duplicate
+    - Fix blob URL encoding: Replace `generateSasUrl` function with canonical C1 version using `encodeURIComponent`:
+      ```javascript
+      const encodedBlobPath = blobPath.split('/').map(s => encodeURIComponent(s)).join('/');
+      return `https://${accountName}.blob.core.windows.net/${container}/${encodedBlobPath}?${qs}`;
+      ```
+    - Fix IF node type validation: Set `typeValidation: "loose"` on IF nodes checking `$json.error`
+    - Preserve all Respond nodes: `Respond Error Excel, Respond to Webhook, Respond Error, Respond Error Type, Respond Error Service, Respond: Pipeline Error`
+    - Preserve node positions and credentials
+    - Validate by re-parsing JSON and printing node list + connections
+    - Delete script after successful execution
+    - _Bug_Condition: isBugCondition(input) where input.workflowId == 'A' AND (input.hasErrorTriggerNode OR input.responseMode == "onReceived" OR input.pipelineNodesContinueOnFail OR input.hasDuplicateFetchBlobNode OR input.blobUrlNotEncoded OR input.ifNodesUseStrictTypeValidation)_
+    - _Expected_Behavior: Webhook workflow with clean error propagation - validation errors route to 400, pipeline errors route to 500, blob fetch errors route to explicit Pipeline Error response, no cascading garbage errors, blob URLs properly encoded_
+    - _Preservation: All Respond nodes, node positions, credentials (Postgres: 3ME8TvhWnolXkgqg, Redis: K8jo4houPYYpv2hq, webhook-api-key), Azure storage (stcompdldevqc01/complianceblobdev)_
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.9_
+
+  - [x] 3.4 Phase 3: Fix Workflow C2 (audit-worker) - Cron worker (different pattern)
+    - Create Python script `fix_workflow_c2.py` with UTF-8-sig BOM handling
+    - DO NOT remove Error Trigger: This is a cron worker, Error Trigger chain is CORRECT for background jobs
+    - Remove continueOnFail from critical path nodes only:
+      - `Update Session: Processing` (DB write)
+      - `Ollama: Generate Embedding` (AI call)
+      - `Ollama: Evaluate Compliance` (AI call)
+      - `Store Evidence to DB` (DB write)
+      - `Update Session: Completed` (DB write)
+      - Any other DB write or critical processing node
+    - Keep continueOnFail on non-critical nodes: Logging nodes, cleanup nodes, cache check nodes
+    - Fix IF node type validation: Set `typeValidation: "loose"` on IF nodes checking `$json.error`
+    - Preserve Error Trigger chain: `Error Trigger → Extract Error Details → Mark Session Failed → Log Error to DB`
+    - Preserve node positions and credentials
+    - Validate by re-parsing JSON and printing node list + connections
+    - Delete script after successful execution
+    - _Bug_Condition: isBugCondition(input) where input.workflowId == 'C2' AND (input.criticalNodesContinueOnFail OR input.ifNodesUseStrictTypeValidation)_
+    - _Expected_Behavior: Cron workflow where critical failures surface to Error Trigger for proper database logging, while non-critical failures are handled gracefully_
+    - _Preservation: Error Trigger chain, node positions, credentials (Postgres: 3ME8TvhWnolXkgqg, Redis: K8jo4houPYYpv2hq), Azure storage (stcompdldevqc01/complianceblobdev)_
+    - _Requirements: 2.1, 2.2, 2.3, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.9_
+
+  - [x] 3.5 Phase 4: Fix Workflow B (kb-ingestion) - Same as A but lower priority
+    - Create Python script `fix_workflow_b.py` with UTF-8-sig BOM handling
+    - Remove Error Trigger pattern: Delete `Error Trigger` and `Format Pipeline Error` nodes
+    - Fix responseMode: Verify `Webhook: Ingest Standard` has `responseMode: "responseNode"`
+    - Remove continueOnFail from pipeline nodes EXCEPT: `Fetch Azure Blob`, validation nodes
+    - Remove duplicate Fetch Azure Blob node: Keep connected node, delete disconnected duplicate
+    - Fix blob URL encoding: Apply canonical C1 `generateSasUrl` with `encodeURIComponent`
+    - Fix IF node type validation: Set `typeValidation: "loose"` on IF nodes checking `$json.error`
+    - Preserve all Respond nodes, node positions, credentials
+    - Validate by re-parsing JSON and printing node list + connections
+    - Delete script after successful execution
+    - _Bug_Condition: isBugCondition(input) where input.workflowId == 'B' AND (input.hasErrorTriggerNode OR input.responseMode == "onReceived" OR input.pipelineNodesContinueOnFail OR input.hasDuplicateFetchBlobNode OR input.blobUrlNotEncoded OR input.ifNodesUseStrictTypeValidation)_
+    - _Expected_Behavior: Webhook workflow with clean error propagation - validation errors route to 400, pipeline errors route to 500, blob fetch errors route to explicit error response, no cascading garbage errors, blob URLs properly encoded_
+    - _Preservation: All Respond nodes, node positions, credentials (Postgres: 3ME8TvhWnolXkgqg, Redis: K8jo4houPYYpv2hq, webhook-api-key), Azure storage (stcompdldevqc01/complianceblobdev)_
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.9_
+
+  - [x] 3.6 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Proper Error Handling and Reporting
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1:
+      - Workflow A: Upload file with spaces in filename, verify blob fetched successfully with encoded URL
+      - Workflow A: Trigger pipeline failure, verify client receives 500 with actual error (not cascading garbage)
+      - Workflow A: Successful blob fetch, verify IF node evaluates false and routes to success (not type error)
+      - Workflow B: Execute workflow, verify single Fetch Azure Blob node executes correctly
+      - Workflow C3: Simulate Postgres failure, verify client receives 500 (not 200/202)
+      - Workflow C2: Trigger Ollama failure, verify Error Trigger fires, session marked failed, error logged to DB
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bugs are fixed)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
+
+  - [x] 3.7 Verify preservation tests still pass
+    - **Property 2: Preservation** - Unchanged Success Path and Configuration
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2:
+      - Workflow A: Valid file extraction with simple filename works identically
+      - Workflow B: Valid KB ingestion works identically
+      - Workflow C2: Successful audit job processing works identically
+      - Workflow C3: Valid status poll returns identical response
+      - Workflow C4: Valid results retrieval returns identical response
+      - All workflows: Credential references unchanged
+      - All workflows: Azure storage config unchanged
+      - All workflows: Canvas layout preserved
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

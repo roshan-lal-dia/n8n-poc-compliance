@@ -14,12 +14,14 @@ se = (now + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 # Account SAS vs Service SAS have different signature formats
 if resource_type == "s":
     # Account SAS (service-level) - for listing containers
-    # MS Learn docs define two formats:
-    #   Pre-2020-12-06 (9 fields):  ... + signedversion + "\n"
-    #   2020-12-06    (10 fields):  ... + signedversion + "\n" + signedEncryptionScope + "\n"
-    # The Azure error shows the server is computing with 9 fields (pre-2020-12-06 format),
-    # so we use sv=2020-12-06 but sign with the 9-field format + mandatory trailing "\n".
-    # The trailing "" in the join produces the required trailing "\n" after signedversion.
+    # MS Learn (2020-12-06) format confirmed by Azure error response:
+    #   StringToSign = accountname + "\n" + signedpermissions + "\n" + signedservice + "\n" +
+    #                  signedresourcetype + "\n" + signedstart + "\n" + signedexpiry + "\n" +
+    #                  signedIP + "\n" + signedProtocol + "\n" + signedversion + "\n" +
+    #                  signedEncryptionScope + "\n"
+    # Azure error showed exactly 10 fields separated by \n plus a trailing \n:
+    #   stcompdldevqc01\nl\nb\nsco\n<start>\n<expiry>\n\nhttps\n2020-12-06\n\n
+    # The trailing "" (index 11) produces the final "\n" after the empty encryptionScope.
     string_to_sign = "\n".join([
         account_name,  # 1  accountName
         permissions,   # 2  signedPermissions (e.g., "l" for list)
@@ -30,7 +32,8 @@ if resource_type == "s":
         "",            # 7  signedIP (empty)
         "https",       # 8  signedProtocol
         sv,            # 9  signedVersion
-        "",            # 10 trailing "\n" — required by pre-2020-12-06 spec
+        "",            # 10 signedEncryptionScope (empty — required field for 2020-12-06)
+        "",            # 11 produces the mandatory trailing "\n" after encryptionScope
     ])
 else:
     # Service SAS (blob or container level)

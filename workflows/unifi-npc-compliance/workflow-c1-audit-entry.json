@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "Workflow C1: Audit Entry (Job Submission)",
   "nodes": [
     {
@@ -13,7 +13,10 @@
       "name": "Webhook: Submit Audit",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [16800, 1120],
+      "position": [
+        16600,
+        1120
+      ],
       "webhookId": "audit-submit-webhook",
       "credentials": {
         "httpHeaderAuth": {
@@ -24,13 +27,17 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\n\nconst connectionString = $env.AZURE_STORAGE_CONNECTION_STRING || $env.AZURE_BLOB_CONNECTION_STRING;\nlet accountName, accountKey;\nif (connectionString) {\n  accountName = connectionString.match(/AccountName=([^;]+)/)?.[1];\n  accountKey  = connectionString.match(/AccountKey=([^;]+)/)?.[1];\n}\nif (!accountName) accountName = $env.AZURE_STORAGE_ACCOUNT_NAME || 'stcompdldevqc01';\nif (!accountKey)  accountKey  = $env.AZURE_STORAGE_ACCOUNT_KEY;\n\nif (!accountKey) {\n  throw new Error('Azure credentials not found. Set AZURE_STORAGE_CONNECTION_STRING in the n8n container environment.');\n}\n\nfunction httpsGet(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      const chunks = [];\n      res.on('data', chunk => chunks.push(chunk));\n      res.on('end', () => resolve({ buffer: Buffer.concat(chunks), statusCode: res.statusCode, contentType: res.headers['content-type'] || 'application/octet-stream' }));\n      res.on('error', reject);\n    }).on('error', reject);\n  });\n}\n\nfunction generateSasUrl(container, blobPath) {\n  const now = new Date();\n  const expiry = new Date(now.getTime() + 3600000);\n  const sv = '2020-12-06';\n  const fmt = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');\n  const st = fmt(now);\n  const se = fmt(expiry);\n  const canonicalizedResource = `/blob/${accountName}/${container}/${blobPath}`;\n  const stringToSign = ['r', st, se, canonicalizedResource, '', '', 'https', sv, 'b', '', '', '', '', '', '', ''].join('\\n');\n  const key = Buffer.from(accountKey, 'base64');\n  const sig = crypto.createHmac('sha256', key).update(Buffer.from(stringToSign, 'utf8')).digest('base64');\n  const qs = 'sv=' + encodeURIComponent(sv) + '&sr=b&sp=r&st=' + encodeURIComponent(st) + '&se=' + encodeURIComponent(se) + '&spr=https&sig=' + encodeURIComponent(sig);\n  return `https://${accountName}.blob.core.windows.net/${container}/${blobPath}?${qs}`;\n}\n\nasync function fetchBlob(container, blobPath) {\n  const sasUrl = generateSasUrl(container, blobPath);\n  const { buffer, statusCode, contentType } = await httpsGet(sasUrl);\n  if (statusCode !== 200) {\n    throw new Error(`Azure Blob download failed HTTP ${statusCode} for ${container}/${blobPath}. Body: ${buffer.toString().substring(0, 300)}`);\n  }\n  return { buffer, contentType };\n}\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  if (item.binary && Object.keys(item.binary).length > 0) {\n    result.push(item);\n    continue;\n  }\n  const bodyData = item.json.body || item.json;\n  const blobPath = bodyData.blobPath;\n  const blobFiles = bodyData.blobFiles;\n  if (!blobPath && !blobFiles) {\n    result.push(item);\n    continue;\n  }\n  if (!item.binary) item.binary = {};\n  if (blobPath) {\n    const container = bodyData.azureContainer || 'complianceblobdev';\n    const { buffer, contentType } = await fetchBlob(container, blobPath);\n    const fileName = blobPath.split('/').pop();\n    item.binary.data = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    item.json.azureBlobFetched = true;\n    item.json.originalFileName = fileName;\n  }\n  if (blobFiles) {\n    for (const [fieldName, blobInfo] of Object.entries(blobFiles)) {\n      const bp = typeof blobInfo === 'string' ? blobInfo : blobInfo.blobPath;\n      const container = (typeof blobInfo === 'object' && blobInfo.container) ? blobInfo.container : (item.json.azureContainer || 'complianceblobdev');\n      const { buffer, contentType } = await fetchBlob(container, bp);\n      const fileName = bp.split('/').pop();\n      item.binary[fieldName] = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    }\n    item.json.azureBlobFetched = true;\n  }\n  result.push(item);\n}\n\nreturn result;"
+        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\n\nconst connectionString = $env.AZURE_STORAGE_CONNECTION_STRING || $env.AZURE_BLOB_CONNECTION_STRING;\nlet accountName, accountKey;\nif (connectionString) {\n  accountName = connectionString.match(/AccountName=([^;]+)/)?.[1];\n  accountKey  = connectionString.match(/AccountKey=([^;]+)/)?.[1];\n}\nif (!accountName) accountName = $env.AZURE_STORAGE_ACCOUNT_NAME || 'stcompdldevqc01';\nif (!accountKey)  accountKey  = $env.AZURE_STORAGE_ACCOUNT_KEY;\n\nif (!accountKey) {\n  throw new Error('Azure credentials not found. Set AZURE_STORAGE_CONNECTION_STRING in the n8n container environment.');\n}\n\nfunction httpsGet(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      const chunks = [];\n      res.on('data', chunk => chunks.push(chunk));\n      res.on('end', () => resolve({ buffer: Buffer.concat(chunks), statusCode: res.statusCode, contentType: res.headers['content-type'] || 'application/octet-stream' }));\n      res.on('error', reject);\n    }).on('error', reject);\n  });\n}\n\nfunction generateSasUrl(container, blobPath) {\n  const now = new Date();\n  const expiry = new Date(now.getTime() + 3600000);\n  const sv = '2020-12-06';\n  const fmt = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');\n  const st = fmt(now);\n  const se = fmt(expiry);\n  const canonicalizedResource = `/blob/${accountName}/${container}/${blobPath}`;\n  const stringToSign = ['r', st, se, canonicalizedResource, '', '', 'https', sv, 'b', '', '', '', '', '', '', ''].join('\\n');\n  const key = Buffer.from(accountKey, 'base64');\n  const sig = crypto.createHmac('sha256', key).update(Buffer.from(stringToSign, 'utf8')).digest('base64');\n  const qs = 'sv=' + encodeURIComponent(sv) + '&sr=b&sp=r&st=' + encodeURIComponent(st) + '&se=' + encodeURIComponent(se) + '&spr=https&sig=' + encodeURIComponent(sig);\n  // Encode each path segment so spaces/special chars don't cause 404; canonicalizedResource above uses raw path for signing (correct)\n  const encodedBlobPath = blobPath.split('/').map(s => encodeURIComponent(s)).join('/');\n  return `https://${accountName}.blob.core.windows.net/${container}/${encodedBlobPath}?${qs}`;\n}\n\nasync function fetchBlob(container, blobPath) {\n  const sasUrl = generateSasUrl(container, blobPath);\n  const { buffer, statusCode, contentType } = await httpsGet(sasUrl);\n  if (statusCode !== 200) {\n    throw new Error(`Azure Blob download failed HTTP ${statusCode} for ${container}/${blobPath}. Body: ${buffer.toString().substring(0, 300)}`);\n  }\n  return { buffer, contentType };\n}\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  if (item.binary && Object.keys(item.binary).length > 0) {\n    result.push(item);\n    continue;\n  }\n  const bodyData = item.json.body || item.json;\n  const blobPath = bodyData.blobPath;\n  const blobFiles = bodyData.blobFiles;\n  if (!blobPath && !blobFiles) {\n    result.push(item);\n    continue;\n  }\n  if (!item.binary) item.binary = {};\n  if (blobPath) {\n    const container = bodyData.azureContainer || 'complianceblobdev';\n    const { buffer, contentType } = await fetchBlob(container, blobPath);\n    const fileName = blobPath.split('/').pop();\n    item.binary.data = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    item.json.azureBlobFetched = true;\n    item.json.originalFileName = fileName;\n  }\n  if (blobFiles) {\n    for (const [fieldName, blobInfo] of Object.entries(blobFiles)) {\n      const bp = typeof blobInfo === 'string' ? blobInfo : blobInfo.blobPath;\n      const container = (typeof blobInfo === 'object' && blobInfo.container) ? blobInfo.container : (item.json.azureContainer || 'complianceblobdev');\n      const { buffer, contentType } = await fetchBlob(container, bp);\n      const fileName = bp.split('/').pop();\n      item.binary[fieldName] = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    }\n    item.json.azureBlobFetched = true;\n  }\n  result.push(item);\n}\n\nreturn result;"
       },
       "id": "fetch-azure-blob-c1",
       "name": "Fetch Azure Blob",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [16912, 1120]
+      "position": [
+        16800,
+        1120
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -40,19 +47,29 @@
       "name": "Parse & Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [17024, 1120],
+      "position": [
+        17160,
+        1120
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "error-check-condition",
               "leftValue": "={{ $json.error }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "notEmpty" }
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
             }
           ],
           "combinator": "and"
@@ -63,19 +80,27 @@
       "name": "Route on Validation Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [17136, 1120]
+      "position": [
+        17360,
+        1120
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { \"error\": $json.error, \"errorCode\": \"VALIDATION_ERROR\", \"timestamp\": $now } }}",
-        "options": { "responseCode": 400 }
+        "options": {
+          "responseCode": 400
+        }
       },
       "id": "respond-validation-error",
       "name": "Respond: Validation Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [17248, 1320]
+      "position": [
+        17460,
+        1340
+      ]
     },
     {
       "parameters": {
@@ -87,8 +112,16 @@
       "name": "Create Audit Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [17248, 1120],
-      "credentials": { "postgres": { "id": "3ME8TvhWnolXkgqg", "name": "postgres-compliance" } }
+      "position": [
+        17560,
+        1120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
     },
     {
       "parameters": {
@@ -97,7 +130,10 @@
       "name": "Prepare File Writes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [17472, 1120],
+      "position": [
+        17760,
+        1120
+      ],
       "id": "754c7f4b-0c57-401d-a997-ce58b38e06bf"
     },
     {
@@ -109,7 +145,10 @@
       "name": "Write Binary File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [17680, 1120],
+      "position": [
+        17960,
+        1120
+      ],
       "id": "74b4c682-fc63-497c-b259-85f16328ca44"
     },
     {
@@ -119,7 +158,10 @@
       "name": "Aggregate Files",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [17904, 1120],
+      "position": [
+        18160,
+        1120
+      ],
       "id": "76acc9ae-d643-40d2-831a-7ee7a2c0eaeb"
     },
     {
@@ -132,8 +174,16 @@
       "name": "Log: Job Queued",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [18128, 1120],
-      "credentials": { "postgres": { "id": "3ME8TvhWnolXkgqg", "name": "postgres-compliance" } }
+      "position": [
+        18360,
+        1120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
     },
     {
       "parameters": {
@@ -143,7 +193,10 @@
       "name": "Build Redis Job Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [18352, 1120]
+      "position": [
+        18560,
+        1120
+      ]
     },
     {
       "parameters": {
@@ -155,21 +208,37 @@
       "name": "Enqueue Job to Redis",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
-      "position": [18576, 1120],
-      "credentials": { "redis": { "id": "K8jo4houPYYpv2hq", "name": "redis-compliance" } }
+      "position": [
+        18760,
+        1120
+      ],
+      "credentials": {
+        "redis": {
+          "id": "K8jo4houPYYpv2hq",
+          "name": "redis-compliance"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_sessions SET job_id = '{{ $json.jobId }}' WHERE session_id = '{{ $json.sessionId }}';",
+        "query": "UPDATE audit_sessions SET job_id = '{{ $('Build Redis Job Payload').first().json.jobId }}' WHERE session_id = '{{ $('Build Redis Job Payload').first().json.sessionId }}';",
         "options": {}
       },
       "id": "f94d5f9a-ac4f-4903-9ff5-b144e5ca23da",
       "name": "Update Session Job ID",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [18800, 1120],
-      "credentials": { "postgres": { "id": "3ME8TvhWnolXkgqg", "name": "postgres-compliance" } }
+      "position": [
+        18960,
+        1120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
     },
     {
       "parameters": {
@@ -181,64 +250,246 @@
       "name": "Build Success Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [19024, 1120]
+      "position": [
+        19160,
+        1120
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": { "responseCode": 202 }
+        "options": {
+          "responseCode": 202
+        }
       },
       "id": "5f419239-42d7-44e9-9e33-c34b321b5112",
       "name": "Respond: Accepted",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [19232, 1120]
+      "position": [
+        19360,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": ($json.error || \"Internal server error\"), \"errorCode\": \"PIPELINE_ERROR\", \"timestamp\": $now } }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-pipeline-error-c1",
+      "name": "Respond: Pipeline Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        17080,
+        1340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "blob-error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-blob-error-c1",
+      "name": "IF: Blob Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        16980,
+        1120
+      ]
     }
   ],
   "pinData": {},
   "connections": {
     "Webhook: Submit Audit": {
-      "main": [[{ "node": "Fetch Azure Blob", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Azure Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Azure Blob": {
-      "main": [[{ "node": "Parse & Validate Input", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF: Blob Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Blob Error?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Pipeline Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse & Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse & Validate Input": {
-      "main": [[{ "node": "Route on Validation Error", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Route on Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Route on Validation Error": {
       "main": [
-        [{ "node": "Respond: Validation Error", "type": "main", "index": 0 }],
-        [{ "node": "Create Audit Session", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond: Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Audit Session",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare File Writes",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Create Audit Session": {
-      "main": [[{ "node": "Prepare File Writes", "type": "main", "index": 0 }]]
+      "main": [
+        []
+      ]
     },
     "Prepare File Writes": {
-      "main": [[{ "node": "Write Binary File", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Write Binary File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Write Binary File": {
-      "main": [[{ "node": "Aggregate Files", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Aggregate Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Aggregate Files": {
-      "main": [[{ "node": "Log: Job Queued", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Log: Job Queued",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Log: Job Queued": {
-      "main": [[{ "node": "Build Redis Job Payload", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Redis Job Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Redis Job Payload": {
-      "main": [[{ "node": "Enqueue Job to Redis", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Enqueue Job to Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Enqueue Job to Redis": {
-      "main": [[{ "node": "Update Session Job ID", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Update Session Job ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Update Session Job ID": {
-      "main": [[{ "node": "Build Success Response", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Success Response": {
-      "main": [[{ "node": "Respond: Accepted", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond: Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,

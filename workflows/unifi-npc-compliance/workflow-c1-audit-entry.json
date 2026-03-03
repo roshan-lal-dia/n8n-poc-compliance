@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "Workflow C1: Audit Entry (Job Submission)",
   "nodes": [
     {
@@ -13,10 +13,7 @@
       "name": "Webhook: Submit Audit",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        16800,
-        1120
-      ],
+      "position": [16800, 1120],
       "webhookId": "audit-submit-webhook",
       "credentials": {
         "httpHeaderAuth": {
@@ -27,17 +24,58 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse multipart form data and extract files + questions mapping\nconst crypto = require('crypto');\nconst items = $input.all();\nconst firstItem = items[0];\n\n// Get questions JSON from form data (try multiple locations)\nlet questionsRaw = firstItem.json?.questions || firstItem.json?.body?.questions || firstItem.json?.query?.questions;\n\n// Debug logging\nconsole.log('First item keys:', Object.keys(firstItem.json || {}));\nconsole.log('Questions raw value:', questionsRaw);\nif (firstItem.binary) {\n  console.log('Binary field keys:', Object.keys(firstItem.binary));\n}\n\nif (!questionsRaw) {\n  throw new Error('Missing \"questions\" parameter. Expected JSON array: [{\"question_id\":\"q1\",\"files\":[\"file1.pdf\"]}]. Received structure: ' + JSON.stringify(Object.keys(firstItem.json || {})));\n}\n\nlet questions;\ntry {\n  // Sanitize: strip control characters (newlines, carriage returns, tabs) that\n  // can sneak in from multi-line curl commands or copy-paste issues\n  if (typeof questionsRaw === 'string') {\n    questionsRaw = questionsRaw.replace(/[\\x00-\\x1F\\x7F]/g, ' ').trim();\n  }\n  questions = typeof questionsRaw === 'string' ? JSON.parse(questionsRaw) : questionsRaw;\n} catch (e) {\n  throw new Error('Invalid questions JSON format: ' + e.message);\n}\n\nif (!questions || !Array.isArray(questions) || questions.length === 0) {\n  throw new Error('Questions must be non-empty array. Got: ' + typeof questions);\n}\n\n// Extract domain (optional, can be inferred from questions)\nconst domain = firstItem.json?.domain || firstItem.json?.body?.domain || firstItem.json?.query?.domain || 'General';\n\n// Calculate file stats using binary metadata + getBinaryDataBuffer as fallback\n// getBinaryDataBuffer(itemIndex, propertyName) — correct signature for n8n 2.6+\nlet totalSize = 0;\nconst fileMetadata = [];\n\nif (firstItem.binary) {\n  for (const [fieldName, binaryData] of Object.entries(firstItem.binary)) {\n    if (!binaryData) continue;\n\n    let fileSize;\n    if (binaryData.fileSize != null) {\n      fileSize = binaryData.fileSize;\n    } else {\n      const buf = await this.helpers.getBinaryDataBuffer(0, fieldName);\n      fileSize = buf.length;\n    }\n\n    totalSize += fileSize;\n    fileMetadata.push({\n      fieldName,\n      fileName: binaryData.fileName || fieldName,\n      fileSize,\n      mimeType: binaryData.mimeType || 'application/octet-stream'\n    });\n  }\n}\n\n// Debug: log binary field names so mismatches are easy to diagnose\nconsole.log('Binary fields available:', JSON.stringify(fileMetadata.map(f => ({ fieldName: f.fieldName, fileName: f.fileName }))));\n\n// Enforce 500MB total limit for large file support\nif (totalSize > 500 * 1024 * 1024) {\n  throw new Error(`Total file size exceeds 500MB limit (current: ${Math.round(totalSize/1024/1024)}MB)`);\n}\n\n// Helper: find uploaded file by matching fieldName OR fileName (flexible match)\n// Handles n8n field-name sanitization (spaces vs underscores, etc.)\nfunction findUploadedFile(name) {\n  const norm = (s) => s.replace(/[_ ]/g, ' ').trim().toLowerCase();\n  return fileMetadata.find(f =>\n    f.fieldName === name || f.fileName === name ||\n    norm(f.fieldName) === norm(name) || norm(f.fileName) === norm(name)\n  );\n}\n\n// Validate: each question references valid uploaded files\nfor (const q of questions) {\n  if (!q.question_id) {\n    throw new Error('Each question must have a \"question_id\" field');\n  }\n  if (!q.files || !Array.isArray(q.files) || q.files.length === 0) {\n    throw new Error(`Question ${q.question_id} has no files specified`);\n  }\n\n  // Remap files array to use the actual binary fieldName for downstream nodes\n  q.files = q.files.map(fileName => {\n    const found = findUploadedFile(fileName);\n    if (!found) {\n      const available = fileMetadata.map(f => f.fieldName + ' (file: ' + f.fileName + ')').join(', ');\n      throw new Error(`Question ${q.question_id} references file \"${fileName}\" which was not uploaded. Available: [${available}]`);\n    }\n    return found.fieldName;\n  });\n}\n\n// Update JSON content but preserve original binary attachment\nfirstItem.json = {\n  questions,\n  domain,\n  files: fileMetadata,\n  totalSizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,\n  totalFiles: fileMetadata.length\n};\n\nreturn [firstItem];"
+        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\n\nconst connectionString = $env.AZURE_STORAGE_CONNECTION_STRING || $env.AZURE_BLOB_CONNECTION_STRING;\nlet accountName, accountKey;\nif (connectionString) {\n  accountName = connectionString.match(/AccountName=([^;]+)/)?.[1];\n  accountKey  = connectionString.match(/AccountKey=([^;]+)/)?.[1];\n}\nif (!accountName) accountName = $env.AZURE_STORAGE_ACCOUNT_NAME || 'stcompdldevqc01';\nif (!accountKey)  accountKey  = $env.AZURE_STORAGE_ACCOUNT_KEY;\n\nif (!accountKey) {\n  throw new Error('Azure credentials not found. Set AZURE_STORAGE_CONNECTION_STRING in the n8n container environment.');\n}\n\nfunction httpsGet(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      const chunks = [];\n      res.on('data', chunk => chunks.push(chunk));\n      res.on('end', () => resolve({ buffer: Buffer.concat(chunks), statusCode: res.statusCode, contentType: res.headers['content-type'] || 'application/octet-stream' }));\n      res.on('error', reject);\n    }).on('error', reject);\n  });\n}\n\nfunction generateSasUrl(container, blobPath) {\n  const now = new Date();\n  const expiry = new Date(now.getTime() + 3600000);\n  const sv = '2020-12-06';\n  const fmt = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');\n  const st = fmt(now);\n  const se = fmt(expiry);\n  const canonicalizedResource = `/blob/${accountName}/${container}/${blobPath}`;\n  const stringToSign = ['r', st, se, canonicalizedResource, '', '', 'https', sv, 'b', '', '', '', '', '', '', ''].join('\\n');\n  const key = Buffer.from(accountKey, 'base64');\n  const sig = crypto.createHmac('sha256', key).update(Buffer.from(stringToSign, 'utf8')).digest('base64');\n  const qs = 'sv=' + encodeURIComponent(sv) + '&sr=b&sp=r&st=' + encodeURIComponent(st) + '&se=' + encodeURIComponent(se) + '&spr=https&sig=' + encodeURIComponent(sig);\n  return `https://${accountName}.blob.core.windows.net/${container}/${blobPath}?${qs}`;\n}\n\nasync function fetchBlob(container, blobPath) {\n  const sasUrl = generateSasUrl(container, blobPath);\n  const { buffer, statusCode, contentType } = await httpsGet(sasUrl);\n  if (statusCode !== 200) {\n    throw new Error(`Azure Blob download failed HTTP ${statusCode} for ${container}/${blobPath}. Body: ${buffer.toString().substring(0, 300)}`);\n  }\n  return { buffer, contentType };\n}\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  if (item.binary && Object.keys(item.binary).length > 0) {\n    result.push(item);\n    continue;\n  }\n  const bodyData = item.json.body || item.json;\n  const blobPath = bodyData.blobPath;\n  const blobFiles = bodyData.blobFiles;\n  if (!blobPath && !blobFiles) {\n    result.push(item);\n    continue;\n  }\n  if (!item.binary) item.binary = {};\n  if (blobPath) {\n    const container = bodyData.azureContainer || 'complianceblobdev';\n    const { buffer, contentType } = await fetchBlob(container, blobPath);\n    const fileName = blobPath.split('/').pop();\n    item.binary.data = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    item.json.azureBlobFetched = true;\n    item.json.originalFileName = fileName;\n  }\n  if (blobFiles) {\n    for (const [fieldName, blobInfo] of Object.entries(blobFiles)) {\n      const bp = typeof blobInfo === 'string' ? blobInfo : blobInfo.blobPath;\n      const container = (typeof blobInfo === 'object' && blobInfo.container) ? blobInfo.container : (item.json.azureContainer || 'complianceblobdev');\n      const { buffer, contentType } = await fetchBlob(container, bp);\n      const fileName = bp.split('/').pop();\n      item.binary[fieldName] = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    }\n    item.json.azureBlobFetched = true;\n  }\n  result.push(item);\n}\n\nreturn result;"
+      },
+      "id": "fetch-azure-blob-c1",
+      "name": "Fetch Azure Blob",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [16912, 1120]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst items = $input.all();\nconst firstItem = items[0];\n\nlet questionsRaw = firstItem.json?.questions || firstItem.json?.body?.questions || firstItem.json?.query?.questions;\n\nconsole.log('First item keys:', Object.keys(firstItem.json || {}));\nif (firstItem.binary) {\n  console.log('Binary field keys:', Object.keys(firstItem.binary));\n}\n\nif (!questionsRaw) {\n  throw new Error('Missing \"questions\" parameter. Expected JSON array: [{\"question_id\":\"q1\",\"files\":[\"file1.pdf\"]}]. Received structure: ' + JSON.stringify(Object.keys(firstItem.json || {})));\n}\n\nlet questions;\ntry {\n  if (typeof questionsRaw === 'string') {\n    questionsRaw = questionsRaw.replace(/[\\x00-\\x1F\\x7F]/g, ' ').trim();\n  }\n  questions = typeof questionsRaw === 'string' ? JSON.parse(questionsRaw) : questionsRaw;\n} catch (e) {\n  throw new Error('Invalid questions JSON format: ' + e.message);\n}\n\nif (!questions || !Array.isArray(questions) || questions.length === 0) {\n  throw new Error('Questions must be non-empty array. Got: ' + typeof questions);\n}\n\nconst domain = firstItem.json?.domain || firstItem.json?.body?.domain || firstItem.json?.query?.domain || 'General';\n\nlet totalSize = 0;\nconst fileMetadata = [];\n\nif (firstItem.binary) {\n  for (const [fieldName, binaryData] of Object.entries(firstItem.binary)) {\n    if (!binaryData) continue;\n    let fileSize;\n    if (binaryData.fileSize != null) {\n      fileSize = binaryData.fileSize;\n    } else {\n      const buf = await this.helpers.getBinaryDataBuffer(0, fieldName);\n      fileSize = buf.length;\n    }\n    totalSize += fileSize;\n    fileMetadata.push({ fieldName, fileName: binaryData.fileName || fieldName, fileSize, mimeType: binaryData.mimeType || 'application/octet-stream' });\n  }\n}\n\nconsole.log('Binary fields available:', JSON.stringify(fileMetadata.map(f => ({ fieldName: f.fieldName, fileName: f.fileName }))));\n\nif (totalSize > 500 * 1024 * 1024) {\n  throw new Error(`Total file size exceeds 500MB limit (current: ${Math.round(totalSize/1024/1024)}MB)`);\n}\n\nfunction findUploadedFile(name) {\n  const norm = (s) => s.replace(/[_ ]/g, ' ').trim().toLowerCase();\n  return fileMetadata.find(f => f.fieldName === name || f.fileName === name || norm(f.fieldName) === norm(name) || norm(f.fileName) === norm(name));\n}\n\nfor (const q of questions) {\n  if (!q.question_id) throw new Error('Each question must have a \"question_id\" field');\n  if (!q.files || !Array.isArray(q.files) || q.files.length === 0) throw new Error(`Question ${q.question_id} has no files specified`);\n  q.files = q.files.map(fileName => {\n    const found = findUploadedFile(fileName);\n    if (!found) {\n      const available = fileMetadata.map(f => f.fieldName + ' (file: ' + f.fileName + ')').join(', ');\n      throw new Error(`Question ${q.question_id} references file \"${fileName}\" which was not uploaded. Available: [${available}]`);\n    }\n    return found.fieldName;\n  });\n}\n\nfirstItem.json = { questions, domain, files: fileMetadata, totalSizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100, totalFiles: fileMetadata.length };\n\nreturn [firstItem];"
       },
       "id": "b135bedb-52bf-44ab-8792-fbc75357b314",
       "name": "Parse & Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        17024,
-        1120
-      ],
+      "position": [17024, 1120],
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "error-check-condition",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-on-validation-error",
+      "name": "Route on Validation Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [17136, 1120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": $json.error, \"errorCode\": \"VALIDATION_ERROR\", \"timestamp\": $now } }}",
+        "options": { "responseCode": 400 }
+      },
+      "id": "respond-validation-error",
+      "name": "Respond: Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [17248, 1320]
     },
     {
       "parameters": {
@@ -49,31 +87,18 @@
       "name": "Create Audit Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [
-        17248,
-        1120
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "postgres-compliance"
-        }
-      },
-      "continueOnFail": true
+      "position": [17248, 1120],
+      "credentials": { "postgres": { "id": "3ME8TvhWnolXkgqg", "name": "postgres-compliance" } }
     },
     {
       "parameters": {
-        "jsCode": "// Calculate hashes and prepare items for writing\nconst crypto = require('crypto');\nconst fs = require('fs');\nconst path = require('path');\n\n// Get session data from Create Audit Session node\nconst sessionData = $('Create Audit Session').first().json;\nconst sessionId = sessionData.session_id;\nconst domain = sessionData.domain_id;\n\n// Get questions and binary data from current input (Parse & Validate Input)\nconst inputData = $input.first();\nconst questions = inputData.json.questions;\nconst binaryData = inputData.binary;\n\nif (!binaryData || Object.keys(binaryData).length === 0) {\n  throw new Error('No binary data found in input');\n}\n\nconst binaryKeys = Object.keys(binaryData);\n\n// Create session directory\nconst sessionDir = `/tmp/n8n_processing/${sessionId}`;\nif (!fs.existsSync(sessionDir)) {\n  fs.mkdirSync(sessionDir, { recursive: true });\n}\n\nconsole.log(`Created session directory: ${sessionDir}`);\n\nconst items = [];\n\n// Process each binary file\nfor (let ki = 0; ki < binaryKeys.length; ki++) {\n  const fieldName = binaryKeys[ki];\n  const fileData = binaryData[fieldName];\n  if (!fileData) continue;\n\n  // Get binary buffer\n  const buffer = await this.helpers.getBinaryDataBuffer(0, fieldName);\n  const hash = crypto.createHash('sha256').update(buffer).digest('hex');\n  const ext = path.extname(fileData.fileName) || '.bin';\n  const diskFileName = `${hash}${ext}`;\n  const filePath = path.join(sessionDir, diskFileName);\n\n  items.push({\n    json: {\n      sessionId,\n      domain,\n      fieldName,\n      fileName: fileData.fileName,\n      originalFileName: fileData.fileName,  // Preserve original - won't be overwritten\n      mimeType: fileData.mimeType,\n      fileSize: buffer.length,\n      hash,\n      filePath,\n      questions\n    },\n    binary: {\n      data: fileData\n    }\n  });\n}\n\nif (items.length === 0) {\n  throw new Error('No files processed');\n}\n\nreturn items;"
+        "jsCode": "const crypto = require('crypto');\nconst fs = require('fs');\nconst path = require('path');\n\nconst sessionData = $('Create Audit Session').first().json;\nconst sessionId = sessionData.session_id;\nconst domain = sessionData.domain_id;\n\nconst inputData = $input.first();\nconst questions = inputData.json.questions;\nconst binaryData = inputData.binary;\n\nif (!binaryData || Object.keys(binaryData).length === 0) {\n  throw new Error('No binary data found in input');\n}\n\nconst binaryKeys = Object.keys(binaryData);\nconst sessionDir = `/tmp/n8n_processing/${sessionId}`;\nif (!fs.existsSync(sessionDir)) {\n  fs.mkdirSync(sessionDir, { recursive: true });\n}\n\nconsole.log(`Created session directory: ${sessionDir}`);\n\nconst items = [];\n\nfor (let ki = 0; ki < binaryKeys.length; ki++) {\n  const fieldName = binaryKeys[ki];\n  const fileData = binaryData[fieldName];\n  if (!fileData) continue;\n  const buffer = await this.helpers.getBinaryDataBuffer(0, fieldName);\n  const hash = crypto.createHash('sha256').update(buffer).digest('hex');\n  const ext = path.extname(fileData.fileName) || '.bin';\n  const diskFileName = `${hash}${ext}`;\n  const filePath = path.join(sessionDir, diskFileName);\n  items.push({\n    json: { sessionId, domain, fieldName, fileName: fileData.fileName, originalFileName: fileData.fileName, mimeType: fileData.mimeType, fileSize: buffer.length, hash, filePath, questions },\n    binary: { data: fileData }\n  });\n}\n\nif (items.length === 0) throw new Error('No files processed');\n\nreturn items;"
       },
       "name": "Prepare File Writes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        17472,
-        1120
-      ],
-      "id": "754c7f4b-0c57-401d-a997-ce58b38e06bf",
-      "continueOnFail": true
+      "position": [17472, 1120],
+      "id": "754c7f4b-0c57-401d-a997-ce58b38e06bf"
     },
     {
       "parameters": {
@@ -84,26 +109,18 @@
       "name": "Write Binary File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [
-        17680,
-        1120
-      ],
-      "id": "74b4c682-fc63-497c-b259-85f16328ca44",
-      "continueOnFail": true
+      "position": [17680, 1120],
+      "id": "74b4c682-fc63-497c-b259-85f16328ca44"
     },
     {
       "parameters": {
-        "jsCode": "// Reconstruct fileMap and question structure\nconst items = $input.all();\nconst firstItem = items[0].json;\nconst sessionId = firstItem.sessionId;\nconst domain = firstItem.domain;\nconst questions = firstItem.questions;\n\nconst fileMap = {};\n\nfor (const item of items) {\n  const row = item.json;\n  // Use originalFileName which wasn't overwritten by Write Binary File node\n  const originalName = row.originalFileName || row.fileName;\n  \n  fileMap[row.fieldName] = {\n    hash: row.hash,\n    fileName: originalName,  // Original filename from API\n    fileSize: row.fileSize,\n    mimeType: row.mimeType,\n    fieldName: row.fieldName,\n    filePath: row.filePath  // Temp disk path\n  };\n}\n\n// Map questions to hashes\nconst questionsWithHashes = questions.map(q => ({\n  question_id: q.question_id,\n  evidence_files: q.files.map(fileName => {\n    const fileInfo = fileMap[fileName];\n    return {\n      hash: fileInfo.hash,\n      originalName: fileInfo.fileName,  // Use original filename\n      fieldName: fileName\n    };\n  })\n}));\n\nreturn [{\n  json: {\n    sessionId,\n    domain,\n    questions: questionsWithHashes,\n    fileMap,\n    totalFiles: Object.keys(fileMap).length\n  }\n}];"
+        "jsCode": "const items = $input.all();\nconst firstItem = items[0].json;\nconst sessionId = firstItem.sessionId;\nconst domain = firstItem.domain;\nconst questions = firstItem.questions;\n\nconst fileMap = {};\nfor (const item of items) {\n  const row = item.json;\n  const originalName = row.originalFileName || row.fileName;\n  fileMap[row.fieldName] = { hash: row.hash, fileName: originalName, fileSize: row.fileSize, mimeType: row.mimeType, fieldName: row.fieldName, filePath: row.filePath };\n}\n\nconst questionsWithHashes = questions.map(q => ({\n  question_id: q.question_id,\n  evidence_files: q.files.map(fileName => {\n    const fileInfo = fileMap[fileName];\n    return { hash: fileInfo.hash, originalName: fileInfo.fileName, fieldName: fileName };\n  })\n}));\n\nreturn [{ json: { sessionId, domain, questions: questionsWithHashes, fileMap, totalFiles: Object.keys(fileMap).length } }];"
       },
       "name": "Aggregate Files",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        17904,
-        1120
-      ],
-      "id": "76acc9ae-d643-40d2-831a-7ee7a2c0eaeb",
-      "continueOnFail": true
+      "position": [17904, 1120],
+      "id": "76acc9ae-d643-40d2-831a-7ee7a2c0eaeb"
     },
     {
       "parameters": {
@@ -115,31 +132,18 @@
       "name": "Log: Job Queued",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [
-        18128,
-        1120
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "postgres-compliance"
-        }
-      },
-      "continueOnFail": true
+      "position": [18128, 1120],
+      "credentials": { "postgres": { "id": "3ME8TvhWnolXkgqg", "name": "postgres-compliance" } }
     },
     {
       "parameters": {
-        "jsCode": "// Create Redis job payload\nconst crypto = require('crypto');\n\n// Get data from Aggregate Files node\nconst data = $('Aggregate Files').first().json;\n\n// Debug: log what we received\nconsole.log('Build Redis Job - received data keys:', Object.keys(data));\nconsole.log('Build Redis Job - questions value:', data.questions);\n\nif (!data.questions || !Array.isArray(data.questions)) {\n  throw new Error('Invalid data received: questions is ' + typeof data.questions + '. Full data keys: ' + Object.keys(data).join(', '));\n}\n\nconst jobId = crypto.randomUUID();\n\nconst job = {\n  jobId: jobId,\n  sessionId: data.sessionId,\n  domain: data.domain,\n  questions: data.questions,\n  fileMap: data.fileMap,\n  sessionDir: `/tmp/n8n_processing/${data.sessionId}`,\n  status: 'queued',\n  createdAt: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    jobData: JSON.stringify(job),\n    jobId: jobId,\n    sessionId: data.sessionId,\n    totalQuestions: data.questions.length\n  }\n}];"
+        "jsCode": "const crypto = require('crypto');\nconst data = $('Aggregate Files').first().json;\n\nconsole.log('Build Redis Job - received data keys:', Object.keys(data));\n\nif (!data.questions || !Array.isArray(data.questions)) {\n  throw new Error('Invalid data received: questions is ' + typeof data.questions + '. Full data keys: ' + Object.keys(data).join(', '));\n}\n\nconst jobId = crypto.randomUUID();\nconst job = { jobId, sessionId: data.sessionId, domain: data.domain, questions: data.questions, fileMap: data.fileMap, sessionDir: `/tmp/n8n_processing/${data.sessionId}`, status: 'queued', createdAt: new Date().toISOString() };\n\nreturn [{ json: { jobData: JSON.stringify(job), jobId, sessionId: data.sessionId, totalQuestions: data.questions.length } }];"
       },
       "id": "84dc3d26-c399-4bbd-8a96-3dc52145361e",
       "name": "Build Redis Job Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        18352,
-        1120
-      ],
-      "continueOnFail": true
+      "position": [18352, 1120]
     },
     {
       "parameters": {
@@ -151,17 +155,8 @@
       "name": "Enqueue Job to Redis",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
-      "position": [
-        18576,
-        1120
-      ],
-      "credentials": {
-        "redis": {
-          "id": "K8jo4houPYYpv2hq",
-          "name": "redis-compliance"
-        }
-      },
-      "continueOnFail": true
+      "position": [18576, 1120],
+      "credentials": { "redis": { "id": "K8jo4houPYYpv2hq", "name": "redis-compliance" } }
     },
     {
       "parameters": {
@@ -173,17 +168,8 @@
       "name": "Update Session Job ID",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [
-        18800,
-        1120
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "postgres-compliance"
-        }
-      },
-      "continueOnFail": true
+      "position": [18800, 1120],
+      "credentials": { "postgres": { "id": "3ME8TvhWnolXkgqg", "name": "postgres-compliance" } }
     },
     {
       "parameters": {
@@ -195,301 +181,64 @@
       "name": "Build Success Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        19024,
-        1120
-      ]
+      "position": [19024, 1120]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": {
-          "responseCode": 202
-        }
+        "options": { "responseCode": 202 }
       },
       "id": "5f419239-42d7-44e9-9e33-c34b321b5112",
       "name": "Respond: Accepted",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        19232,
-        1120
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "raw",
-        "jsonOutput": "={{ { \"error\": $json.error?.message || \"Internal server error\", \"status\": 500 } }}",
-        "options": {}
-      },
-      "id": "7e70b414-93c8-470f-88e6-ad5f6ce56860",
-      "name": "Error Handler",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        17040,
-        1312
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {
-          "responseCode": "={{ $json.status || 500 }}"
-        }
-      },
-      "id": "95b19548-901f-47a8-8d9a-4fac43a597c4",
-      "name": "Respond: Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        17328,
-        1408
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\n\n// Parse credentials from connection string (mirrors blobstorage.js approach)\nconst connectionString = $env.AZURE_STORAGE_CONNECTION_STRING || $env.AZURE_BLOB_CONNECTION_STRING;\nlet accountName, accountKey;\nif (connectionString) {\n  accountName = connectionString.match(/AccountName=([^;]+)/)?.[1];\n  accountKey  = connectionString.match(/AccountKey=([^;]+)/)?.[1];\n}\n// Fallback to individual env vars if connection string not set\nif (!accountName) accountName = $env.AZURE_STORAGE_ACCOUNT_NAME || 'stcompdldevqc01';\nif (!accountKey)  accountKey  = $env.AZURE_STORAGE_ACCOUNT_KEY;\n\nif (!accountKey) {\n  throw new Error(\n    'Azure credentials not found. Set AZURE_STORAGE_CONNECTION_STRING ' +\n    '(e.g. \"DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net\") ' +\n    'in the n8n container environment.'\n  );\n}\n\nfunction httpsGet(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      const chunks = [];\n      res.on('data', chunk => chunks.push(chunk));\n      res.on('end', () => resolve({\n        buffer: Buffer.concat(chunks),\n        statusCode: res.statusCode,\n        contentType: res.headers['content-type'] || 'application/octet-stream'\n      }));\n      res.on('error', reject);\n    }).on('error', reject);\n  });\n}\n\nfunction generateSasUrl(container, blobPath, sr = 'b', permissions = 'r') {\n  const now = new Date();\n  const expiry = new Date(now.getTime() + 3600000); // 1 hour\n  const sv = '2020-12-06';\n  const fmt = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');\n  const st = fmt(now);\n  const se = fmt(expiry);\n  const canonicalizedResource = `/blob/${accountName}/${container}/${blobPath}`;\n  // sv=2020-12-06: 16 fields, 15 \\n, NO trailing newline (signedEncryptionScope added)\n  const stringToSign = [permissions, st, se, canonicalizedResource, '', '', 'https', sv, sr, '', '', '', '', '', '', ''].join('\\n');\n  const key = Buffer.from(accountKey, 'base64');\n  const sig = crypto.createHmac('sha256', key).update(Buffer.from(stringToSign, 'utf8')).digest('base64');\n  // Build query string manually — URLSearchParams is not available in the n8n task runner VM sandbox\n  const qs = 'sv='  + encodeURIComponent(sv)\n           + '&sr=b'\n           + '&sp=r'\n           + '&st='  + encodeURIComponent(st)\n           + '&se='  + encodeURIComponent(se)\n           + '&spr=https'\n           + '&sig=' + encodeURIComponent(sig);\n  return `https://${accountName}.blob.core.windows.net/${container}/${blobPath}?${qs}`;\n}\n\nasync function fetchBlob(container, blobPath) {\n  const sasUrl = generateSasUrl(container, blobPath);\n  const { buffer, statusCode, contentType } = await httpsGet(sasUrl);\n  if (statusCode !== 200) {\n    throw new Error(`Azure Blob download failed HTTP ${statusCode} for ${container}/${blobPath}. Body: ${buffer.toString().substring(0, 300)}`);\n  }\n  return { buffer, contentType };\n}\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  // Pass through if binary already present (direct file upload path)\n  if (item.binary && Object.keys(item.binary).length > 0) {\n    result.push(item);\n    continue;\n  }\n\n  // Normalize: test webhook wraps body under item.json.body; production uses item.json directly\n  const bodyData  = item.json.body || item.json;\n  const blobPath  = bodyData.blobPath;\n  const blobFiles = bodyData.blobFiles;\n\n  if (!blobPath && !blobFiles) {\n    result.push(item);\n    continue;\n  }\n\n  if (!item.binary) item.binary = {};\n\n  if (blobPath) {\n    // Single-file mode: { \"blobPath\": \"folder/file.pdf\", \"azureContainer\": \"compliance\" }\n    const container = bodyData.azureContainer || 'complianceblobdev';\n    const { buffer, contentType } = await fetchBlob(container, blobPath);\n    const fileName = blobPath.split('/').pop();\n    item.binary.data = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    item.json.azureBlobFetched = true;\n    item.json.originalFileName = fileName;\n  }\n\n  if (blobFiles) {\n    // Multi-file mode: { \"file0\": \"path.pdf\" } or { \"file0\": { \"blobPath\": \"...\", \"container\": \"...\" } }\n    for (const [fieldName, blobInfo] of Object.entries(blobFiles)) {\n      const bp = typeof blobInfo === 'string' ? blobInfo : blobInfo.blobPath;\n      const container = (typeof blobInfo === 'object' && blobInfo.container)\n        ? blobInfo.container\n        : (item.json.azureContainer || 'complianceblobdev');\n      const { buffer, contentType } = await fetchBlob(container, bp);\n      const fileName = bp.split('/').pop();\n      item.binary[fieldName] = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    }\n    item.json.azureBlobFetched = true;\n  }\n\n  result.push(item);\n}\n\nreturn result;"
-      },
-      "id": "fetch-azure-blob-c1",
-      "name": "Fetch Azure Blob",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        16912,
-        1120
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\n\n// Parse credentials from connection string (mirrors blobstorage.js approach)\nconst connectionString = $env.AZURE_STORAGE_CONNECTION_STRING || $env.AZURE_BLOB_CONNECTION_STRING;\nlet accountName, accountKey;\nif (connectionString) {\n  accountName = connectionString.match(/AccountName=([^;]+)/)?.[1];\n  accountKey  = connectionString.match(/AccountKey=([^;]+)/)?.[1];\n}\n// Fallback to individual env vars if connection string not set\nif (!accountName) accountName = $env.AZURE_STORAGE_ACCOUNT_NAME || 'stcompdldevqc01';\nif (!accountKey)  accountKey  = $env.AZURE_STORAGE_ACCOUNT_KEY;\n\nif (!accountKey) {\n  throw new Error(\n    'Azure credentials not found. Set AZURE_STORAGE_CONNECTION_STRING ' +\n    '(e.g. \"DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net\") ' +\n    'in the n8n container environment.'\n  );\n}\n\nfunction httpsGet(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      const chunks = [];\n      res.on('data', chunk => chunks.push(chunk));\n      res.on('end', () => resolve({\n        buffer: Buffer.concat(chunks),\n        statusCode: res.statusCode,\n        contentType: res.headers['content-type'] || 'application/octet-stream'\n      }));\n      res.on('error', reject);\n    }).on('error', reject);\n  });\n}\n\nfunction generateSasUrl(container, blobPath, sr = 'b', permissions = 'r') {\n  const now = new Date();\n  const expiry = new Date(now.getTime() + 3600000); // 1 hour\n  const sv = '2020-12-06';\n  const fmt = (d) => d.toISOString().replace(/\\.\\d{3}Z$/, 'Z');\n  const st = fmt(now);\n  const se = fmt(expiry);\n  const canonicalizedResource = `/blob/${accountName}/${container}/${blobPath}`;\n  // sv=2020-12-06: 16 fields, 15 \\n, NO trailing newline (signedEncryptionScope added)\n  const stringToSign = [permissions, st, se, canonicalizedResource, '', '', 'https', sv, sr, '', '', '', '', '', '', ''].join('\\n');\n  const key = Buffer.from(accountKey, 'base64');\n  const sig = crypto.createHmac('sha256', key).update(Buffer.from(stringToSign, 'utf8')).digest('base64');\n  // Build query string manually — URLSearchParams is not available in the n8n task runner VM sandbox\n  const qs = 'sv='  + encodeURIComponent(sv)\n           + '&sr=b'\n           + '&sp=r'\n           + '&st='  + encodeURIComponent(st)\n           + '&se='  + encodeURIComponent(se)\n           + '&spr=https'\n           + '&sig=' + encodeURIComponent(sig);\n  return `https://${accountName}.blob.core.windows.net/${container}/${blobPath}?${qs}`;\n}\n\nasync function fetchBlob(container, blobPath) {\n  const sasUrl = generateSasUrl(container, blobPath);\n  const { buffer, statusCode, contentType } = await httpsGet(sasUrl);\n  if (statusCode !== 200) {\n    throw new Error(`Azure Blob download failed HTTP ${statusCode} for ${container}/${blobPath}. Body: ${buffer.toString().substring(0, 300)}`);\n  }\n  return { buffer, contentType };\n}\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  // Pass through if binary already present (direct file upload path)\n  if (item.binary && Object.keys(item.binary).length > 0) {\n    result.push(item);\n    continue;\n  }\n\n  // Normalize: test webhook wraps body under item.json.body; production uses item.json directly\n  const bodyData  = item.json.body || item.json;\n  const blobPath  = bodyData.blobPath;\n  const blobFiles = bodyData.blobFiles;\n\n  if (!blobPath && !blobFiles) {\n    result.push(item);\n    continue;\n  }\n\n  if (!item.binary) item.binary = {};\n\n  if (blobPath) {\n    // Single-file mode: { \"blobPath\": \"folder/file.pdf\", \"azureContainer\": \"compliance\" }\n    const container = bodyData.azureContainer || 'complianceblobdev';\n    const { buffer, contentType } = await fetchBlob(container, blobPath);\n    const fileName = blobPath.split('/').pop();\n    item.binary.data = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    item.json.azureBlobFetched = true;\n    item.json.originalFileName = fileName;\n  }\n\n  if (blobFiles) {\n    // Multi-file mode: { \"file0\": \"path.pdf\" } or { \"file0\": { \"blobPath\": \"...\", \"container\": \"...\" } }\n    for (const [fieldName, blobInfo] of Object.entries(blobFiles)) {\n      const bp = typeof blobInfo === 'string' ? blobInfo : blobInfo.blobPath;\n      const container = (typeof blobInfo === 'object' && blobInfo.container)\n        ? blobInfo.container\n        : (item.json.azureContainer || 'complianceblobdev');\n      const { buffer, contentType } = await fetchBlob(container, bp);\n      const fileName = bp.split('/').pop();\n      item.binary[fieldName] = await this.helpers.prepareBinaryData(buffer, fileName, contentType);\n    }\n    item.json.azureBlobFetched = true;\n  }\n\n  result.push(item);\n}\n\nreturn result;"
-      },
-      "id": "fetch-azure-blob-c1",
-      "name": "Fetch Azure Blob",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        16912,
-        1120
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {},
-      "id": "error-trigger-c1",
-      "name": "Error Trigger",
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [
-        16800,
-        1600
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const error = $input.first().json;\nconst errorMessage = error.message || error.error?.message || 'Unknown error in audit submission';\nconst nodeName = error.node?.name || 'Unknown';\n\nreturn [{\n  json: {\n    error: errorMessage,\n    errorCode: 'AUDIT_SUBMISSION_ERROR',\n    failedNode: nodeName,\n    timestamp: new Date().toISOString()\n  }\n}];"
-      },
-      "id": "format-pipeline-error-c1",
-      "name": "Format Pipeline Error",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        17020,
-        1600
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {
-          "responseCode": 500
-        }
-      },
-      "id": "respond-pipeline-error-c1",
-      "name": "Respond: Pipeline Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        17240,
-        1600
-      ]
+      "position": [19232, 1120]
     }
   ],
   "pinData": {},
   "connections": {
     "Webhook: Submit Audit": {
-      "main": [
-        [
-          {
-            "node": "Fetch Azure Blob",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Error Handler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Fetch Azure Blob", "type": "main", "index": 0 }]]
+    },
+    "Fetch Azure Blob": {
+      "main": [[{ "node": "Parse & Validate Input", "type": "main", "index": 0 }]]
     },
     "Parse & Validate Input": {
+      "main": [[{ "node": "Route on Validation Error", "type": "main", "index": 0 }]]
+    },
+    "Route on Validation Error": {
       "main": [
-        [
-          {
-            "node": "Create Audit Session",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Prepare File Writes",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respond: Validation Error", "type": "main", "index": 0 }],
+        [{ "node": "Create Audit Session", "type": "main", "index": 0 }]
       ]
     },
     "Create Audit Session": {
-      "main": [
-        []
-      ]
+      "main": [[{ "node": "Prepare File Writes", "type": "main", "index": 0 }]]
     },
     "Prepare File Writes": {
-      "main": [
-        [
-          {
-            "node": "Write Binary File",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Write Binary File", "type": "main", "index": 0 }]]
     },
     "Write Binary File": {
-      "main": [
-        [
-          {
-            "node": "Aggregate Files",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Aggregate Files", "type": "main", "index": 0 }]]
     },
     "Aggregate Files": {
-      "main": [
-        [
-          {
-            "node": "Log: Job Queued",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Log: Job Queued", "type": "main", "index": 0 }]]
     },
     "Log: Job Queued": {
-      "main": [
-        [
-          {
-            "node": "Build Redis Job Payload",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Build Redis Job Payload", "type": "main", "index": 0 }]]
     },
     "Build Redis Job Payload": {
-      "main": [
-        [
-          {
-            "node": "Enqueue Job to Redis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Enqueue Job to Redis", "type": "main", "index": 0 }]]
     },
     "Enqueue Job to Redis": {
-      "main": [
-        [
-          {
-            "node": "Update Session Job ID",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Update Session Job ID", "type": "main", "index": 0 }]]
     },
     "Update Session Job ID": {
-      "main": [
-        [
-          {
-            "node": "Build Success Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Build Success Response", "type": "main", "index": 0 }]]
     },
     "Build Success Response": {
-      "main": [
-        [
-          {
-            "node": "Respond: Accepted",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Error Handler": {
-      "main": [
-        [
-          {
-            "node": "Respond: Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fetch Azure Blob": {
-      "main": [
-        [
-          {
-            "node": "Parse & Validate Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Error Trigger": {
-      "main": [
-        [
-          {
-            "node": "Format Pipeline Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Pipeline Error": {
-      "main": [
-        [
-          {
-            "node": "Respond: Pipeline Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond: Accepted", "type": "main", "index": 0 }]]
     }
   },
   "active": true,

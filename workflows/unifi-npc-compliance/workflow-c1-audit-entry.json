@@ -37,7 +37,7 @@
         17024,
         1120
       ],
-      "continueOnFail": true
+      "continueOnFail": false
     },
     {
       "parameters": {
@@ -261,7 +261,7 @@
         16912,
         1120
       ],
-      "continueOnFail": true
+      "continueOnFail": false
     },
     {
       "parameters": {
@@ -275,7 +275,7 @@
         16912,
         1120
       ],
-      "continueOnFail": true
+      "continueOnFail": false
     },
     {
       "parameters": {},

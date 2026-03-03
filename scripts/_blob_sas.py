@@ -40,7 +40,7 @@ USE_OAUTH     = bool(tenant_id and client_id and client_secret)
 
 def _get_access_token():
     """Client-credentials OAuth2 token for https://storage.azure.com/"""
-    import urllib.request
+    import urllib.request, urllib.error
     data = urllib.parse.urlencode({
         "grant_type":    "client_credentials",
         "client_id":     client_id,
@@ -52,8 +52,17 @@ def _get_access_token():
         data=data,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read())["access_token"]
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read())["access_token"]
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        print(f"[OAUTH ERROR] HTTP {e.code} from token endpoint", file=sys.stderr)
+        print(f"[OAUTH ERROR] body: {body}", file=sys.stderr)
+        print(f"[OAUTH ERROR] tenant_id={repr(tenant_id)}", file=sys.stderr)
+        print(f"[OAUTH ERROR] client_id={repr(client_id)}", file=sys.stderr)
+        print(f"[OAUTH ERROR] secret_len={len(client_secret)} secret_last4={repr(client_secret[-4:])}", file=sys.stderr)
+        raise
 
 
 def _get_user_delegation_key(token):

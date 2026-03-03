@@ -8,17 +8,19 @@ The n8n compliance audit system experienced multiple failures after migrating to
 
 ### Current Behavior (Defect)
 
-1.1 WHEN workflow C1 attempts to fetch from Azure Blob Storage with new tenant credentials THEN the system returns AuthenticationFailed XML error with message "Server failed to authenticate the request"
+1.1 WHEN workflow C1 attempts to fetch from Azure Blob Storage with new tenant credentials THEN the system returns AuthenticationFailed XML error with message "Server failed to authenticate the request" (✅ RESOLVED: Was SAS token generation issue in scripts/_blob_sas.py, now fixed)
 
-1.2 WHEN any workflow encounters an error condition THEN the system executes both success nodes AND error trigger nodes simultaneously
+1.2 WHEN workflows attempt to access Azure Blob container THEN the system uses wrong container name `compliance` instead of actual container name `complianceblobdev` (✅ RESOLVED: Updated default container name in all three workflows A, B, and C1)
 
-1.3 WHEN audit is submitted via POST to `/webhook/audit/submit` THEN the system returns session_id as `undefined` in the response payload
+1.3 WHEN any workflow encounters an error condition THEN the system executes both success nodes AND error trigger nodes simultaneously
 
-1.4 WHEN the webhook should return HTTP 500 on error THEN the system fails to return the correct error status code
+1.4 WHEN audit is submitted via POST to `/webhook/audit/submit` THEN the system returns session_id as `undefined` in the response payload
+
+1.5 WHEN the webhook should return HTTP 500 on error THEN the system fails to return the correct error status code
 
 ### Expected Behavior (Correct)
 
-2.1 WHEN workflow C1 attempts to fetch from Azure Blob Storage with new tenant credentials (AccountName=stcompdldevqc01) THEN the system SHALL authenticate successfully and retrieve blob data
+2.1 WHEN workflows attempt to access Azure Blob container THEN the system SHALL use the correct container name `complianceblobdev` for the new tenant
 
 2.2 WHEN any workflow encounters an error condition THEN the system SHALL execute only the Error Trigger nodes and skip success path nodes
 

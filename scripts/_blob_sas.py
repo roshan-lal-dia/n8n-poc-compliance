@@ -18,6 +18,7 @@ if resource_type == "s":
     # accountname + "\n" + signedpermissions + "\n" + signedservice + "\n" + 
     # signedresourcetype + "\n" + signedstart + "\n" + signedexpiry + "\n" + 
     # signedIP + "\n" + signedProtocol + "\n" + signedversion + "\n" + signedEncryptionScope + "\n"
+    # NOTE: There's a trailing newline after signedEncryptionScope!
     string_to_sign = "\n".join([
         account_name,  # 1  accountName
         permissions,   # 2  signedPermissions (e.g., "l" for list)
@@ -29,6 +30,7 @@ if resource_type == "s":
         "https",       # 8  signedProtocol
         sv,            # 9  signedVersion
         "",            # 10 signedEncryptionScope (empty for now)
+        "",            # 11 TRAILING NEWLINE (empty string creates final \n)
     ])
 else:
     # Service SAS (blob or container level)

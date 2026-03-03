@@ -46,7 +46,7 @@ if [ -z "$ACCOUNT_KEY" ]; then
 fi
 
 echo "2. Testing SAS Token Generation:"
-SAS=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "" "" "" "l" 2>&1)
+SAS=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "s" "" "" "l" 2>&1)
 SAS_EXIT=$?
 echo "   Exit code: $SAS_EXIT"
 if [ $SAS_EXIT -ne 0 ]; then

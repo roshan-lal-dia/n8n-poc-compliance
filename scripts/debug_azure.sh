@@ -45,16 +45,28 @@ if [ -z "$ACCOUNT_KEY" ]; then
     exit 1
 fi
 
-echo "2. Testing SAS Token Generation:"
-SAS=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "s" "" "" "l")
+echo "2. Testing Auth Token Generation:"
+RAW_TOKEN=$(python3 "${SCRIPT_DIR}/_blob_sas.py" "$ACCOUNT_NAME" "$ACCOUNT_KEY" "s" "" "" "l" 2>&1)
 SAS_EXIT=$?
 echo "   Exit code: $SAS_EXIT"
 if [ $SAS_EXIT -ne 0 ]; then
-    echo "   ERROR: SAS generation failed"
-    echo "   Output: $SAS"
+    echo "   ERROR: Token generation failed"
+    echo "   Output: $RAW_TOKEN"
     exit 1
 fi
-echo "   SAS Token: ${SAS:0:50}..."
+
+# Detect OAuth Bearer token vs legacy SAS query string
+if [[ "$RAW_TOKEN" == BEARER:* ]]; then
+    AUTH_MODE="bearer"
+    BEARER_TOKEN="${RAW_TOKEN#BEARER:}"
+    echo "   Auth mode: OAuth Bearer (User Delegation)"
+    echo "   Token: ${BEARER_TOKEN:0:40}..."
+else
+    AUTH_MODE="sas"
+    SAS="$RAW_TOKEN"
+    echo "   Auth mode: Shared Key SAS"
+    echo "   SAS Token: ${SAS:0:50}..."
+fi
 echo ""
 
 echo "3. Testing Azure Blob Service Endpoint:"
@@ -63,7 +75,12 @@ echo "   URL: ${BASE_URL}/?comp=list"
 echo ""
 
 echo "4. Making Request (with full error output):"
-RESPONSE=$(curl -v "https://${ACCOUNT_NAME}.blob.core.windows.net/?comp=list&${SAS}" 2>&1)
+if [ "$AUTH_MODE" = "bearer" ]; then
+    RESPONSE=$(curl -v -H "Authorization: Bearer ${BEARER_TOKEN}" -H "x-ms-version: 2020-12-06" \
+        "https://${ACCOUNT_NAME}.blob.core.windows.net/?comp=list" 2>&1)
+else
+    RESPONSE=$(curl -v "https://${ACCOUNT_NAME}.blob.core.windows.net/?comp=list&${SAS}" 2>&1)
+fi
 CURL_EXIT=$?
 echo "   Curl exit code: $CURL_EXIT"
 echo ""

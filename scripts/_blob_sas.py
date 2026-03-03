@@ -67,7 +67,18 @@ else:
         "",            # 16 rsct
     ])
 
-key_bytes = base64.b64decode(account_key)
+try:
+    key_bytes = base64.b64decode(account_key)
+except Exception as e:
+    print(f"[DEBUG] base64 decode ERROR: {e}", file=sys.stderr)
+    print(f"[DEBUG] raw key repr: {repr(account_key)}", file=sys.stderr)
+    sys.exit(1)
+
+# Debug: print key length and string-to-sign for diagnosis
+print(f"[DEBUG] key_len={len(key_bytes)} key_b64_len={len(account_key)}", file=sys.stderr)
+print(f"[DEBUG] key_last4={repr(account_key[-4:])}", file=sys.stderr)
+print(f"[DEBUG] string_to_sign={repr(string_to_sign)}", file=sys.stderr)
+
 sig = hmac.new(key_bytes, string_to_sign.encode("utf-8"), hashlib.sha256).digest()
 sig_b64 = base64.b64encode(sig).decode()
 

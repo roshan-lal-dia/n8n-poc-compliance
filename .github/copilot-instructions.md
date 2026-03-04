@@ -24,6 +24,7 @@
 ## n8n Schema Specifics
 - **Switch Node (v3.4)**: Uses `parameters.rules.values[]` and `options.fallbackOutput: "extra"`.
 - **Set Node (v3.4)**: Uses `parameters.mode: "raw"` and `parameters.jsonOutput`.
+- any n8n specif questions call this mcp use context7 https://github.com/n8n-io/n8n-docs
 
 ## Coding Guidelines
 - **Code Nodes**: console.log() output is hidden. Use `return` to verify data.

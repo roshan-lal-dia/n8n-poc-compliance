@@ -74,11 +74,11 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT session_id, domain_id, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND status = 'completed';",
+        "query": "SELECT session_id, domain_id, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score, metadata\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND status IN ('completed', 'failed');",
         "options": {}
       },
       "id": "1c6022dc-e924-4469-b0cd-b3323705d816",
-      "name": "Query Completed Session",
+      "name": "Query Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
@@ -91,7 +91,8 @@
           "name": "postgres-compliance"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -156,7 +157,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const session = $('Query Completed Session').first().json;\nconst evaluations = $input.all().map(item => item.json);\n\n// Build comprehensive results response\nconst results = evaluations.map(eval => ({\n  questionId: eval.question_id,\n  question: eval.question_text,\n  questionDomain: eval.domain_id,\n  evaluation: eval.ai_response,\n  evaluatedAt: eval.created_at\n}));\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    domainId: session.domain_id,\n    status: session.status,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    overallScore: session.overall_compliance_score,\n    results: results,\n    summary: {\n      compliantCount: results.filter(r => r.evaluation?.compliant === true).length,\n      nonCompliantCount: results.filter(r => r.evaluation?.compliant === false).length,\n      averageConfidence: results.length > 0 \n        ? Math.round(results.reduce((sum, r) => sum + (r.evaluation?.confidence || 0), 0) / results.length)\n        : 0\n    }\n  }\n}];"
+        "jsCode": "const session = $('Query Session').first().json;\nconst evaluations = $input.all().map(item => item.json);\n\nif (session.status === 'failed') {\n  const metadata = session.metadata || {};\n  const technicalDetails = metadata.technicalDetails || null;\n  const fallbackMessage = 'Audit failed during processing. Please retry or contact support with your session ID.';\n\n  return [{\n    json: {\n      sessionId: session.session_id,\n      domainId: session.domain_id,\n      status: session.status,\n      startedAt: session.started_at,\n      completedAt: session.completed_at,\n      totalQuestions: session.total_questions,\n      answeredQuestions: session.answered_questions,\n      overallScore: session.overall_compliance_score,\n      error: metadata.error || fallbackMessage,\n      failedNode: metadata.failedNode || null,\n      failedAt: metadata.failedAt || session.completed_at,\n      technicalDetails\n    }\n  }];\n}\n\nconst results = evaluations.map(eval => ({\n  questionId: eval.question_id,\n  question: eval.question_text,\n  questionDomain: eval.domain_id,\n  evaluation: eval.ai_response,\n  evaluatedAt: eval.created_at\n}));\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    domainId: session.domain_id,\n    status: session.status,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    overallScore: session.overall_compliance_score,\n    results: results,\n    summary: {\n      compliantCount: results.filter(r => r.evaluation?.compliant === true).length,\n      nonCompliantCount: results.filter(r => r.evaluation?.compliant === false).length,\n      averageConfidence: results.length > 0 \n        ? Math.round(results.reduce((sum, r) => sum + (r.evaluation?.confidence || 0), 0) / results.length)\n        : 0\n    }\n  }\n}];"
       },
       "id": "d05fa818-58a6-491b-a71e-8c5cf942c196",
       "name": "Build Results Response",
@@ -185,7 +186,7 @@
     {
       "parameters": {
         "mode": "raw",
-        "jsonOutput": "={{ { \"error\": \"Session not found or not completed\", \"status\": 404 } }}",
+        "jsonOutput": "={{ { \"error\": \"Session not found\", \"status\": 404 } }}",
         "options": {}
       },
       "id": "d6026486-8249-45a8-bdaa-3a9f485773a4",
@@ -256,7 +257,7 @@
         ]
       ]
     },
-    "Query Completed Session": {
+    "Query Session": {
       "main": [
         [
           {
@@ -322,7 +323,7 @@
       "main": [
         [
           {
-            "node": "Query Completed Session",
+            "node": "Query Session",
             "type": "main",
             "index": 0
           }

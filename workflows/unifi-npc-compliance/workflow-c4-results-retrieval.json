@@ -4,22 +4,22 @@
     {
       "parameters": {
         "path": "audit/results/:sessionId",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
-        "options": {},
-        "authentication": "headerAuth"
+        "options": {}
       },
-      "id": "6c59382f-8ac2-4155-bfd3-3b35e52ad1f9",
+      "id": "aa0790d0-d885-4215-b4cb-9971678e4e6f",
       "name": "Webhook: Get Results",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        0,
-        0
+        4064,
+        1136
       ],
       "webhookId": "audit-results-webhook",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "webhook-api-key",
+          "id": "vEI3chDpJCAaVSBo",
           "name": "webhook-api-key"
         }
       }
@@ -28,13 +28,13 @@
       "parameters": {
         "jsCode": "const sessionId = $input.first().json.params.sessionId;\n\nif (!sessionId) {\n  throw new Error('Session ID is required');\n}\n\n// Validate UUID format (8-4-4-4-12 hex digits)\nconst uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nif (!uuidRegex.test(sessionId)) {\n  throw new Error('Invalid session ID format. Expected UUID format.');\n}\n\nreturn [{ json: { sessionId } }];"
       },
-      "id": "f66bdd6d-ef08-40e5-a5b6-dcfecdd4d8f9",
+      "id": "35f3950f-14da-4466-932e-f6d6691530d5",
       "name": "Extract Session ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        0
+        4240,
+        960
       ],
       "continueOnFail": true
     },
@@ -62,13 +62,13 @@
         },
         "options": {}
       },
-      "id": "validate-session-id-c4",
+      "id": "7d647ad1-ae96-40b9-990f-399f9c23bdb0",
       "name": "IF: Valid Session ID?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        374,
-        0
+        4512,
+        832
       ]
     },
     {
@@ -77,18 +77,18 @@
         "query": "SELECT session_id, domain_id, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND status = 'completed';",
         "options": {}
       },
-      "id": "76a357a1-c6a5-4312-894f-1af794d024de",
+      "id": "1c6022dc-e924-4469-b0cd-b3323705d816",
       "name": "Query Completed Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        448,
-        0
+        4816,
+        736
       ],
       "credentials": {
         "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "Compliance DB"
+          "id": "o2VouyDVcSpuwBGK",
+          "name": "postgres-compliance"
         }
       },
       "continueOnFail": true
@@ -116,8 +116,7 @@
                   }
                 ],
                 "combinator": "and"
-              },
-              "renameOutput": false
+              }
             }
           ]
         },
@@ -125,13 +124,13 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "check-session-exists-c4",
+      "id": "2849cf6e-9b25-4349-8036-cbcb8b44443b",
       "name": "Check: Session Found?",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        648,
-        0
+        5024,
+        784
       ]
     },
     {
@@ -140,18 +139,18 @@
         "query": "SELECT l.question_id, q.question_text, q.domain_id, l.ai_response, l.created_at\nFROM audit_logs l\nJOIN audit_questions q ON l.question_id = q.question_id\nWHERE l.session_id = '{{ $('Extract Session ID').first().json.sessionId }}'::uuid \n  AND l.step_name = 'completed' \n  AND l.status = 'success'\nORDER BY l.created_at;",
         "options": {}
       },
-      "id": "407c89e3-01f4-4a14-8768-51838278aa95",
+      "id": "a7383684-2f7b-40a7-8e67-7a395d68be1d",
       "name": "Query Evaluations",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        672,
-        0
+        5440,
+        736
       ],
       "credentials": {
         "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "Compliance DB"
+          "id": "o2VouyDVcSpuwBGK",
+          "name": "postgres-compliance"
         }
       }
     },
@@ -159,13 +158,13 @@
       "parameters": {
         "jsCode": "const session = $('Query Completed Session').first().json;\nconst evaluations = $input.all().map(item => item.json);\n\n// Build comprehensive results response\nconst results = evaluations.map(eval => ({\n  questionId: eval.question_id,\n  question: eval.question_text,\n  questionDomain: eval.domain_id,\n  evaluation: eval.ai_response,\n  evaluatedAt: eval.created_at\n}));\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    domainId: session.domain_id,\n    status: session.status,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    overallScore: session.overall_compliance_score,\n    results: results,\n    summary: {\n      compliantCount: results.filter(r => r.evaluation?.compliant === true).length,\n      nonCompliantCount: results.filter(r => r.evaluation?.compliant === false).length,\n      averageConfidence: results.length > 0 \n        ? Math.round(results.reduce((sum, r) => sum + (r.evaluation?.confidence || 0), 0) / results.length)\n        : 0\n    }\n  }\n}];"
       },
-      "id": "ac113aa4-e341-4a8d-8dba-5d0a375280f9",
+      "id": "d05fa818-58a6-491b-a71e-8c5cf942c196",
       "name": "Build Results Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        0
+        5600,
+        800
       ]
     },
     {
@@ -174,13 +173,13 @@
         "responseBody": "={{ $json }}",
         "options": {}
       },
-      "id": "ecd1914c-a7a9-4095-b96e-8ab74ed519b9",
+      "id": "1c7a2b1a-42cf-47c0-b66d-7aa46096720c",
       "name": "Respond: Results",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1104,
-        0
+        5792,
+        928
       ]
     },
     {
@@ -189,13 +188,13 @@
         "jsonOutput": "={{ { \"error\": \"Session not found or not completed\", \"status\": 404 } }}",
         "options": {}
       },
-      "id": "06cb5647-fe9d-4208-aada-c5a1ee4fe200",
+      "id": "d6026486-8249-45a8-bdaa-3a9f485773a4",
       "name": "Error: Not Found",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        384,
-        384
+        5248,
+        1312
       ]
     },
     {
@@ -206,13 +205,13 @@
           "responseCode": 404
         }
       },
-      "id": "d6a59195-56f9-426a-a40a-4d896ae31691",
+      "id": "7b912aa2-817b-402d-8e8c-bd55236b3345",
       "name": "Respond: Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        672,
-        400
+        5568,
+        1312
       ]
     },
     {
@@ -223,13 +222,13 @@
           "responseCode": 500
         }
       },
-      "id": "respond-error-500-c4",
+      "id": "facc33ef-aba6-4a80-a4f2-53a560a07d10",
       "name": "Respond: Server Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        448,
-        600
+        4816,
+        1488
       ]
     }
   ],
@@ -344,11 +343,11 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "e8f624ce-9497-4802-a6f1-dd10cfeff39b",
+  "versionId": "a2698379-15d1-4f13-97ba-b478436b8590",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"
   },
-  "id": "zoG_XXKOZs_hBCsGFErE8",
+  "id": "wGcQHuEYmk8lOYePgki29",
   "tags": []
 }

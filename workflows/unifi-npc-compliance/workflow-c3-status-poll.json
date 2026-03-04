@@ -4,22 +4,22 @@
     {
       "parameters": {
         "path": "audit/status/:sessionId",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
-        "options": {},
-        "authentication": "headerAuth"
+        "options": {}
       },
-      "id": "42a58730-42a3-44a5-a674-a209280f522d",
+      "id": "5f3b6624-4a65-427b-a6f6-8d8c93a3086a",
       "name": "Webhook: Get Status",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        0,
-        0
+        7584,
+        400
       ],
       "webhookId": "audit-status-webhook",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "webhook-api-key",
+          "id": "vEI3chDpJCAaVSBo",
           "name": "webhook-api-key"
         }
       }
@@ -28,13 +28,13 @@
       "parameters": {
         "jsCode": "const sessionId = $input.first().json.params.sessionId;\n\nif (!sessionId) {\n  throw new Error('Session ID is required');\n}\n\n// Validate UUID format (8-4-4-4-12 hex digits)\nconst uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nif (!uuidRegex.test(sessionId)) {\n  throw new Error('Invalid session ID format. Expected UUID format.');\n}\n\nreturn [{ json: { sessionId } }];"
       },
-      "id": "06e1ac0e-87df-4bfe-beab-8ac0e0be69c9",
+      "id": "4300c8d1-55d2-4815-9420-ccbad0075a88",
       "name": "Extract Session ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        0
+        7952,
+        464
       ],
       "continueOnFail": true
     },
@@ -62,13 +62,13 @@
         },
         "options": {}
       },
-      "id": "validate-session-id-c3",
+      "id": "9c345eb2-0023-44bf-ae52-90feb2cb8802",
       "name": "IF: Valid Session ID?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        374,
-        0
+        8160,
+        464
       ]
     },
     {
@@ -77,18 +77,18 @@
         "query": "SELECT session_id, domain_id, status, started_at, completed_at, total_questions, answered_questions, overall_compliance_score, job_id\nFROM audit_sessions\nWHERE session_id = '{{ $json.sessionId }}'::uuid;",
         "options": {}
       },
-      "id": "03a643d6-0242-4ff9-9bea-c4f380e3ea84",
+      "id": "5b58c92e-5d93-4aac-9c5b-0a29054605d0",
       "name": "Query Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        448,
-        0
+        8368,
+        -32
       ],
       "credentials": {
         "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "Compliance DB"
+          "id": "o2VouyDVcSpuwBGK",
+          "name": "postgres-compliance"
         }
       },
       "continueOnFail": true
@@ -116,8 +116,7 @@
                   }
                 ],
                 "combinator": "and"
-              },
-              "renameOutput": false
+              }
             }
           ]
         },
@@ -125,13 +124,13 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "check-session-exists-c3",
+      "id": "7a15240e-2182-4f39-9ad5-cdea455a95fc",
       "name": "Check: Session Found?",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        648,
-        0
+        8704,
+        48
       ]
     },
     {
@@ -140,18 +139,18 @@
         "query": "SELECT question_id, step_name, status, message, percentage, created_at\nFROM audit_logs\nWHERE session_id = '{{ $('Extract Session ID').first().json.sessionId }}'::uuid\nORDER BY percentage DESC, created_at DESC\nLIMIT 50;",
         "options": {}
       },
-      "id": "36deed95-7f9b-425d-a519-f6d54330c10b",
+      "id": "54c1eb15-017d-4407-b6a6-bfc0668f4b6c",
       "name": "Query Recent Logs",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        672,
-        0
+        9248,
+        64
       ],
       "credentials": {
         "postgres": {
-          "id": "3ME8TvhWnolXkgqg",
-          "name": "Compliance DB"
+          "id": "o2VouyDVcSpuwBGK",
+          "name": "postgres-compliance"
         }
       }
     },
@@ -159,13 +158,13 @@
       "parameters": {
         "jsCode": "const session = $('Query Session').first().json;\nconst logs = $input.all().map(item => item.json);\n\n// Calculate overall percentage from logs\nlet overallPercentage = 0;\nlet currentStep = 'queued';\n\n// Find the maximum percentage across all log entries\nconst maxLogPercentage = logs.reduce((max, l) => Math.max(max, l.percentage || 0), 0);\n\nif (session.status === 'completed' || maxLogPercentage >= 100) {\n  overallPercentage = 100;\n  currentStep = 'completed';\n} else if (session.status === 'failed') {\n  currentStep = 'failed';\n  overallPercentage = maxLogPercentage;\n} else {\n  // In progress: get highest percentage seen\n  overallPercentage = maxLogPercentage;\n  // Get the latest log for step name\n  const latestByTime = [...logs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];\n  if (latestByTime) {\n    currentStep = latestByTime.step_name || 'processing';\n  }\n}\n\n// Group logs by q_id to show per-question progress\nconst questionProgress = {};\nfor (const log of logs) {\n  if (log.question_id && !questionProgress[log.question_id]) {\n    questionProgress[log.question_id] = {\n      questionId: log.question_id,\n      status: log.status,\n      step: log.step_name,\n      percentage: (overallPercentage >= 100 || log.step_name === 'completed') ? 100 : (log.percentage || 0),\n      lastUpdate: log.created_at\n    };\n  }\n}\n\n// Estimate completion time\nlet estimatedCompletionAt = null;\nif (session.status === 'processing' && overallPercentage > 0 && overallPercentage < 100) {\n  const elapsed = new Date() - new Date(session.started_at);\n  const estimatedTotal = (elapsed / overallPercentage) * 100;\n  estimatedCompletionAt = new Date(new Date(session.started_at).getTime() + estimatedTotal);\n}\n\nreturn [{\n  json: {\n    sessionId: session.session_id,\n    jobId: session.job_id,\n    status: overallPercentage >= 100 ? 'completed' : session.status,\n    domainId: session.domain_id,\n    overallPercentage: Math.min(Math.round(overallPercentage), 100),\n    totalQuestions: session.total_questions,\n    answeredQuestions: session.answered_questions,\n    currentStep: currentStep,\n    startedAt: session.started_at,\n    completedAt: session.completed_at,\n    estimatedCompletionAt: estimatedCompletionAt,\n    overallScore: session.overall_compliance_score,\n    questionProgress: Object.values(questionProgress)\n  }\n}];"
       },
-      "id": "6fdfeab7-7400-4a0c-a2ca-6140bf1dbf61",
+      "id": "aa7b80e4-65cc-4639-92a4-ef31c56400da",
       "name": "Build Status Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        0
+        9424,
+        128
       ]
     },
     {
@@ -174,13 +173,13 @@
         "responseBody": "={{ $json }}",
         "options": {}
       },
-      "id": "d7f71c57-f0c7-472a-b880-6216ca57a01e",
+      "id": "e2548a06-6baf-4486-aff6-f09a0039a3bd",
       "name": "Respond: Status",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1104,
-        0
+        9648,
+        240
       ]
     },
     {
@@ -189,13 +188,13 @@
         "jsonOutput": "={{ { \"error\": \"Session not found\", \"status\": 404 } }}",
         "options": {}
       },
-      "id": "99041b38-9bef-493c-ab20-12b6bbd19aa8",
+      "id": "ea8e06c2-800c-46f1-aec8-f11f11ac4bbc",
       "name": "Error: Not Found",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        288,
-        208
+        9088,
+        896
       ]
     },
     {
@@ -206,30 +205,13 @@
           "responseCode": 404
         }
       },
-      "id": "c5042ef4-b0ae-4a16-84e2-f1de707203dd",
+      "id": "3524bc08-cbae-4769-8276-d3cbefde6d70",
       "name": "Respond: Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        528,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {
-          "responseCode": 500
-        }
-      },
-      "id": "respond-error-500-c3",
-      "name": "Respond: Server Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        448,
-        400
+        9456,
+        800
       ]
     }
   ],
@@ -344,11 +326,11 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "570e912a-d7d0-4637-8b1a-9d47538e8ced",
+  "versionId": "546f44aa-e0bd-4cdf-bc34-29c979d36fe9",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "633797609a32887ee9bd2dd2130a91be77c69c0480540cd258fc427bbd7f9ad9"
   },
-  "id": "HmA39Z-oFgvZh5-KoQojG",
+  "id": "KZrqAF6G8FUpXq4gJpcsE",
   "tags": []
 }

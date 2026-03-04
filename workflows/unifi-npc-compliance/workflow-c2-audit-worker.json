@@ -871,6 +871,19 @@
         7060,
         300
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst nativeError = input.error || {};\nconst errMsg = nativeError.message || nativeError.description || JSON.stringify(nativeError).substring(0, 300) || 'Unknown external service error';\n\n// sessionId from upstream Split by Question (reliable regardless of which IF fired)\nlet sessionId = null;\ntry { sessionId = $('Split by Question').item.json.sessionId; } catch(e) {}\nif (!sessionId) try { sessionId = $('Parse Job (Exit if Empty)').first().json.sessionId; } catch(e) {}\n\nreturn [{\n  json: {\n    sessionId: sessionId || '',\n    hasSessionId: sessionId ? 'true' : 'false',\n    errorMessage: errMsg,\n    failedNode: nativeError.name || 'External Service',\n    technicalDetails: nativeError,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "prepare-error-data-node",
+      "name": "Prepare Error Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4650,
+        650
+      ]
     }
   ],
   "pinData": {},
@@ -1025,7 +1038,7 @@
       "main": [
         [
           {
-            "node": "Mark Session Failed",
+            "node": "Prepare Error Data",
             "type": "main",
             "index": 0
           }
@@ -1301,13 +1314,7 @@
     },
     "Mark Session Failed": {
       "main": [
-        [
-          {
-            "node": "Log Error to DB",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Log Error to DB": {
@@ -1319,7 +1326,7 @@
       "main": [
         [
           {
-            "node": "Mark Session Failed",
+            "node": "Prepare Error Data",
             "type": "main",
             "index": 0
           }
@@ -1337,7 +1344,7 @@
       "main": [
         [
           {
-            "node": "Mark Session Failed",
+            "node": "Prepare Error Data",
             "type": "main",
             "index": 0
           }
@@ -1355,7 +1362,7 @@
       "main": [
         [
           {
-            "node": "Mark Session Failed",
+            "node": "Prepare Error Data",
             "type": "main",
             "index": 0
           }
@@ -1363,6 +1370,22 @@
         [
           {
             "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Data": {
+      "main": [
+        [
+          {
+            "node": "Mark Session Failed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Error to DB",
             "type": "main",
             "index": 0
           }

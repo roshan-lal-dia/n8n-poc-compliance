@@ -442,7 +442,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').item.json;\n\nif (!ollamaResponse || ollamaResponse.error) {\n  return [{\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      hasError: true,\n      errorType: 'ollamaEmbedding',\n      errorMessage: 'Ollama embedding request failed: ' + JSON.stringify(ollamaResponse || {}),\n      failedNode: 'Ollama: Generate Embedding'\n    }\n  }];\n}\n\nconst embedding = ollamaResponse.embedding;\nif (!Array.isArray(embedding) || embedding.length === 0 || embedding.some(v => typeof v !== 'number')) {\n  return [{\n    json: {\n      sessionId: questionData.sessionId,\n      qId: questionData.qId,\n      hasError: true,\n      errorType: 'invalidEmbedding',\n      errorMessage: 'Ollama did not return a valid embedding vector. Response: ' + JSON.stringify(ollamaResponse),\n      failedNode: 'Ollama: Generate Embedding'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    hasError: false,\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    questionId: questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    domainId: questionData.domainId,\n    embedding: embedding,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions,\n    hasError: false\n  }\n}];"
+        "jsCode": "const ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').item.json;\n\nconst embedding = ollamaResponse.embedding;\nif (!Array.isArray(embedding) || embedding.length === 0) {\n  throw new Error('Ollama returned invalid embedding: ' + JSON.stringify(ollamaResponse).substring(0, 200));\n}\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    questionId: questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    domainId: questionData.domainId,\n    embedding: embedding,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions\n  }\n}];"
       },
       "id": "811e2199-2a15-4b9e-b32e-c3dbcbe915e0",
       "name": "Extract Embedding",
@@ -490,7 +490,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Format RAG search results\nconst qdrantResponse = $input.first().json;\nconst contextData = $('Prepare RAG Search').item.json;\n\nif (!qdrantResponse || qdrantResponse.error || qdrantResponse.status === 'error') {\n  return [{\n    json: {\n      sessionId: contextData.sessionId,\n      qId: contextData.qId,\n      hasError: true,\n      errorType: 'qdrantSearch',\n      errorMessage: 'Qdrant search failed: ' + JSON.stringify(qdrantResponse || {}),\n      failedNode: 'Qdrant: Search Standards'\n    }\n  }];\n}\n\nif (!Array.isArray(qdrantResponse.result)) {\n  return [{\n    json: {\n      sessionId: contextData.sessionId,\n      qId: contextData.qId,\n      hasError: true,\n      errorType: 'invalidQdrantResponse',\n      errorMessage: 'Qdrant returned invalid response shape: ' + JSON.stringify(qdrantResponse),\n      failedNode: 'Qdrant: Search Standards'\n    }\n  }];\n}\n\nconst ragSources = qdrantResponse.result.map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit?.payload?.standardName || 'Unknown',\n  chunkIndex: hit?.payload?.chunkIndex ?? null,\n  relevanceScore: hit?.score ?? 0,\n  text: hit?.payload?.text || '',\n  excerpt: (hit?.payload?.text || '').substring(0, 600),\n  metadata: hit?.payload?.metadata || null\n}));\n\nreturn [{\n  json: {\n    sessionId: contextData.sessionId,\n    qId: contextData.qId,\n    hasError: false,\n    ragSources: ragSources,\n    totalSources: ragSources.length,\n    questionIndex: contextData.questionIndex,\n    totalQuestions: contextData.totalQuestions,\n    hasError: false\n  }\n}];"
+        "jsCode": "const qdrantResponse = $input.first().json;\nconst contextData = $('Prepare RAG Search').item.json;\n\nconst ragSources = (qdrantResponse.result || []).map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit?.payload?.standardName || 'Unknown',\n  chunkIndex: hit?.payload?.chunkIndex ?? null,\n  relevanceScore: hit?.score ?? 0,\n  text: hit?.payload?.text || '',\n  excerpt: (hit?.payload?.text || '').substring(0, 600),\n  metadata: hit?.payload?.metadata || null\n}));\n\nreturn [{\n  json: {\n    sessionId: contextData.sessionId,\n    qId: contextData.qId,\n    ragSources: ragSources,\n    totalSources: ragSources.length,\n    questionIndex: contextData.questionIndex,\n    totalQuestions: contextData.totalQuestions\n  }\n}];"
       },
       "id": "bea29f13-f2e9-4bf1-841d-23d3f3d4681e",
       "name": "Format RAG Results",
@@ -560,7 +560,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse AI response and construct evaluation object\nconst ollamaPayload = $input.first().json;\nconst promptData = $('Build AI Prompt').item.json;\n\nif (!ollamaPayload || ollamaPayload.error) {\n  return [{\n    json: {\n      sessionId: promptData.sessionId,\n      qId: promptData.qId,\n      hasError: true,\n      errorType: 'ollamaEvaluation',\n      errorMessage: 'Ollama evaluation request failed: ' + JSON.stringify(ollamaPayload || {}),\n      failedNode: 'Ollama: Evaluate Compliance'\n    }\n  }];\n}\n\nconst aiResponse = ollamaPayload.response || '';\nif (!aiResponse || typeof aiResponse !== 'string') {\n  return [{\n    json: {\n      sessionId: promptData.sessionId,\n      qId: promptData.qId,\n      hasError: true,\n      errorType: 'emptyOllamaResponse',\n      errorMessage: 'Ollama returned empty/non-string response: ' + JSON.stringify(ollamaPayload),\n      failedNode: 'Ollama: Evaluate Compliance'\n    }\n  }];\n}\n\nconst sourceFiles = promptData.sourceFiles || [];\nconst evidenceSummary = sourceFiles.length > 0\n  ? `Evidence files reviewed: ${sourceFiles.map(f => f.filename).join(', ')}`\n  : 'No evidence files provided';\n\nlet evaluation;\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    try { evaluation = JSON.parse(jsonMatch[0]); } catch(e) { throw new Error(\"Failed to parse AI JSON response: \" + (jsonMatch[0] || \"\").substring(0, 200)); };\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (e) {\n  evaluation = {\n    score: parseInt(aiResponse.match(/score[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    compliant: /compliant[\"']?\\s*:\\s*true/i.test(aiResponse),\n    confidence: parseInt(aiResponse.match(/confidence[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    findings: aiResponse.match(/findings[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1] || 'Unable to parse findings',\n    gaps: [],\n    recommendations: []\n  };\n}\n\nif (typeof evaluation.score !== 'number' || Number.isNaN(evaluation.score)) {\n  evaluation.score = 0;\n}\nif (typeof evaluation.confidence !== 'number' || Number.isNaN(evaluation.confidence)) {\n  evaluation.confidence = 0;\n}\n\nevaluation.evidence_summary = evidenceSummary;\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    hasError: false,\n    evaluation: evaluation,\n    rawResponse: aiResponse,\n    ragSources: promptData.ragSources || [],\n    sourceFiles: sourceFiles,\n    promptLength: promptData.promptLength,\n    questionIndex: promptData.questionIndex,\n    totalQuestions: promptData.totalQuestions\n  }\n}];"
+        "jsCode": "const ollamaPayload = $input.first().json;\nconst promptData = $('Build AI Prompt').item.json;\n\nconst aiResponse = ollamaPayload.response || '';\nif (!aiResponse) {\n  throw new Error('Ollama returned empty response: ' + JSON.stringify(ollamaPayload).substring(0, 200));\n}\n\nconst sourceFiles = promptData.sourceFiles || [];\nconst evidenceSummary = sourceFiles.length > 0\n  ? 'Evidence files reviewed: ' + sourceFiles.map(f => f.filename).join(', ')\n  : 'No evidence files provided';\n\nlet evaluation;\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    try { evaluation = JSON.parse(jsonMatch[0]); } catch(e) { throw new Error('Failed to parse AI JSON response: ' + (jsonMatch[0] || '').substring(0, 200)); }\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (e) {\n  evaluation = {\n    score: parseInt(aiResponse.match(/score[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    compliant: /compliant[\"']?\\s*:\\s*true/i.test(aiResponse),\n    confidence: parseInt(aiResponse.match(/confidence[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    findings: aiResponse.match(/findings[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1] || 'Unable to parse findings',\n    gaps: [],\n    recommendations: []\n  };\n}\n\nif (typeof evaluation.score !== 'number' || Number.isNaN(evaluation.score)) evaluation.score = 0;\nif (typeof evaluation.confidence !== 'number' || Number.isNaN(evaluation.confidence)) evaluation.confidence = 0;\nevaluation.evidence_summary = evidenceSummary;\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    evaluation: evaluation,\n    rawResponse: aiResponse,\n    ragSources: promptData.ragSources || [],\n    sourceFiles: sourceFiles,\n    promptLength: promptData.promptLength,\n    questionIndex: promptData.questionIndex,\n    totalQuestions: promptData.totalQuestions\n  }\n}];"
       },
       "id": "c9d446b1-619b-490f-9afd-5c557e742fb0",
       "name": "Parse AI Response",
@@ -780,23 +780,23 @@
         "conditions": {
           "options": {
             "caseSensitive": true,
+            "leftValue": "",
             "typeValidation": "loose"
           },
-          "combinator": "and",
           "conditions": [
             {
-              "id": "9850d3e0-c6c9-49bf-936e-27c7ba6c973e",
+              "id": "check-native-error",
+              "leftValue": "={{ $json.error }}",
               "operator": {
-                "name": "filter.operator.notEmpty",
                 "type": "string",
-                "displayName": "is not empty"
-              },
-              "type": "string",
-              "value": "",
-              "property": "hasError"
+                "operation": "exists",
+                "singleValue": true
+              }
             }
-          ]
-        }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
       "id": "1bf8b122-7a77-4f36-ae9e-ec89f9c28418",
       "name": "IF: Embedding Error?",
@@ -813,23 +813,23 @@
         "conditions": {
           "options": {
             "caseSensitive": true,
+            "leftValue": "",
             "typeValidation": "loose"
           },
-          "combinator": "and",
           "conditions": [
             {
-              "id": "9850d3e0-c6c9-49bf-936e-27c7ba6c973e",
+              "id": "check-native-error",
+              "leftValue": "={{ $json.error }}",
               "operator": {
-                "name": "filter.operator.notEmpty",
                 "type": "string",
-                "displayName": "is not empty"
-              },
-              "type": "string",
-              "value": "",
-              "property": "hasError"
+                "operation": "exists",
+                "singleValue": true
+              }
             }
-          ]
-        }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
       "id": "fdf6a1f3-86ca-4510-bde5-a6ce6346290e",
       "name": "IF: Qdrant Error?",
@@ -845,23 +845,23 @@
         "conditions": {
           "options": {
             "caseSensitive": true,
+            "leftValue": "",
             "typeValidation": "loose"
           },
-          "combinator": "and",
           "conditions": [
             {
-              "id": "9850d3e0-c6c9-49bf-936e-27c7ba6c973e",
+              "id": "check-native-error",
+              "leftValue": "={{ $json.error }}",
               "operator": {
-                "name": "filter.operator.notEmpty",
                 "type": "string",
-                "displayName": "is not empty"
-              },
-              "type": "string",
-              "value": "",
-              "property": "hasError"
+                "operation": "exists",
+                "singleValue": true
+              }
             }
-          ]
-        }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
       "id": "d7dfa2cb-b5a3-438c-b2f5-700781b207a4",
       "name": "IF: Evaluation Error?",
@@ -1112,7 +1112,7 @@
       "main": [
         [
           {
-            "node": "Extract Embedding",
+            "node": "IF: Embedding Error?",
             "type": "main",
             "index": 0
           }
@@ -1123,7 +1123,7 @@
       "main": [
         [
           {
-            "node": "IF: Embedding Error?",
+            "node": "Prepare RAG Search",
             "type": "main",
             "index": 0
           }
@@ -1145,7 +1145,7 @@
       "main": [
         [
           {
-            "node": "Format RAG Results",
+            "node": "IF: Qdrant Error?",
             "type": "main",
             "index": 0
           }
@@ -1156,7 +1156,7 @@
       "main": [
         [
           {
-            "node": "IF: Qdrant Error?",
+            "node": "Build AI Prompt",
             "type": "main",
             "index": 0
           }
@@ -1188,7 +1188,7 @@
       "main": [
         [
           {
-            "node": "Parse AI Response",
+            "node": "IF: Evaluation Error?",
             "type": "main",
             "index": 0
           }
@@ -1199,7 +1199,12 @@
       "main": [
         [
           {
-            "node": "IF: Evaluation Error?",
+            "node": "Log Evaluation Result",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate Scores",
             "type": "main",
             "index": 0
           }
@@ -1321,7 +1326,7 @@
         ],
         [
           {
-            "node": "Prepare RAG Search",
+            "node": "Extract Embedding",
             "type": "main",
             "index": 0
           }
@@ -1339,7 +1344,7 @@
         ],
         [
           {
-            "node": "Build AI Prompt",
+            "node": "Format RAG Results",
             "type": "main",
             "index": 0
           }
@@ -1357,12 +1362,7 @@
         ],
         [
           {
-            "node": "Log Evaluation Result",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Aggregate Scores",
+            "node": "Parse AI Response",
             "type": "main",
             "index": 0
           }

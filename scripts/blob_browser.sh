@@ -223,6 +223,7 @@ for b in root.findall(f'.//{ns}Name'):
 
 EXPORT_LS=0
 EXPORT_FILE=""
+PARSED_ARGS=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -233,17 +234,23 @@ while [ $# -gt 0 ]; do
         shift
       fi
       ;;
+    --export=*)
+      EXPORT_LS=1
+      EXPORT_FILE="${1#--export=}"
+      ;;
     --*)
       echo "Unknown flag: $1"
       cmd_help
       exit 1
       ;;
     *)
-      break
+      PARSED_ARGS+=("$1")
       ;;
   esac
   shift
 done
+
+set -- "${PARSED_ARGS[@]}"
 
 COMMAND="${1:-help}"; shift 2>/dev/null || true
 

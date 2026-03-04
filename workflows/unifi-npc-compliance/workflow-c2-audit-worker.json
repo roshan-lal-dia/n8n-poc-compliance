@@ -17,8 +17,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        41984,
-        944
+        0,
+        300
       ]
     },
     {
@@ -34,8 +34,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        42208,
-        944
+        220,
+        300
       ],
       "credentials": {
         "redis": {
@@ -53,8 +53,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        42432,
-        944
+        440,
+        300
       ],
       "continueOnFail": true
     },
@@ -69,8 +69,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        42656,
-        944
+        660,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -90,8 +90,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        42864,
-        944
+        880,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -110,8 +110,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        43088,
-        944
+        1100,
+        300
       ],
       "continueOnFail": true
     },
@@ -126,8 +126,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        43312,
-        944
+        1320,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -148,8 +148,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        43984,
-        944
+        2000,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -168,8 +168,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        44192,
-        944
+        2220,
+        300
       ],
       "continueOnFail": true
     },
@@ -201,8 +201,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        44416,
-        944
+        2440,
+        300
       ]
     },
     {
@@ -236,8 +236,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        44640,
-        944
+        2660,
+        300
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -283,8 +283,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        44752,
-        944
+        2880,
+        300
       ]
     },
     {
@@ -296,8 +296,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        44864,
-        1168
+        2880,
+        500
       ]
     },
     {
@@ -309,8 +309,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        44864,
-        944
+        3100,
+        300
       ],
       "continueOnFail": true
     },
@@ -323,8 +323,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45088,
-        944
+        3320,
+        300
       ]
     },
     {
@@ -338,8 +338,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45312,
-        944
+        3540,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -357,8 +357,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45536,
-        944
+        3760,
+        300
       ],
       "continueOnFail": true
     },
@@ -373,8 +373,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45760,
-        944
+        3980,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -394,8 +394,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45984,
-        944
+        4200,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -414,8 +414,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45984,
-        944
+        4420,
+        300
       ],
       "continueOnFail": true
     },
@@ -435,8 +435,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        46208,
-        944
+        4640,
+        300
       ],
       "continueOnFail": true
     },
@@ -449,8 +449,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        46432,
-        944
+        4860,
+        300
       ]
     },
     {
@@ -462,8 +462,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        46656,
-        944
+        5300,
+        300
       ],
       "continueOnFail": true
     },
@@ -483,8 +483,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        46880,
-        944
+        5520,
+        300
       ],
       "continueOnFail": true
     },
@@ -497,8 +497,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        47104,
-        944
+        5740,
+        300
       ],
       "continueOnFail": true
     },
@@ -511,8 +511,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        47328,
-        944
+        6180,
+        300
       ]
     },
     {
@@ -526,8 +526,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        47552,
-        944
+        6400,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -553,8 +553,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        47776,
-        944
+        6620,
+        300
       ],
       "continueOnFail": true
     },
@@ -567,8 +567,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        48000,
-        944
+        6840,
+        300
       ]
     },
     {
@@ -582,8 +582,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48224,
-        944
+        7280,
+        150
       ],
       "credentials": {
         "postgres": {
@@ -601,8 +601,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        48448,
-        944
+        7280,
+        300
       ]
     },
     {
@@ -616,8 +616,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48672,
-        944
+        7500,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -639,8 +639,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48896,
-        944
+        7720,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -660,8 +660,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        49120,
-        944
+        7940,
+        300
       ],
       "continueOnFail": true
     },
@@ -676,8 +676,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        43536,
-        944
+        1540,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -715,8 +715,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        43760,
-        944
+        1760,
+        300
       ]
     },
     {
@@ -728,8 +728,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        43984,
-        1168
+        2000,
+        100
       ],
       "continueOnFail": true
     },
@@ -744,8 +744,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        42432,
-        1400
+        4800,
+        650
       ],
       "credentials": {
         "postgres": {
@@ -765,8 +765,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        42656,
-        1400
+        5050,
+        650
       ],
       "credentials": {
         "postgres": {
@@ -803,9 +803,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        46656,
-        944
-      ]
+        5080,
+        300
+      ],
+      "alwaysOutputData": false
     },
     {
       "parameters": {
@@ -835,8 +836,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        47328,
-        944
+        5960,
+        300
       ]
     },
     {
@@ -867,8 +868,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        48448,
-        944
+        7060,
+        300
       ]
     }
   ],

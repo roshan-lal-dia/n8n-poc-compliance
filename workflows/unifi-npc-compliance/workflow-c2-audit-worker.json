@@ -425,7 +425,7 @@
         "url": "http://ollama:11434/api/embeddings",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"nomic-embed-text\",\n  \"prompt\": $json.queryText\n} }}",
+        "jsonBody": "={{ {\n  \"model\": \"nomic-embed-text\",\n  \"prompt\": $json.queryText,\n  \"options\": {\n    \"num_gpu\": 999,\n    \"num_thread\": 4\n  }\n} }}",
         "options": {
           "timeout": 30000
         }
@@ -543,7 +543,7 @@
         "url": "http://ollama:11434/api/generate",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"mistral-nemo:12b\",\n  \"prompt\": $json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000\n  }\n} }}",
+        "jsonBody": "={{ {\n  \"model\": \"mistral-nemo:12b-instruct-2407-q4_K_M\",\n  \"prompt\": $json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000,\n    \"num_gpu\": 999,\n    \"num_thread\": 4\n  }\n} }}",
         "options": {
           "timeout": 600000
         }

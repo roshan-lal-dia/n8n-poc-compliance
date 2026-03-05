@@ -250,7 +250,7 @@
         "url": "http://ollama:11434/api/embeddings",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"model\": \"nomic-embed-text\", \"prompt\": $json.text } }}",
+        "jsonBody": "={{ { \"model\": \"nomic-embed-text\", \"prompt\": $json.text, \"options\": { \"num_gpu\": 999, \"num_thread\": 4 } } }}",
         "options": {}
       },
       "id": "41c3cc18-37c9-4ade-aa21-f5fcd7d5d131",

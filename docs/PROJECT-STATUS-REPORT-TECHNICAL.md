@@ -1,14 +1,13 @@
 # NPC Compliance AI Document Intelligence System - Technical Status Report
 
-**Project:** n8n Compliance Engine
+**Project:** n8n Compliance AI Document Intelligence Engine
 **Document Date:** March 4, 2026
-**Classification:** Technical Documentation
 
 ---
 
 ## Executive Summary
 
-The NPC Compliance AI Document Intelligence System is an operational AI-powered compliance audit platform that evaluates organizational compliance against 12 data management domains using document analysis, vision AI, and retrieval-augmented generation (RAG). The system is deployed on Azure infrastructure with GPU acceleration and is fully production-ready.
+The NPC Compliance AI Document Intelligence System is an operational AI-powered Document Intelligence Engine that valuates organizational compliance against 12 data management domains using document analysis, vision AI, and retrieval-augmented generation (RAG). The system is deployed on Azure infrastructure with GPU acceleration and is fully production-ready.
 
 **Key Capabilities:**
 - **6 Operational Workflows:** Handles extraction, ingestion, and background evaluation.
@@ -23,7 +22,7 @@ The NPC Compliance AI Document Intelligence System is an operational AI-powered 
 
 ### 1.1 High-Level Architecture
 
-The system implements an asynchronous job queue architecture with six specialized workflows:
+The system uses an async job queue with six workflows that handle different parts of the process:
 
 ```text
 ┌─────────────┐     ┌──────────────────────────────────────────┐     ┌────────────┐
@@ -78,95 +77,93 @@ The system is deployed as a suite of 6 tightly integrated Docker containers mana
 - **Hardware Profile:** Configured for unlimited tensor layers (`OLLAMA_GPU_LAYERS=999`) across logical device `CUDA_VISIBLE_DEVICES=0`.
 - **Ports:** `11434`
 
-### 2.5 PostgreSQL & Redis (State & Queuing)
-- **PostgreSQL (`16-alpine`):** The primary relational pivot. Employs `docker-entrypoint-initdb.d` mapping to auto-seed table clusters natively on creation. Manages audit contexts, logs, master execution caches, and granular evidence mappings.
-- **Redis (`7-alpine`):** Provides durable async job delegation. Bound strictly by Docker memory guardrails (`--maxmemory 512mb --maxmemory-policy allkeys-lru`) protecting orchestration from pipeline overflows during concurrent submission spikes.
-- **Ports:** PG `5432` | Redis `6379`
+### 2.5 PostgreSQL & Redis (Database & Queue)
+- **PostgreSQL (`16-alpine`):** Main database that stores audit sessions, logs, cached results, and evidence metadata. Auto-initializes schema on first startup using scripts in `docker-entrypoint-initdb.d`.
+- **Redis (`7-alpine`):** Job queue for async processing. Limited to 512MB RAM with LRU eviction to prevent memory issues during high load.
+- **Ports:** Postgres `5432`, Redis `6379`
 
 ---
 
 ## 3. Infrastructure & Deployment Strategy
 
-### 3.1 Azure Environments & Network
-- **Deployment Hub:** Azure Virtual Machine (`NV36ads A10 v5`). Single monolithic instance handles all application concerns for minimized latency and secure data boundaries. Requires Azure GRID vGPU drivers for proper NVIDIA container passthrough.
-- **Persistent Object Store:** Azure Blob Storage (`stcompdldevqc01`) acts as the external cold-store for heavy compliance evidence files and template artifacts.
-- **External Integration Database:** A secure, read-only Azure PostgreSQL external instance fetches dynamic compliance domains and question properties syncs.
+### 3.1 Azure Environment
+- **VM:** Everything runs on a single Azure NV36ads A10 v5 instance. Keeping it all on one machine reduces latency and simplifies security. You need to install Azure GRID vGPU drivers for the NVIDIA GPU to work properly in Docker.
+- **Blob Storage:** Azure Blob Storage account `stcompdldevqc01` stores uploaded evidence files and compliance templates.
+- **External Database:** There's a separate read-only Azure PostgreSQL instance that we sync compliance domains and questions from.
 
-### 3.2 Docker Volume Binding
-Volumes map to host storage to ensure persistent state handling independently from the application logic:
-- `n8n_data`: Core encrypted webhook and execution metadata.
-- `postgres_data`: Table data structures.
-- `qdrant_storage`: Persisted vector index matrices.
-- `redis_data`: Uncompleted queue pipelines persist restart safely.
-- `ollama_data` & `hf_model_cache`: Retains large Language and Vision models (~15GB+) directly, bypassing model re-download during scaling or container restarts.
-- `shared_processing`: Dynamically handles moving files out of workflows seamlessly to the visual OCR nodes internally before pipeline ingestion avoiding HTTP-based file bloat.
+### 3.2 Docker Volumes
+All the important data is stored in Docker volumes so it survives container restarts:
+- `n8n_data`: Workflow data and execution history
+- `postgres_data`: Database tables
+- `qdrant_storage`: Vector embeddings
+- `redis_data`: Unfinished jobs in the queue
+- `ollama_data` & `hf_model_cache`: AI models (15GB+) so we don't have to re-download them every time
+- `shared_processing`: Temporary folder for passing files between n8n and Florence without using HTTP
 
 ---
 
 ## 4. Workflow Definitions
 
-The n8n system logic is divided into 6 distinct pipelines to handle synchronous endpoints and background processing efficiently:
+The system has 6 workflows that handle different parts of the process:
 
 1. **Workflow A - Universal Extractor** (`/webhook/extract`)
-   Converts incoming documents (PDF/DOCX/PPTX/XLSX) to standardized structured text and images, pushing images to Florence-2 for OCR and visual analysis.
+   Takes any document (PDF, DOCX, PPTX, XLSX) and extracts text and images. Sends images to Florence-2 for OCR and visual analysis.
 
 2. **Workflow B - KB Ingestion** (`/webhook/kb/ingest`)
-   Chunks compliance standard documents (1000 words / 200 overlap), calculates exact SHA-256 deduplication hashes, generating embeddings and upserting directly to Qdrant.
+   Breaks compliance documents into chunks (1000 words with 200 word overlap), generates SHA-256 hashes to avoid duplicates, creates embeddings, and stores them in Qdrant.
 
 3. **Workflow C1 - Audit Entry** (`/webhook/audit/submit`)
-   Accepts evaluation jobs, persists configuration to Postgres, validates files against Azure Blob Storage, and enqueues tasks via Redis. Responds immediately with HTTP 202 and a tracking session ID.
+   Receives audit requests, saves them to Postgres, validates that files exist in Azure Blob Storage, adds jobs to Redis queue, and immediately returns a session ID with HTTP 202.
 
-4. **Workflow C2 - Audit Worker** (cron-triggered)
-   Pulls jobs from Redis, executes cache lookups, extracts evidence context, runs RAG similarity searches against Qdrant, and orchestrates the Mistral LLM for the final compliance evaluation score. 
+4. **Workflow C2 - Audit Worker** (runs on schedule)
+   Pulls jobs from Redis, checks the cache, extracts relevant text from evidence files, searches Qdrant for similar compliance documents, and uses Mistral to generate compliance scores.
 
 5. **Workflow C3 - Status Poll** (`/webhook/audit/status/:sessionId`)
-   Returns real-time granular progress updates per audit question.
+   Returns current progress for each audit question in a session.
 
 6. **Workflow C4 - Results Retrieval** (`/webhook/audit/results/:sessionId`)
-   Serves the synthesized final compliance reports, scores, identified gaps, and recommendations.
+   Returns the final compliance report with scores, gaps, and recommendations.
 
 ---
 
 ## 5. Data & Storage Model
 
 ### 5.1 PostgreSQL (compliance_db)
-Central hub for maintaining session state, caching, and entity modeling:
-- `audit_domains`, `audit_questions`: Domain mappings and evaluation rules.
-- `audit_evidence`: Retains exact uploaded user evidence and metadata. 
-- `audit_logs`: Per-step execution tracking.
-- `audit_sessions`: Root session objects denoting state (`pending`, `processing`, `completed`, `failed`).
-- `kb_standards`: Deduplicated compliance standard chunks.
+Main database with these tables:
+- `audit_domains`, `audit_questions`: Compliance domains and the questions for each one
+- `audit_evidence`: Uploaded evidence files and their metadata
+- `audit_logs`: Execution logs for debugging
+- `audit_sessions`: Audit sessions with status (`pending`, `processing`, `completed`, `failed`)
+- `kb_standards`: Compliance document chunks (deduplicated)
 
 ### 5.2 Azure Blob Storage
 - **Account:** `stcompdldevqc01`
-- **Container Target:** `complianceblobdev`
-- Maintains user-uploaded evidence (`compliance_assessment/`), domain guidelines (`guidelines/`), and question templates. Fetches are secured at runtime via restricted SAS tokens scoped to individual extraction executions.
+- **Container:** `complianceblobdev`
+- Stores uploaded evidence files (`compliance_assessment/`), domain guidelines (`guidelines/`), and question templates. Access is controlled with short-lived SAS tokens.
 
 ---
 
 ## 6. Performance & Processing Metrics
+### 6.1 Processing Speed
+- **With GPU:** 17 seconds per file
+- **Without GPU:** 2 minutes 45 seconds per file
+- **Cache hit:** ~100ms (skips extraction, RAG search, and LLM evaluation by looking up the SHA-256 hash)
 
-Significant optimization targets have been achieved by implementing a master caching layer.
-
-### 6.1 Processing Throughput
-- **With GPU Compute:** 17 seconds per file processing. 
-- **Without GPU:** 2 minutes 45 seconds per file processing. 
-- **Cache Hit Optimization:** ~100ms response time on cache hit (bypassing full extraction, RAG, and LLM evaluations via SHA-256 evidence hashing lookup).
-
-### 6.2 Compute Resource Allocation (Azure NV36ads A10 v5)
-- **Available VRAM:** 24 GB
-- **Allocated Usage:** ~13.8 GB (Mistral 12B Q4_K_M + Florence-2 ft fits comfortably).
+### 6.2 GPU Usage (Azure NV36ads A10 v5)
+- **Total VRAM:** 24 GB
+- **Used:** ~13.8 GB (Mistral 12B Q4_K_M + Florence-2 both fit comfortably)
 
 ---
 
-## 7. File Operations & Security Standards
+## 7. File Operations & Security
 
-- **Temporary Persistence:** Isolated to `/tmp/n8n_processing/`. Dynamically purged.
-- **Concurrency Isolation:** Implementation guarantees no static filenames (e.g., `input.pdf`) are utilized across multi-tenant execution. File operations exclusively use auto-generated prefixed paths (e.g., `{{unique_prefix}}filename.ext`) preventing collision.
-- **Original Filename Preservation:** Evidence maps explicitly trace output extraction buffers back to original user-facing filenames for pristine reporting capabilities.
-- **Environment Isolation:** All cryptographic secrets, database passkeys, Azure Connection Strings, and webhook API Keys are maintained strictly via environment variables.
+- **Temp files:** Everything goes in `/tmp/n8n_processing/` and gets cleaned up automatically
+- **Concurrency:** No hardcoded filenames like `input.pdf`. Every file gets a unique prefix to prevent collisions when processing multiple requests at once.
+- **Filename tracking:** We keep track of original filenames so the final report shows the actual file names users uploaded.
+- **Secrets:** All passwords, connection strings, and API keys are stored in environment variables, not in code.
 
 ---
 
-## 8. Current Deployment Status
-The architecture successfully processes concurrent audit flows end-to-end, fetching remote Azure Blobs natively, mapping to local Docker storage mechanisms, running OCR/Vision AI on the fly, and performing robust embedding analysis via standalone microservices. The application is functionally scaled and structurally sound for enterprise workload orchestration.
+## 8. Conclusion
+
+The system is running in dev azure environemnt oncurrent audits without issues. It pulls files from Azure Blob Storage, processes them through OCR and vision AI, searches the knowledge base for relevant compliance info, and generates detailed audit reports.

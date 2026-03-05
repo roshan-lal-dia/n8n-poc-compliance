@@ -71,6 +71,7 @@ services:
     image: ollama/ollama:latest
     container_name: compliance-ollama
     restart: unless-stopped
+    runtime: nvidia
     deploy:
       resources:
         reservations:
@@ -80,12 +81,16 @@ services:
               capabilities: [ gpu ]
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - OLLAMA_NUM_GPU=1
+      - OLLAMA_GPU_LAYERS=999
+      - OLLAMA_DEBUG=1
+      - CUDA_VISIBLE_DEVICES=0
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    entrypoint: [ "/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull mistral-nemo:12b; /bin/ollama pull nomic-embed-text; wait" ]
+    entrypoint: [ "/bin/sh", "-c", "/bin/ollama serve & sleep 5; /bin/ollama pull mistral-nemo:12b-instruct-2407-q4_K_M; /bin/ollama pull nomic-embed-text; wait" ]
     healthcheck:
       # curl is not available in the ollama image — use the bundled CLI instead
       test: [ "CMD", "/bin/ollama", "list" ]

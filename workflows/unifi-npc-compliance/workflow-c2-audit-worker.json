@@ -17,8 +17,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        41984,
-        944
+        0,
+        300
       ]
     },
     {
@@ -34,8 +34,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        42208,
-        944
+        220,
+        300
       ],
       "credentials": {
         "redis": {
@@ -46,16 +46,17 @@
     },
     {
       "parameters": {
-        "jsCode": "const result = $input.first().json;\n\n// If queue is empty, return empty array to stop execution\nif (!result || !result.output) {\n  return [];\n}\n\n// Handle both string and object output from Redis\nlet job;\nif (typeof result.output === 'string') {\n  job = JSON.parse(result.output);\n} else if (typeof result.output === 'object') {\n  job = result.output;\n} else {\n  console.error('Unexpected output type:', typeof result.output);\n  return [];\n}\n\nreturn [{ json: job }];"
+        "jsCode": "const result = $input.first().json;\n\n// If queue is empty, return empty array to stop execution\nif (!result || !result.output) {\n  return [];\n}\n\n// Handle both string and object output from Redis\nlet job;\nif (typeof result.output === 'string') {\n  try { job = JSON.parse(result.output); } catch(e) { throw new Error(\"Failed to parse Redis job JSON: \" + (result.output || \"\").substring(0, 200)); };\n} else if (typeof result.output === 'object') {\n  job = result.output;\n} else {\n  console.error('Unexpected output type:', typeof result.output);\n  return [];\n}\n\nreturn [{ json: job }];"
       },
       "id": "78023187-366d-422f-aba1-acfda52e107a",
       "name": "Parse Job (Exit if Empty)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        42432,
-        944
-      ]
+        440,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -68,8 +69,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        42656,
-        944
+        660,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -89,15 +90,16 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        42864,
-        944
+        880,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -108,9 +110,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        43088,
-        944
-      ]
+        1100,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -123,15 +126,16 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        43312,
-        944
+        1320,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -144,15 +148,16 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        43984,
-        944
+        2000,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -163,9 +168,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        44192,
-        944
-      ]
+        2220,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -173,7 +179,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -195,8 +201,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        44416,
-        944
+        2440,
+        300
       ]
     },
     {
@@ -220,7 +226,7 @@
               "responseFormat": "json"
             }
           },
-          "timeout": 1800000
+          "timeout": 3600000
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
@@ -230,8 +236,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        44640,
-        944
+        2660,
+        300
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -242,6 +248,60 @@
     },
     {
       "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "has-extraction-content",
+                    "leftValue": "={{ $json.fullDocument != null || $json.pages != null || $json.fullText != null }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "c2-check-extraction-ok",
+      "name": "C2: Extraction OK?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst questionData = $('Split by Question').item.json;\nconst technical = {\n  error: input.error || null,\n  errorMessage: input.errorMessage || null,\n  errorDescription: input.errorDescription || null,\n  errorDetails: input.errorDetails || null,\n  n8nDetails: input.n8nDetails || null\n};\nconst errMsg = input.error || input.errorDescription || input.errorMessage || input.message || 'Extraction failed (ADLS/Florence/timeout)';\n\nconsole.error('=== EXTRACTION FAILED ===');\nconsole.error('Session:', questionData.sessionId);\nconsole.error('Question:', questionData.qId);\nconsole.error('Error:', errMsg);\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    hasSessionId: true,\n    failedNode: 'Call Workflow A: Extract',\n    errorMessage: errMsg,\n    technicalDetails: technical,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "c2-mark-extraction-failed",
+      "name": "Mark Extraction Failed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        500
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "// Combine extracted results with cached evidence\nconst currentItems = $input.all();\nconst preparedItems = $('Prepare Files for Extraction').all();\n\n// Check if this is the FALSE path (no extraction needed)\nif (currentItems.length > 0 && currentItems[0].json.allEvidence !== undefined) {\n  // Already has the complete structure, pass through\n  return currentItems;\n}\n\n// This is the TRUE path (extraction happened)\n// Get cached evidence from first prepared item\nconst cachedEvidence = preparedItems[0].json.cachedEvidence || [];\nconst firstPrepared = preparedItems[0].json;\nconst questionData = $('Split by Question').item.json;\n\nconst allEvidence = [...cachedEvidence];\nconst newExtractions = [];\n\n// Process each extraction result\nfor (let i = 0; i < currentItems.length; i++) {\n  const extractedData = currentItems[i].json;\n  const preparedData = preparedItems[i].json;\n  \n  // Validate that extraction returned proper data\n  if (!extractedData.fullDocument && !extractedData.text) {\n    console.error('Extraction failed for file:', preparedData.filename);\n    console.error('Got data:', JSON.stringify(extractedData));\n    \n    // Use empty extraction as fallback\n    extractedData.fullDocument = `[Extraction failed for ${preparedData.filename}]`;\n    extractedData.totalPages = 0;\n    extractedData.totalWords = 0;\n    extractedData.hasDiagrams = false;\n  }\n  \n  // Get original filename from Workflow A response\n  const originalFilename = extractedData.originalFileName || preparedData.filename;\n  \n  console.log(`File ${preparedData.hash}: using originalFileName=\"${originalFilename}\"`);\n  \n  allEvidence.push({\n    hash: preparedData.hash,\n    filename: originalFilename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize,\n    fromCache: false\n  });\n  \n  newExtractions.push({\n    hash: preparedData.hash,\n    filename: originalFilename,\n    extractedData: extractedData,\n    fileSize: preparedData.fileSize\n  });\n}\n\n// CRITICAL FIX: Return individual items for each evidence file\n// This allows Consolidate Evidence Text to process each file separately\nconst outputItems = [];\n\nfor (const evidence of allEvidence) {\n  outputItems.push({\n    json: {\n      sessionId: firstPrepared.sessionId,\n      qId: firstPrepared.qId,\n      domain: firstPrepared.domain,\n      filename: evidence.filename,\n      fileHash: evidence.hash,\n      fileSize: evidence.fileSize,\n      extractedData: evidence.extractedData,\n      fromCache: evidence.fromCache,\n      questionIndex: questionData.questionIndex,\n      totalQuestions: questionData.totalQuestions\n    }\n  });\n}\n\nreturn outputItems;"
       },
       "id": "2427df0a-f379-4502-ba53-60130fba9d37",
@@ -249,9 +309,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        44864,
-        944
-      ]
+        3100,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -262,8 +323,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45088,
-        944
+        3320,
+        300
       ]
     },
     {
@@ -277,8 +338,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45312,
-        944
+        3540,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -296,9 +357,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45536,
-        944
-      ]
+        3760,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -311,8 +373,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45760,
-        944
+        3980,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -332,28 +394,30 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        45984,
-        944
+        4200,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const question = $('Load Question').first().json;\nconst evidenceData = $('Consolidate Evidence Text').item.json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    questionId:   question.id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    domainId:     question.domain_id,\n    queryText:    queryText,\n    questionIndex: evidenceData.questionIndex,\n    totalQuestions: evidenceData.totalQuestions\n  }\n}];"
+        "jsCode": "const question = $('Load Question').first().json;\nconst evidenceData = $('Consolidate Evidence Text').item.json;\n\nconst queryText = `${question.question_text}\\n\\n${question.prompt_instructions || ''}`;\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    questionId: question.id,\n    questionText: question.question_text,\n    instructions: question.prompt_instructions,\n    domainId: question.domain_id,\n    queryText: queryText,\n    questionIndex: evidenceData.questionIndex,\n    totalQuestions: evidenceData.totalQuestions\n  }\n}];"
       },
       "id": "1be65fb2-d7b3-4d42-9070-1ce15a161ede",
       "name": "Prepare Question for Embedding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        45984,
-        944
-      ]
+        4420,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -361,7 +425,7 @@
         "url": "http://ollama:11434/api/embeddings",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"nomic-embed-text\",\n  \"prompt\": $json.queryText\n} }}",
+        "jsonBody": "={{ {\n  \"model\": \"nomic-embed-text\",\n  \"prompt\": $json.queryText,\n  \"options\": {\n    \"num_gpu\": 999,\n    \"num_thread\": 4\n  }\n} }}",
         "options": {
           "timeout": 30000
         }
@@ -371,35 +435,37 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        46208,
-        944
-      ]
+        4640,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').first().json;\n\nif (!ollamaResponse || !ollamaResponse.embedding) {\n  throw new Error('Ollama did not return embedding. Response: ' + JSON.stringify(ollamaResponse));\n}\n\nreturn [{\n  json: {\n    questionId:   questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    domainId:     questionData.domainId,\n    embedding:    ollamaResponse.embedding,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions\n  }\n}];"
+        "jsCode": "const ollamaResponse = $input.first().json;\nconst questionData = $('Prepare Question for Embedding').item.json;\n\nconst embedding = ollamaResponse.embedding;\nif (!Array.isArray(embedding) || embedding.length === 0) {\n  throw new Error('Ollama returned invalid embedding: ' + JSON.stringify(ollamaResponse).substring(0, 200));\n}\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    questionId: questionData.questionId,\n    questionText: questionData.questionText,\n    instructions: questionData.instructions,\n    domainId: questionData.domainId,\n    embedding: embedding,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions\n  }\n}];"
       },
       "id": "811e2199-2a15-4b9e-b32e-c3dbcbe915e0",
       "name": "Extract Embedding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        46432,
-        944
+        4860,
+        300
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Prepare Qdrant search payload\n// Always fetch chunks from the question's domain AND Overall-General\nconst questionData = $input.first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\n\nconst searchPayload = {\n  vector: questionData.embedding,\n  limit: 8,\n  with_payload: true,\n  filter: {\n    should: [\n      { key: 'domain_id', match: { value: questionData.domainId } },\n      { key: 'domain_id', match: { value: 'f57f298c-50a6-4dc2-aeab-50d9220ad968' } }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    sessionId:     evidenceData.sessionId,\n    qId:           evidenceData.qId,\n    domainId:      questionData.domainId,\n    searchPayload: searchPayload,\n    questionData:  questionData,\n    evidenceData:  evidenceData,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions\n  }\n}];"
+        "jsCode": "// Prepare Qdrant search payload\n// Always fetch chunks from the question's domain AND Overall-General\nconst questionData = $input.first().json;\n\nif (!Array.isArray(questionData.embedding) || questionData.embedding.length === 0) {\n  throw new Error('Missing valid embedding for Qdrant search');\n}\n\nconst searchPayload = {\n  vector: questionData.embedding,\n  limit: 8,\n  with_payload: true,\n  filter: {\n    should: [\n      { key: 'domain', match: { value: questionData.domainId } },\n      { key: 'domain', match: { value: 'f57f298c-50a6-4dc2-aeab-50d9220ad968' } }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    sessionId: questionData.sessionId,\n    qId: questionData.qId,\n    domainId: questionData.domainId,\n    searchPayload: searchPayload,\n    questionData: questionData,\n    questionIndex: questionData.questionIndex,\n    totalQuestions: questionData.totalQuestions\n  }\n}];"
       },
       "id": "be509ae5-83d5-4f43-9bbc-ce5177760d58",
       "name": "Prepare RAG Search",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        46656,
-        944
-      ]
+        5300,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -417,34 +483,36 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        46880,
-        944
-      ]
+        5520,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Format RAG search results\nconst qdrantResponse = $input.first().json;\nconst contextData = $('Prepare RAG Search').first().json;\n\n// Safety check\nif (!qdrantResponse || !qdrantResponse.result || !Array.isArray(qdrantResponse.result)) {\n  console.warn('Qdrant returned no results:', qdrantResponse);\n  return [{\n    json: {\n      sessionId: contextData.sessionId,\n      qId: contextData.qId,\n      ragSources: [],\n      totalSources: 0,\n      questionIndex: contextData.questionIndex,\n      totalQuestions: contextData.totalQuestions\n    }\n  }];\n}\n\nconst ragSources = qdrantResponse.result.map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit.payload.standardName,\n  chunkIndex: hit.payload.chunkIndex,\n  relevanceScore: hit.score,\n  text: hit.payload.text,\n  excerpt: hit.payload.text.substring(0, 600),\n  metadata: hit.payload.metadata\n}));\n\nreturn [{\n  json: {\n    sessionId: contextData.sessionId,\n    qId: contextData.qId,\n    ragSources: ragSources,\n    totalSources: ragSources.length,\n    questionIndex: contextData.questionIndex,\n    totalQuestions: contextData.totalQuestions\n  }\n}];"
+        "jsCode": "const qdrantResponse = $input.first().json;\nconst contextData = $('Prepare RAG Search').item.json;\n\nconst ragSources = (qdrantResponse.result || []).map((hit, index) => ({\n  rank: index + 1,\n  standardName: hit?.payload?.standardName || 'Unknown',\n  chunkIndex: hit?.payload?.chunkIndex ?? null,\n  relevanceScore: hit?.score ?? 0,\n  text: hit?.payload?.text || '',\n  excerpt: (hit?.payload?.text || '').substring(0, 600),\n  metadata: hit?.payload?.metadata || null\n}));\n\nreturn [{\n  json: {\n    sessionId: contextData.sessionId,\n    qId: contextData.qId,\n    ragSources: ragSources,\n    totalSources: ragSources.length,\n    questionIndex: contextData.questionIndex,\n    totalQuestions: contextData.totalQuestions\n  }\n}];"
       },
       "id": "bea29f13-f2e9-4bf1-841d-23d3f3d4681e",
       "name": "Format RAG Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        47104,
-        944
-      ]
+        5740,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Build comprehensive AI prompt\nconst questionData = $('Extract Embedding').first().json;\nconst evidenceData = $('Consolidate Evidence Text').first().json;\nconst ragData = $('Format RAG Results').first().json;\n\n// Format RAG sources section\nconst ragSources = ragData.ragSources || [];\nconst ragSection = ragSources.length > 0 \n  ? ragSources.map((source, i) => \n      `${i+1}. [${source.standardName}] (Relevance: ${source.relevanceScore.toFixed(2)})\\n${source.excerpt}\\n`\n    ).join('\\n')\n  : 'No specific compliance standards found in knowledge base. Evaluate based on general industry best practices.';\n\n// Build master prompt\nconst prompt = `COMPLIANCE AUDIT EVALUATION\n\nQUESTION: ${questionData.questionText}\n\nINSTRUCTIONS: ${questionData.instructions || 'Evaluate based on industry best practices and standards.'}\n\nRELEVANT COMPLIANCE STANDARDS:\n${ragSection}\n\nEVIDENCE FROM SUBMITTED DOCUMENTS:\n${evidenceData.evidenceText}\n\n---\n\nEvaluate compliance with the question based on the provided evidence and standards.\nRespond in JSON format with the following structure:\n{\n  \"compliant\": boolean,\n  \"score\": 0-100,\n  \"confidence\": 0-100,\n  \"findings\": \"detailed description of what was found\",\n  \"evidence_summary\": \"specific references to evidence that supports the evaluation. CRITICAL: When referencing files, ONLY use the exact filenames provided in the '=== Evidence File: <filename> ===' headers above. DO NOT include internal system directories, temporary paths, or hallucinate filenames.\",\n  \"gaps\": [\"list of missing or insufficient elements\"],\n  \"recommendations\": [\"actionable improvements\"]\n}`;\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    prompt: prompt,\n    promptLength: prompt.length,\n    ragSources: ragSources,\n    sourceFiles: evidenceData.sourceFiles,\n    questionIndex: ragData.questionIndex,\n    totalQuestions: ragData.totalQuestions\n  }\n}];"
+        "jsCode": "// Build comprehensive AI prompt\nconst questionData = $('Extract Embedding').item.json;\nconst evidenceData = $('Consolidate Evidence Text').item.json;\nconst ragData = $('Format RAG Results').item.json;\n\n// Format RAG sources section\nconst ragSources = ragData.ragSources || [];\nconst ragSection = ragSources.length > 0 \n  ? ragSources.map((source, i) => \n      `${i+1}. [${source.standardName}] (Relevance: ${(source.relevanceScore || 0).toFixed(2)})\\n${source.excerpt}\\n`\n    ).join('\\n')\n  : 'No specific compliance standards found in knowledge base. Evaluate based on general industry best practices.';\n\n// Build master prompt\nconst prompt = `COMPLIANCE AUDIT EVALUATION\n\nQUESTION: ${questionData.questionText}\n\nINSTRUCTIONS: ${questionData.instructions || 'Evaluate based on industry best practices and standards.'}\n\nRELEVANT COMPLIANCE STANDARDS:\n${ragSection}\n\nEVIDENCE FROM SUBMITTED DOCUMENTS:\n${evidenceData.evidenceText}\n\n---\n\nEvaluate compliance with the question based on the provided evidence and standards.\nRespond in JSON format with the following structure:\n{\n  \"compliant\": boolean,\n  \"score\": 0-100,\n  \"confidence\": 0-100,\n  \"findings\": \"detailed description of what was found\",\n  \"evidence_summary\": \"specific references to evidence that supports the evaluation. CRITICAL: When referencing files, ONLY use the exact filenames provided in the '=== Evidence File: <filename> ===' headers above. DO NOT include internal system directories, temporary paths, or hallucinate filenames.\",\n  \"gaps\": [\"list of missing or insufficient elements\"],\n  \"recommendations\": [\"actionable improvements\"]\n}`;\n\nreturn [{\n  json: {\n    sessionId: evidenceData.sessionId,\n    qId: evidenceData.qId,\n    prompt: prompt,\n    promptLength: prompt.length,\n    ragSources: ragSources,\n    sourceFiles: evidenceData.sourceFiles,\n    questionIndex: ragData.questionIndex,\n    totalQuestions: ragData.totalQuestions\n  }\n}];"
       },
       "id": "92cdbdd0-8157-4bbe-9a27-8bec923892bf",
       "name": "Build AI Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        47328,
-        944
+        6180,
+        300
       ]
     },
     {
@@ -458,15 +526,16 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        47552,
-        944
+        6400,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -474,7 +543,7 @@
         "url": "http://ollama:11434/api/generate",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"llama3.2\",\n  \"prompt\": $('Build AI Prompt').first().json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000\n  }\n} }}",
+        "jsonBody": "={{ {\n  \"model\": \"mistral-nemo:12b-instruct-2407-q4_K_M\",\n  \"prompt\": $json.prompt,\n  \"format\": \"json\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.3,\n    \"num_ctx\": 32768,\n    \"num_predict\": 2000,\n    \"num_gpu\": 999,\n    \"num_thread\": 4\n  }\n} }}",
         "options": {
           "timeout": 600000
         }
@@ -484,21 +553,22 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        47776,
-        944
-      ]
+        6620,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Parse AI response and construct evaluation object\nconst aiResponse = $('Ollama: Evaluate Compliance').first().json.response;\nconst promptData = $('Build AI Prompt').first().json;\n\n// Extract sourceFiles from promptData (which came from Consolidate Evidence Text)\nconst sourceFiles = promptData.sourceFiles || [];\n\n// Build evidence summary using original filenames\nconst evidenceSummary = sourceFiles.length > 0\n  ? `Evidence files reviewed: ${sourceFiles.map(f => f.filename).join(', ')}`\n  : 'No evidence files provided';\n\nlet evaluation;\ntry {\n  // Try to parse as JSON first\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    evaluation = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (e) {\n  // Fallback: extract fields using regex\n  evaluation = {\n    score: parseInt(aiResponse.match(/score[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    compliant: /compliant[\"']?\\s*:\\s*true/i.test(aiResponse),\n    confidence: parseInt(aiResponse.match(/confidence[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    findings: aiResponse.match(/findings[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1] || 'Unable to parse findings',\n    gaps: [],\n    recommendations: []\n  };\n}\n\n// Override evidence_summary with original filenames\nevaluation.evidence_summary = evidenceSummary;\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    evaluation: evaluation,\n    rawResponse: aiResponse,\n    ragSources: promptData.ragSources || [],\n    sourceFiles: sourceFiles,  // Pass through for downstream nodes\n    promptLength: promptData.promptLength,\n    questionIndex: promptData.questionIndex,\n    totalQuestions: promptData.totalQuestions\n  }\n}];"
+        "jsCode": "const ollamaPayload = $input.first().json;\nconst promptData = $('Build AI Prompt').item.json;\n\nconst aiResponse = ollamaPayload.response || '';\nif (!aiResponse) {\n  throw new Error('Ollama returned empty response: ' + JSON.stringify(ollamaPayload).substring(0, 200));\n}\n\nconst sourceFiles = promptData.sourceFiles || [];\nconst evidenceSummary = sourceFiles.length > 0\n  ? 'Evidence files reviewed: ' + sourceFiles.map(f => f.filename).join(', ')\n  : 'No evidence files provided';\n\nlet evaluation;\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    try { evaluation = JSON.parse(jsonMatch[0]); } catch(e) { throw new Error('Failed to parse AI JSON response: ' + (jsonMatch[0] || '').substring(0, 200)); }\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (e) {\n  evaluation = {\n    score: parseInt(aiResponse.match(/score[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    compliant: /compliant[\"']?\\s*:\\s*true/i.test(aiResponse),\n    confidence: parseInt(aiResponse.match(/confidence[\"']?\\s*:\\s*(\\d+)/i)?.[1] || '0'),\n    findings: aiResponse.match(/findings[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1] || 'Unable to parse findings',\n    gaps: [],\n    recommendations: []\n  };\n}\n\nif (typeof evaluation.score !== 'number' || Number.isNaN(evaluation.score)) evaluation.score = 0;\nif (typeof evaluation.confidence !== 'number' || Number.isNaN(evaluation.confidence)) evaluation.confidence = 0;\nevaluation.evidence_summary = evidenceSummary;\n\nreturn [{\n  json: {\n    sessionId: promptData.sessionId,\n    qId: promptData.qId,\n    evaluation: evaluation,\n    rawResponse: aiResponse,\n    ragSources: promptData.ragSources || [],\n    sourceFiles: sourceFiles,\n    promptLength: promptData.promptLength,\n    questionIndex: promptData.questionIndex,\n    totalQuestions: promptData.totalQuestions\n  }\n}];"
       },
       "id": "c9d446b1-619b-490f-9afd-5c557e742fb0",
       "name": "Parse AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        48000,
-        944
+        6840,
+        300
       ]
     },
     {
@@ -512,8 +582,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48224,
-        944
+        7280,
+        150
       ],
       "credentials": {
         "postgres": {
@@ -524,21 +594,21 @@
     },
     {
       "parameters": {
-        "jsCode": "// After all questions complete, aggregate scores\n// Get evaluation data from Log Evaluation Result (works for both cached and non-cached paths)\nconst allResults = $input.all();\n\n// Safety check\nif (!allResults || allResults.length === 0) {\n  throw new Error('No question results to aggregate');\n}\n\nconsole.log('=== AGGREGATE SCORES DEBUG ===');\nconsole.log('Total results:', allResults.length);\n\n// Extract scores from the logged data\n// The data structure comes from either Parse AI Response or Format Cached Response\nconst scores = [];\nconst questionResults = [];\nlet sessionId = null;\n\nfor (const result of allResults) {\n  const data = result.json;\n  \n  // Get session ID from first result\n  if (!sessionId && data.sessionId) {\n    sessionId = data.sessionId;\n  }\n  \n  // Extract evaluation data\n  const evaluation = data.evaluation || {};\n  const score = evaluation.score || 0;\n  const compliant = evaluation.compliant || false;\n  \n  scores.push(score);\n  questionResults.push({\n    qId: data.qId,\n    score: score,\n    compliant: compliant,\n    fromCache: data.fromMasterCache || false\n  });\n  \n  console.log(`Question ${data.qId}: score=${score}, cached=${data.fromMasterCache || false}`);\n}\n\n// Calculate average score\nconst avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;\n\nif (!sessionId) {\n  console.error('SessionId is undefined! First result:', JSON.stringify(allResults[0].json, null, 2));\n  throw new Error('SessionId not found in evaluation results');\n}\n\nconsole.log(`Overall score: ${avgScore.toFixed(2)}`);\nconsole.log(`Cache hits: ${questionResults.filter(q => q.fromCache).length}/${questionResults.length}`);\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    overallScore: Math.round(avgScore * 100) / 100,\n    totalQuestions: allResults.length,\n    questionResults: questionResults,\n    cacheHits: questionResults.filter(q => q.fromCache).length,\n    cacheMisses: questionResults.filter(q => !q.fromCache).length\n  }\n}];"
+        "jsCode": "const allResults = $input.all();\n\nif (!allResults || allResults.length === 0) {\n  throw new Error('No question results to aggregate');\n}\n\nconsole.log('=== AGGREGATE SCORES DEBUG ===');\nconsole.log('Total results received:', allResults.length);\n\nconst scores = [];\nconst questionResults = [];\nlet sessionId = null;\nlet expectedTotal = 0;\n\nfor (const result of allResults) {\n  const data = result.json;\n  \n  if (!sessionId && data.sessionId) {\n    sessionId = data.sessionId;\n  }\n  if (!expectedTotal && data.totalQuestions) {\n    expectedTotal = data.totalQuestions;\n  }\n  \n  const evaluation = data.evaluation || {};\n  const score = evaluation.score || 0;\n  const compliant = evaluation.compliant || false;\n  \n  scores.push(score);\n  questionResults.push({\n    qId: data.qId,\n    score: score,\n    compliant: compliant,\n    fromCache: data.fromMasterCache || false\n  });\n}\n\nif (!sessionId) {\n  throw new Error('SessionId not found in evaluation results');\n}\n\n// CRITICAL FIX: Race Condition & Error Check\n// If the number of results reaching this node is less than the total questions,\n// it means at least one question failed and was routed to the error path!\n// We MUST NOT mark the session as completed in this case.\nif (allResults.length < expectedTotal) {\n  console.warn(`\\u26a0\\ufe0f Only ${allResults.length} / ${expectedTotal} questions reached Aggregate Scores.`);\n  console.warn('Session has likely already been marked FAILED by parallel error paths. Skipping completion update.');\n  return []; // Stops execution here\n}\n\nconst avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    overallScore: Math.round(avgScore * 100) / 100,\n    totalQuestions: expectedTotal,\n    questionResults: questionResults,\n    cacheHits: questionResults.filter(q => q.fromCache).length,\n    cacheMisses: questionResults.filter(q => !q.fromCache).length\n  }\n}];"
       },
       "id": "87e27c6e-dc45-4290-82e6-2643e2592a61",
       "name": "Aggregate Scores",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        48448,
-        944
+        7280,
+        300
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE audit_sessions SET\n  status = 'completed',\n  completed_at = NOW(),\n  answered_questions = {{ $json.totalQuestions }},\n  overall_compliance_score = {{ $json.overallScore }}\nWHERE session_id = '{{ $json.sessionId }}'::uuid;",
+        "query": "-- Only update if aggregation succeeded (sessionId exists)\nUPDATE audit_sessions SET\n  status = 'completed',\n  completed_at = NOW(),\n  answered_questions = {{ $json.totalQuestions }},\n  overall_compliance_score = {{ $json.overallScore }}\nWHERE session_id = '{{ $json.sessionId }}'::uuid AND '{{ $json.sessionId }}' != '';",
         "options": {}
       },
       "id": "6dbc7fd7-cce3-475f-a539-ee4765b23423",
@@ -546,15 +616,17 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48672,
-        944
+        7500,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -567,15 +639,17 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        48896,
-        944
+        7720,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -586,9 +660,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        49120,
-        944
-      ]
+        7940,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -601,15 +676,16 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        43536,
-        944
+        1540,
+        300
       ],
       "credentials": {
         "postgres": {
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -617,7 +693,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -639,8 +715,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        43760,
-        944
+        1760,
+        300
       ]
     },
     {
@@ -652,8 +728,161 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        43984,
-        1168
+        2000,
+        100
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE audit_sessions\nSET status = 'failed',\n    completed_at = NOW(),\n    metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(\n      'error', '{{ $json.errorMessage.replace(/'/g, \"''\") }}',\n      'failedNode', '{{ $json.failedNode }}',\n      'failedAt', '{{ $json.timestamp }}',\n      'technicalDetails', '{{ JSON.stringify($json.technicalDetails || {}).replace(/'/g, \"''\") }}'::jsonb\n    )\nWHERE '{{ $json.hasSessionId }}' = 'true'\n  AND session_id = '{{ $json.sessionId }}'::uuid\n  AND status IN ('queued', 'processing', 'pending');",
+        "options": {}
+      },
+      "id": "mark-session-failed-c2",
+      "name": "Mark Session Failed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        4800,
+        650
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_logs (session_id, step_name, status, message, percentage)\nSELECT '{{ $json.sessionId }}'::uuid,\n       'error',\n       'failed',\n       '{{ (\"Error in \" + $json.failedNode + \": \" + $json.errorMessage + \" | details: \" + JSON.stringify($json.technicalDetails || {})).replace(/'/g, \"''\").substring(0, 500) }}',\n       0\nWHERE '{{ $json.hasSessionId }}' = 'true';",
+        "options": {}
+      },
+      "id": "log-error-to-db-c2",
+      "name": "Log Error to DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        5050,
+        650
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "postgres-compliance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-native-error",
+              "leftValue": "={{ $json.error }}",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1bf8b122-7a77-4f36-ae9e-ec89f9c28418",
+      "name": "IF: Embedding Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5080,
+        300
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-native-error",
+              "leftValue": "={{ $json.error }}",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fdf6a1f3-86ca-4510-bde5-a6ce6346290e",
+      "name": "IF: Qdrant Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-native-error",
+              "leftValue": "={{ $json.error }}",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d7dfa2cb-b5a3-438c-b2f5-700781b207a4",
+      "name": "IF: Evaluation Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7060,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst nativeError = input.error || {};\nconst errMsg = nativeError.message || nativeError.description || JSON.stringify(nativeError).substring(0, 300) || 'Unknown external service error';\n\n// sessionId from upstream Split by Question (reliable regardless of which IF fired)\nlet sessionId = null;\ntry { sessionId = $('Split by Question').item.json.sessionId; } catch(e) {}\nif (!sessionId) try { sessionId = $('Parse Job (Exit if Empty)').first().json.sessionId; } catch(e) {}\n\nreturn [{\n  json: {\n    sessionId: sessionId || '',\n    hasSessionId: sessionId ? 'true' : 'false',\n    errorMessage: errMsg,\n    failedNode: nativeError.name || 'External Service',\n    technicalDetails: nativeError,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "prepare-error-data-node",
+      "name": "Prepare Error Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4650,
+        650
       ]
     }
   ],
@@ -780,7 +1009,36 @@
       "main": [
         [
           {
+            "node": "C2: Extraction OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C2: Extraction OK?": {
+      "main": [
+        [
+          {
             "node": "Combine Extraction Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Extraction Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Extraction Failed": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Data",
             "type": "main",
             "index": 0
           }
@@ -812,6 +1070,11 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Store Evidence to DB": {
+      "main": [
+        []
       ]
     },
     "Consolidate Evidence Text": {
@@ -862,7 +1125,7 @@
       "main": [
         [
           {
-            "node": "Extract Embedding",
+            "node": "IF: Embedding Error?",
             "type": "main",
             "index": 0
           }
@@ -895,7 +1158,7 @@
       "main": [
         [
           {
-            "node": "Format RAG Results",
+            "node": "IF: Qdrant Error?",
             "type": "main",
             "index": 0
           }
@@ -920,13 +1183,7 @@
             "node": "Update Log: Evaluating",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Log: Evaluating": {
-      "main": [
-        [
+          },
           {
             "node": "Ollama: Evaluate Compliance",
             "type": "main",
@@ -935,11 +1192,16 @@
         ]
       ]
     },
+    "Update Log: Evaluating": {
+      "main": [
+        []
+      ]
+    },
     "Ollama: Evaluate Compliance": {
       "main": [
         [
           {
-            "node": "Parse AI Response",
+            "node": "IF: Evaluation Error?",
             "type": "main",
             "index": 0
           }
@@ -1044,6 +1306,86 @@
           },
           {
             "node": "Aggregate Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Session Failed": {
+      "main": [
+        []
+      ]
+    },
+    "Log Error to DB": {
+      "main": [
+        []
+      ]
+    },
+    "IF: Embedding Error?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Qdrant Error?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format RAG Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Evaluation Error?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Data": {
+      "main": [
+        [
+          {
+            "node": "Mark Session Failed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Error to DB",
             "type": "main",
             "index": 0
           }

@@ -13,3 +13,4 @@ internal-files/
 .env*
 
 venv/
+.kiro/settings/mcp.json

@@ -1,0 +1,1713 @@
+{
+  "name": "Admin: Postgres Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "admin/db",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "admin-node-1",
+      "name": "Webhook: Admin",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        600
+      ],
+      "webhookId": "admin-db-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query || {};\nconst body = $input.first().json.body || {};\nconst op = query.op || body.op || 'counts';\nconst sessionId = query.session_id || body.session_id || '';\nconst limit = parseInt(query.limit || body.limit || '50', 10);\nconst table = query.table || body.table || '';\n\nreturn [{ json: { op, sessionId, limit, table } }];"
+      },
+      "id": "admin-node-2",
+      "name": "Extract Operation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        600
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-counts",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "counts",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-sessions",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "sessions",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-logs",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "logs",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-evidence",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "evidence",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-domains",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "domains",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-questions",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "questions",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-standards",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "standards",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-errors",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "errors",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-session_detail",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "session_detail",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-clear_logs",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "clear_logs",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-clear_evidence",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "clear_evidence",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-clear_sessions",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "clear_sessions",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-clear_standards",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "clear_standards",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-delete_session",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "delete_session",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "op-clear_all",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "clear_all",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "admin-node-3",
+      "name": "Route Operation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  (SELECT count(*) FROM audit_sessions) as sessions,\n  (SELECT count(*) FROM audit_logs) as logs,\n  (SELECT count(*) FROM audit_evidence) as evidence,\n  (SELECT count(*) FROM audit_domains) as domains,\n  (SELECT count(*) FROM audit_questions) as questions,\n  (SELECT count(*) FROM kb_standards) as kb_standards",
+        "options": {}
+      },
+      "id": "admin-node-4",
+      "name": "📊 Table Counts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        -400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'counts';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-5",
+      "name": "Fmt: counts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        -400
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-6",
+      "name": "Resp: counts",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT session_id, domain_id, status, initiated_by, \n  total_questions, answered_questions, overall_compliance_score,\n  started_at, completed_at\nFROM audit_sessions \nORDER BY started_at DESC \nLIMIT 50",
+        "options": {}
+      },
+      "id": "admin-node-7",
+      "name": "📋 List Sessions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        -200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'sessions';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-8",
+      "name": "Fmt: sessions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        -200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-9",
+      "name": "Resp: sessions",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT l.id, l.session_id, l.question_id, l.step_name, \n  l.status, l.message, l.percentage, l.created_at\nFROM audit_logs l\nORDER BY l.created_at DESC\nLIMIT 50",
+        "options": {}
+      },
+      "id": "admin-node-10",
+      "name": "📝 Recent Logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'logs';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-11",
+      "name": "Fmt: logs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        0
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-12",
+      "name": "Resp: logs",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT e.id, e.session_id, e.question_id, e.domain_id,\n  e.filename, e.file_hash, e.file_size_bytes, e.evidence_order, e.created_at\nFROM audit_evidence e\nORDER BY e.created_at DESC\nLIMIT 50",
+        "options": {}
+      },
+      "id": "admin-node-13",
+      "name": "📂 List Evidence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'evidence';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-14",
+      "name": "Fmt: evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-15",
+      "name": "Resp: evidence",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, created_at FROM audit_domains ORDER BY name",
+        "options": {}
+      },
+      "id": "admin-node-16",
+      "name": "🏢 List Domains",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'domains';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-17",
+      "name": "Fmt: domains",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        400
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-18",
+      "name": "Resp: domains",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT q.id, q.domain_id, d.name as domain_name, \n  q.specification_number, \n  LEFT(q.question_text, 120) as question_preview,\n  q.is_document_upload_enabled, q.is_cloud_sync_enabled\nFROM audit_questions q\nLEFT JOIN audit_domains d ON q.domain_id = d.id\nORDER BY d.name, q.specification_number\nLIMIT 100",
+        "options": {}
+      },
+      "id": "admin-node-19",
+      "name": "❓ List Questions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'questions';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-20",
+      "name": "Fmt: questions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        600
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-21",
+      "name": "Resp: questions",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.id, s.standard_name, s.domain_id, d.name as domain_name,\n  s.filename, s.total_chunks, s.uploaded_at\nFROM kb_standards s\nLEFT JOIN audit_domains d ON s.domain_id = d.id\nORDER BY s.uploaded_at DESC",
+        "options": {}
+      },
+      "id": "admin-node-22",
+      "name": "📚 KB Standards",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'standards';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-23",
+      "name": "Fmt: standards",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        800
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-24",
+      "name": "Resp: standards",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.session_id, s.status, s.started_at,\n  l.step_name, l.status as log_status, l.message,\n  l.ai_response->>'error' as ai_error,\n  l.created_at as log_time\nFROM audit_sessions s\nLEFT JOIN audit_logs l ON l.session_id = s.session_id AND l.status IN ('failed','error')\nWHERE s.status IN ('failed','error','pending')\nORDER BY s.started_at DESC\nLIMIT 30",
+        "options": {}
+      },
+      "id": "admin-node-25",
+      "name": "❌ Failed Sessions & Errors",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        1000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'errors';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-26",
+      "name": "Fmt: errors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        1000
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-27",
+      "name": "Resp: errors",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT l.id, l.question_id, l.step_name, l.status, \n  l.message, l.percentage, l.ai_response, l.created_at\nFROM audit_logs l\nWHERE l.session_id = $1\nORDER BY l.created_at ASC",
+        "options": {
+          "queryReplacement": "={{ $json.sessionId }}"
+        }
+      },
+      "id": "admin-node-28",
+      "name": "🔍 Session Detail",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'session_detail';\nconst isDangerous = false;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  \n  data: rows\n}}];"
+      },
+      "id": "admin-node-29",
+      "name": "Fmt: session_detail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        1200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-30",
+      "name": "Resp: session_detail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH deleted AS (DELETE FROM audit_logs RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
+        "options": {}
+      },
+      "id": "admin-node-31",
+      "name": "🗑️ Clear Logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        1400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'clear_logs';\nconst isDangerous = true;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  warning: 'Destructive operation executed',\n  data: rows\n}}];"
+      },
+      "id": "admin-node-32",
+      "name": "Fmt: clear_logs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        1400
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-33",
+      "name": "Resp: clear_logs",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH deleted AS (DELETE FROM audit_evidence RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
+        "options": {}
+      },
+      "id": "admin-node-34",
+      "name": "🗑️ Clear Evidence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        1600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'clear_evidence';\nconst isDangerous = true;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  warning: 'Destructive operation executed',\n  data: rows\n}}];"
+      },
+      "id": "admin-node-35",
+      "name": "Fmt: clear_evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        1600
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-36",
+      "name": "Resp: clear_evidence",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH deleted AS (DELETE FROM audit_sessions RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
+        "options": {}
+      },
+      "id": "admin-node-37",
+      "name": "🗑️ Clear Sessions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        1800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'clear_sessions';\nconst isDangerous = true;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  warning: 'Destructive operation executed',\n  data: rows\n}}];"
+      },
+      "id": "admin-node-38",
+      "name": "Fmt: clear_sessions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        1800
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-39",
+      "name": "Resp: clear_sessions",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH deleted AS (DELETE FROM kb_standards RETURNING 1) SELECT count(*) as deleted_count FROM deleted",
+        "options": {}
+      },
+      "id": "admin-node-40",
+      "name": "🗑️ Clear KB Standards",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        2000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'clear_standards';\nconst isDangerous = true;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  warning: 'Destructive operation executed',\n  data: rows\n}}];"
+      },
+      "id": "admin-node-41",
+      "name": "Fmt: clear_standards",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        2000
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-42",
+      "name": "Resp: clear_standards",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH del_logs AS (DELETE FROM audit_logs WHERE session_id = $1 RETURNING 1),\n     del_evidence AS (DELETE FROM audit_evidence WHERE session_id = $1 RETURNING 1),\n     del_session AS (DELETE FROM audit_sessions WHERE session_id = $1 RETURNING 1)\nSELECT \n  (SELECT count(*) FROM del_logs) as logs_deleted,\n  (SELECT count(*) FROM del_evidence) as evidence_deleted,\n  (SELECT count(*) FROM del_session) as sessions_deleted",
+        "options": {
+          "queryReplacement": "={{ $json.sessionId }}"
+        }
+      },
+      "id": "admin-node-43",
+      "name": "🗑️ Delete Session by ID",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        2200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'delete_session';\nconst isDangerous = true;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  warning: 'Destructive operation executed',\n  data: rows\n}}];"
+      },
+      "id": "admin-node-44",
+      "name": "Fmt: delete_session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        2200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-45",
+      "name": "Resp: delete_session",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        2200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH del_logs AS (DELETE FROM audit_logs RETURNING 1),\n     del_evidence AS (DELETE FROM audit_evidence RETURNING 1),\n     del_sessions AS (DELETE FROM audit_sessions RETURNING 1)\nSELECT\n  (SELECT count(*) FROM del_logs) as logs_deleted,\n  (SELECT count(*) FROM del_evidence) as evidence_deleted,\n  (SELECT count(*) FROM del_sessions) as sessions_deleted",
+        "options": {}
+      },
+      "id": "admin-node-46",
+      "name": "🗑️ CLEAR ALL (Nuclear)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        2400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3ME8TvhWnolXkgqg",
+          "name": "Compliance DB"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst op = 'clear_all';\nconst isDangerous = true;\n\n// Check for error from Postgres\nif (rows.length === 1 && rows[0].error) {\n  return [{ json: { \n    operation: op, \n    status: 'error', \n    error: rows[0].error,\n    message: rows[0].message || 'Query failed'\n  }}];\n}\n\nreturn [{ json: {\n  operation: op,\n  status: 'success',\n  rowCount: rows.length,\n  warning: 'Destructive operation executed',\n  data: rows\n}}];"
+      },
+      "id": "admin-node-47",
+      "name": "Fmt: clear_all",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        2400
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "admin-node-48",
+      "name": "Resp: clear_all",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        2400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  status: 'error',\n  error: 'Unknown operation: ' + $json.op,\n  availableOperations: [\"counts\",\"sessions\",\"logs\",\"evidence\",\"domains\",\"questions\",\"standards\",\"errors\",\"session_detail\",\"clear_logs\",\"clear_evidence\",\"clear_sessions\",\"clear_standards\",\"delete_session\",\"clear_all\"],\n  examples: [\n    'GET /webhook/admin/db?op=counts',\n    'GET /webhook/admin/db?op=sessions',\n    'GET /webhook/admin/db?op=logs&limit=50',\n    'GET /webhook/admin/db?op=evidence',\n    'GET /webhook/admin/db?op=domains',\n    'GET /webhook/admin/db?op=questions',\n    'GET /webhook/admin/db?op=standards',\n    'GET /webhook/admin/db?op=errors',\n    'GET /webhook/admin/db?op=session_detail&session_id=UUID',\n    'POST /webhook/admin/db { \"op\": \"clear_logs\" }',\n    'POST /webhook/admin/db { \"op\": \"clear_evidence\" }',\n    'POST /webhook/admin/db { \"op\": \"clear_sessions\" }',\n    'POST /webhook/admin/db { \"op\": \"clear_standards\" }',\n    'POST /webhook/admin/db { \"op\": \"delete_session\", \"session_id\": \"UUID\" }',\n    'POST /webhook/admin/db { \"op\": \"clear_all\" }'\n  ]\n}}];"
+      },
+      "id": "admin-node-49",
+      "name": "Unknown Operation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        2600
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "admin-node-50",
+      "name": "Resp: unknown",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        2600
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "error-trigger-admin",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        2800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconst errorMessage = error.message || error.error?.message || 'Unknown admin error';\nconst nodeName = error.node?.name || 'Unknown';\nreturn [{ json: {\n  error: errorMessage,\n  errorCode: 'ADMIN_DB_ERROR',\n  failedNode: nodeName,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "admin-node-51",
+      "name": "Format Admin Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        2800
+      ],
+      "continueOnFail": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Admin": {
+      "main": [
+        [
+          {
+            "node": "Extract Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Operation": {
+      "main": [
+        [
+          {
+            "node": "Route Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Operation": {
+      "main": [
+        [
+          {
+            "node": "📊 Table Counts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📋 List Sessions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Recent Logs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📂 List Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🏢 List Domains",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "❓ List Questions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📚 KB Standards",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "❌ Failed Sessions & Errors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🔍 Session Detail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🗑️ Clear Logs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🗑️ Clear Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🗑️ Clear Sessions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🗑️ Clear KB Standards",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🗑️ Delete Session by ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🗑️ CLEAR ALL (Nuclear)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Table Counts": {
+      "main": [
+        [
+          {
+            "node": "Fmt: counts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: counts": {
+      "main": [
+        [
+          {
+            "node": "Resp: counts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 List Sessions": {
+      "main": [
+        [
+          {
+            "node": "Fmt: sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: sessions": {
+      "main": [
+        [
+          {
+            "node": "Resp: sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Recent Logs": {
+      "main": [
+        [
+          {
+            "node": "Fmt: logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: logs": {
+      "main": [
+        [
+          {
+            "node": "Resp: logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📂 List Evidence": {
+      "main": [
+        [
+          {
+            "node": "Fmt: evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: evidence": {
+      "main": [
+        [
+          {
+            "node": "Resp: evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🏢 List Domains": {
+      "main": [
+        [
+          {
+            "node": "Fmt: domains",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: domains": {
+      "main": [
+        [
+          {
+            "node": "Resp: domains",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❓ List Questions": {
+      "main": [
+        [
+          {
+            "node": "Fmt: questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: questions": {
+      "main": [
+        [
+          {
+            "node": "Resp: questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📚 KB Standards": {
+      "main": [
+        [
+          {
+            "node": "Fmt: standards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: standards": {
+      "main": [
+        [
+          {
+            "node": "Resp: standards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❌ Failed Sessions & Errors": {
+      "main": [
+        [
+          {
+            "node": "Fmt: errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: errors": {
+      "main": [
+        [
+          {
+            "node": "Resp: errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Session Detail": {
+      "main": [
+        [
+          {
+            "node": "Fmt: session_detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: session_detail": {
+      "main": [
+        [
+          {
+            "node": "Resp: session_detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ Clear Logs": {
+      "main": [
+        [
+          {
+            "node": "Fmt: clear_logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: clear_logs": {
+      "main": [
+        [
+          {
+            "node": "Resp: clear_logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ Clear Evidence": {
+      "main": [
+        [
+          {
+            "node": "Fmt: clear_evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: clear_evidence": {
+      "main": [
+        [
+          {
+            "node": "Resp: clear_evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ Clear Sessions": {
+      "main": [
+        [
+          {
+            "node": "Fmt: clear_sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: clear_sessions": {
+      "main": [
+        [
+          {
+            "node": "Resp: clear_sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ Clear KB Standards": {
+      "main": [
+        [
+          {
+            "node": "Fmt: clear_standards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: clear_standards": {
+      "main": [
+        [
+          {
+            "node": "Resp: clear_standards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ Delete Session by ID": {
+      "main": [
+        [
+          {
+            "node": "Fmt: delete_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: delete_session": {
+      "main": [
+        [
+          {
+            "node": "Resp: delete_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ CLEAR ALL (Nuclear)": {
+      "main": [
+        [
+          {
+            "node": "Fmt: clear_all",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fmt: clear_all": {
+      "main": [
+        [
+          {
+            "node": "Resp: clear_all",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown Operation": {
+      "main": [
+        [
+          {
+            "node": "Resp: unknown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Admin Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "admin-db-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

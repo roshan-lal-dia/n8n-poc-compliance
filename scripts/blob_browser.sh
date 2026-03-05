@@ -54,6 +54,9 @@ cmd_help() {
     dl     <container> <blob-path> [dest]    Download a single blob
     dlall  <container> [prefix]   [dest]     Download all blobs (optionally filtered)
 
+  Flags:
+    --export [file]                         Export output from ls command to file
+
   Examples:
     ./scripts/blob_browser.sh ls compliance
     ./scripts/blob_browser.sh ls compliance compliance_assessment/
@@ -62,6 +65,7 @@ cmd_help() {
     ./scripts/blob_browser.sh url    compliance compliance_assessment/.../dummy.pdf
     ./scripts/blob_browser.sh dl     compliance compliance_assessment/.../dummy.pdf ~/downloads
     ./scripts/blob_browser.sh dlall  compliance compliance_assessment/09318e2b-.../ ~/downloads
+    ./scripts/blob_browser.sh --export blobs.txt ls compliance compliance_assessment/
 
 HELP
 }
@@ -73,9 +77,24 @@ cmd_ls() {
   local URL="${BASE_URL}/${CONTAINER}?restype=container&comp=list&maxresults=500"
   [ -n "$PREFIX" ] && URL="${URL}&prefix=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe='/'))" "$PREFIX")"
   URL="${URL}&${SAS}"
+
+  local LISTING
+  LISTING=$(curl -sf "$URL" | python3 ${SCRIPT_DIR}/_blob_parse.py ls)
+
   echo "  ${CONTAINER}/${PREFIX:-}"
   echo ""
-  curl -sf "$URL" | python3 ${SCRIPT_DIR}/_blob_parse.py ls
+  printf "%s\n" "$LISTING"
+
+  if [ "${EXPORT_LS:-0}" = "1" ]; then
+    local OUT_FILE="${EXPORT_FILE:-blob_ls_$(date +%Y%m%d_%H%M%S).txt}"
+    {
+      echo "  ${CONTAINER}/${PREFIX:-}"
+      echo ""
+      printf "%s\n" "$LISTING"
+    } > "$OUT_FILE"
+    echo ""
+    echo "Exported ls output -> ${OUT_FILE}"
+  fi
 }
 
 cmd_tree() {
@@ -202,7 +221,44 @@ for b in root.findall(f'.//{ns}Name'):
   echo "Done: ${COUNT} downloaded, ${FAIL} failed  ->  ${DEST_DIR}"
 }
 
+EXPORT_LS=0
+EXPORT_FILE=""
+PARSED_ARGS=()
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --export)
+      EXPORT_LS=1
+      if [ $# -gt 1 ] && [[ "$2" != -* ]]; then
+        EXPORT_FILE="$2"
+        shift
+      fi
+      ;;
+    --export=*)
+      EXPORT_LS=1
+      EXPORT_FILE="${1#--export=}"
+      ;;
+    --*)
+      echo "Unknown flag: $1"
+      cmd_help
+      exit 1
+      ;;
+    *)
+      PARSED_ARGS+=("$1")
+      ;;
+  esac
+  shift
+done
+
+set -- "${PARSED_ARGS[@]}"
+
 COMMAND="${1:-help}"; shift 2>/dev/null || true
+
+if [ "$EXPORT_LS" = "1" ] && [[ ! "$COMMAND" =~ ^(ls|list|help|--help|-h)$ ]]; then
+  echo "--export is only supported with ls/list"
+  exit 1
+fi
+
 case "$COMMAND" in
   ls|list)        cmd_ls "$@" ;;
   tree)           cmd_tree "$@" ;;

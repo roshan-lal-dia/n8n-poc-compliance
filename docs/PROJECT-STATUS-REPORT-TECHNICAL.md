@@ -12,14 +12,14 @@ The NPC Compliance AI Document Intelligence System is an operational AI-powered 
 
 **Key Capabilities:**
 - **6 Operational Workflows:** Handles extraction, ingestion, and background evaluation.
-- **Microservices Architecture:** 6 containerized services orchestrated via Docker Compose.
+- **Microservices Architecture:** 6 cleanly decoupled containerized services orchestrated via Docker Compose.
 - **Compliance Scope:** 159 audit questions across 12 domains.
 - **AI/ML Engine:** GPU-accelerated inference utilizing Mistral Nemo 12B and Florence-2-large-ft.
 - **Caching Layer:** Master caching system bypassing redundant evaluations.
 
 ---
 
-## 1. System Architecture
+## 1. System Architecture Overview
 
 ### 1.1 High-Level Architecture
 
@@ -46,42 +46,53 @@ The system implements an asynchronous job queue architecture with six specialize
                     └──────────┘               └──────────────┘
 ```
 
-### 1.2 Container & Service Architecture
+---
+
+## 2. Microservices Deep-Dive
 
 The system is deployed as a suite of 6 tightly integrated Docker containers managed via Docker Compose (`docker-compose.prod.yml`), operating on a dedicated bridge network (`compliance-network`).
 
-1. **`n8n` (Workflow Orchestrator):**
-   - **Role:** Main execution engine controlling the 6 workflow pipelines.
-   - **Custom Build:** Extends Alpine with Python, poppler-utils (`pdftoppm`), LibreOffice, and OpenJDK 11 for robust local document parsing.
-   - **Ports:** `5678`
-2. **`postgres` (Relational Database):**
-   - **Role:** Central application state, session persistence, caching layer, and execution logs.
-   - **Ports:** `5432`
-3. **`qdrant` (Vector Database):**
-   - **Role:** Scalable vector search engine for the Knowledge Base. Operates with 768-dimensional embeddings to perform hybrid similarity RAG searches.
-   - **Ports:** `6333`
-4. **`redis` (Job Queue Node):**
-   - **Role:** Asynchronous job delegation between synchronous HTTP webhooks and background worker jobs. Binds API requests to LLM evaluation execution smoothly.
-   - **Ports:** `6379`
-5. **`ollama` (AI LLM & Embedding Engine):**
-   - **Role:** GPU-accelerated inference loading `Mistral Nemo 12B` and `nomic-embed-text`. 
-   - **Resources:** Provisions 1 NVIDIA GPU logic via passthrough.
-   - **Ports:** `11434`
-6. **`florence` (Vision / OCR Service):**
-   - **Role:** Specialized custom Python Flask sidecar serving HTTP requests from n8n to analyze diagram layout and perform OCR utilizing `Florence-2-large-ft`.
-   - **Resources:** Provisions 1 NVIDIA GPU logic via passthrough.
-   - **Ports:** `5000`
+### 2.1 n8n (Workflow Orchestrator)
+- **Role:** Main execution engine orchestrating API logic and background workers.
+- **Dockerfile / Build:** Extends the official Alpine/Node image. It is heavily customized to install `python3`, `poppler-utils` (`pdftoppm`), `libreoffice`, and `openjdk11`. This allows the workflow to natively execute Python scripts, parse Excel rules, and convert DOCX/PPTX to PDF/Images immediately without external dependencies.
+- **Binary Handling:** Configured with `N8N_DEFAULT_BINARY_DATA_MODE=filesystem` to prevent database bloat, cleanly streaming binaries to memory or isolated disk volumes.
+- **Ports:** `5678`
+
+### 2.2 Qdrant (Targeted Vector Database)
+- **Role:** High-performance vector search engine for the Knowledge Base.
+- **Container Details:** Utilizes `qdrant/qdrant:latest` operating natively via Docker volumes.
+- **Configuration:** Operates on 768-dimensional embeddings formatted by our chosen text models. Designed to answer multi-dimensional similarity mapping queries. 
+- **Ports:** Exposes `6333` for REST payload execution and `6334` for internal gRPC configuration.
+
+### 2.3 Florence AI (Vision & OCR Sidecar)
+- **Role:** Dedicated visual model resolving diagram layouts and processing dense document OCR.
+- **Dockerfile / Build:** A custom Docker build located in `./florence-service`. Utilizes a `python:3.10-slim` base, natively installing `PyTorch`, `flash_attn`, and Azure-compatible CUDA dependencies. Wraps Microsoft's `Florence-2-large-ft` within a lightweight Flask API (`app.py`).
+- **GPU Interface:** Provisions 1 NVIDIA GPU logic exclusively via Docker `deploy.resources.reservations`.
+- **Integration:** Avoids HTTP base64 payload limitations by natively sharing a mounted volume (`/tmp/n8n_processing`) with n8n.
+- **Ports:** `5000`
+
+### 2.4 Ollama (AI LLM & Embedding Engine)
+- **Role:** Standalone provider for Local Language Inference (`Mistral Nemo 12B`) and Vector Embedding generation (`nomic-embed-text`).
+- **Container Details:** Employs the `ollama/ollama:latest` distribution.
+- **Initialization & Scaling:** Features a specialized entrypoint script (`/bin/ollama serve & sleep 5; /bin/ollama pull mistral-nemo:12b-instruct-2407-q4_K_M; ...`) ensuring models are bootstrapped automatically upon container spin-up.
+- **Hardware Profile:** Configured for unlimited tensor layers (`OLLAMA_GPU_LAYERS=999`) across logical device `CUDA_VISIBLE_DEVICES=0`.
+- **Ports:** `11434`
+
+### 2.5 PostgreSQL & Redis (State & Queuing)
+- **PostgreSQL (`16-alpine`):** The primary relational pivot. Employs `docker-entrypoint-initdb.d` mapping to auto-seed table clusters natively on creation. Manages audit contexts, logs, master execution caches, and granular evidence mappings.
+- **Redis (`7-alpine`):** Provides durable async job delegation. Bound strictly by Docker memory guardrails (`--maxmemory 512mb --maxmemory-policy allkeys-lru`) protecting orchestration from pipeline overflows during concurrent submission spikes.
+- **Ports:** PG `5432` | Redis `6379`
 
 ---
 
-## 2. Infrastructure & Deployment Strategy
+## 3. Infrastructure & Deployment Strategy
 
-### 2.1 Azure Environments & Network
+### 3.1 Azure Environments & Network
 - **Deployment Hub:** Azure Virtual Machine (`NV36ads A10 v5`). Single monolithic instance handles all application concerns for minimized latency and secure data boundaries. Requires Azure GRID vGPU drivers for proper NVIDIA container passthrough.
 - **Persistent Object Store:** Azure Blob Storage (`stcompdldevqc01`) acts as the external cold-store for heavy compliance evidence files and template artifacts.
 - **External Integration Database:** A secure, read-only Azure PostgreSQL external instance fetches dynamic compliance domains and question properties syncs.
 
-### 2.2 Docker Volume Binding
+### 3.2 Docker Volume Binding
 Volumes map to host storage to ensure persistent state handling independently from the application logic:
 - `n8n_data`: Core encrypted webhook and execution metadata.
 - `postgres_data`: Table data structures.
@@ -92,7 +103,7 @@ Volumes map to host storage to ensure persistent state handling independently fr
 
 ---
 
-## 3. Workflow Definitions
+## 4. Workflow Definitions
 
 The n8n system logic is divided into 6 distinct pipelines to handle synchronous endpoints and background processing efficiently:
 
@@ -116,9 +127,9 @@ The n8n system logic is divided into 6 distinct pipelines to handle synchronous 
 
 ---
 
-## 4. Data & Storage Model
+## 5. Data & Storage Model
 
-### 4.1 PostgreSQL (compliance_db)
+### 5.1 PostgreSQL (compliance_db)
 Central hub for maintaining session state, caching, and entity modeling:
 - `audit_domains`, `audit_questions`: Domain mappings and evaluation rules.
 - `audit_evidence`: Retains exact uploaded user evidence and metadata. 
@@ -126,29 +137,29 @@ Central hub for maintaining session state, caching, and entity modeling:
 - `audit_sessions`: Root session objects denoting state (`pending`, `processing`, `completed`, `failed`).
 - `kb_standards`: Deduplicated compliance standard chunks.
 
-### 4.2 Azure Blob Storage
+### 5.2 Azure Blob Storage
 - **Account:** `stcompdldevqc01`
 - **Container Target:** `complianceblobdev`
 - Maintains user-uploaded evidence (`compliance_assessment/`), domain guidelines (`guidelines/`), and question templates. Fetches are secured at runtime via restricted SAS tokens scoped to individual extraction executions.
 
 ---
 
-## 5. Performance & Processing Metrics
+## 6. Performance & Processing Metrics
 
 Significant optimization targets have been achieved by implementing a master caching layer.
 
-### 5.1 Processing Throughput
+### 6.1 Processing Throughput
 - **With GPU Compute:** 17 seconds per file processing. 
 - **Without GPU:** 2 minutes 45 seconds per file processing. 
 - **Cache Hit Optimization:** ~100ms response time on cache hit (bypassing full extraction, RAG, and LLM evaluations via SHA-256 evidence hashing lookup).
 
-### 5.2 Compute Resource Allocation (Azure NV36ads A10 v5)
+### 6.2 Compute Resource Allocation (Azure NV36ads A10 v5)
 - **Available VRAM:** 24 GB
 - **Allocated Usage:** ~13.8 GB (Mistral 12B Q4_K_M + Florence-2 ft fits comfortably).
 
 ---
 
-## 6. File Operations & Security Standards
+## 7. File Operations & Security Standards
 
 - **Temporary Persistence:** Isolated to `/tmp/n8n_processing/`. Dynamically purged.
 - **Concurrency Isolation:** Implementation guarantees no static filenames (e.g., `input.pdf`) are utilized across multi-tenant execution. File operations exclusively use auto-generated prefixed paths (e.g., `{{unique_prefix}}filename.ext`) preventing collision.
@@ -157,5 +168,5 @@ Significant optimization targets have been achieved by implementing a master cac
 
 ---
 
-## 7. Current Deployment Status
+## 8. Current Deployment Status
 The architecture successfully processes concurrent audit flows end-to-end, fetching remote Azure Blobs natively, mapping to local Docker storage mechanisms, running OCR/Vision AI on the fly, and performing robust embedding analysis via standalone microservices. The application is functionally scaled and structurally sound for enterprise workload orchestration.

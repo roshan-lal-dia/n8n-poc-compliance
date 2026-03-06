@@ -381,7 +381,8 @@
           "id": "3ME8TvhWnolXkgqg",
           "name": "postgres-compliance"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -884,6 +885,51 @@
         4650,
         650
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-question-found",
+              "leftValue": "={{ $json.id }}",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-question-found-node-001",
+      "name": "IF: Question Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const questionData = $('Consolidate Evidence Text').first().json;\nconst qId = questionData.qId || 'unknown';\nconst sessionId = questionData.sessionId || '';\n\nreturn [{\n  json: {\n    sessionId: sessionId,\n    hasSessionId: sessionId ? 'true' : 'false',\n    errorMessage: 'Question not found or has no instructions in the knowledge base (qId: ' + qId + '). This question is not configured in the system - cannot proceed with compliance evaluation.',\n    failedNode: 'Load Question',\n    technicalDetails: { qId: qId, domain: questionData.domain },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "prepare-qnf-error-node-001",
+      "name": "Prepare Question Not Found Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4100,
+        650
+      ]
     }
   ],
   "pinData": {},
@@ -1092,7 +1138,7 @@
       "main": [
         [
           {
-            "node": "Update Log: Searching",
+            "node": "IF: Question Found?",
             "type": "main",
             "index": 0
           }
@@ -1377,6 +1423,40 @@
       ]
     },
     "Prepare Error Data": {
+      "main": [
+        [
+          {
+            "node": "Mark Session Failed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Error to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Question Found?": {
+      "main": [
+        [
+          {
+            "node": "Update Log: Searching",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Question Not Found Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Question Not Found Error": {
       "main": [
         [
           {
